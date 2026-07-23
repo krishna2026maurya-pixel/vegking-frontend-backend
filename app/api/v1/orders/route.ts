@@ -52,14 +52,17 @@ async function placeOrder(request: NextRequest, userId: string) {
     
     // 1. Create the Order first
     const order = new Order({
-      order_number: orderNumber,
-      user_id: userId,
-      total_amount: total_amount || 0,
+      order_number:  orderNumber,
+      user_id:       userId,
+      address_id:    address_id || null,
+      total_amount:  total_amount || 0,
       delivery_charge: delivery_charge || 0,
-      payment_method: payment_method || 'COD',
-      payment_status: 'pending',
-      status: 0, // Pending status
-      items: []
+      payment_method:  payment_method || 'COD',
+      payment_status:  'pending',
+      status:        0,                  // legacy numeric
+      orderStatus:   'Order Placed',     // new string status
+      statusHistory: [{ status: 'Order Placed', updatedAt: new Date(), updatedBy: null }],
+      items:         []
     });
     
     await order.save();
