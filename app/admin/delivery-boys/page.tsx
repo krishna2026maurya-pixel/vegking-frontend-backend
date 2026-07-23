@@ -50,7 +50,7 @@ export default function DeliveryBoysPage() {
   const toggleVerify = async (boy: DeliveryBoy) => {
     try {
       const newVal = boy.is_verified === '1' ? '0' : '1';
-      await fetch(`/api/delivery-boys/${boy._id}`, {
+      await fetch(`/api/s/${boy._id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_verified: newVal }),
@@ -95,7 +95,7 @@ export default function DeliveryBoysPage() {
   ];
 
   const actions: Action<DeliveryBoy>[] = [
-    { label: 'View', icon: <Eye size={15} />, onClick: (row) => window.open(`/admin/delivery-boys/${row._id}`, '_blank'), color: 'default' },
+    { label: 'View', icon: <Eye size={15} />, onClick: (row) => window.open(`/admin/s/${row._id}`, '_blank'), color: 'default' },
     { label: 'Toggle Verify', icon: <UserCheck size={15} />, onClick: toggleVerify, color: 'success' },
     {
       label: 'Delete', icon: <Trash2 size={15} />, color: 'danger',
