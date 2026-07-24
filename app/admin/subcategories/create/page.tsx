@@ -17,7 +17,7 @@ export default function CreateSubcategoryPage() {
   const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch('/api/categories?limit=200').then(r => r.json()).then(j => setCategories(j.data || []));
+    fetch(`/api/categories?limit=200`).then(r => r.json()).then(j => setCategories(j.data || []));
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -32,7 +32,7 @@ export default function CreateSubcategoryPage() {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const res = await fetch(`/api/upload`, { method: 'POST', body: fd });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       setImageUrl(json.url);
@@ -43,7 +43,7 @@ export default function CreateSubcategoryPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true); setError('');
     try {
-      const res = await fetch('/api/subcategories', {
+      const res = await fetch(`/api/subcategories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, image: imageUrl }),

@@ -8,9 +8,9 @@ async function getWishlist(request: NextRequest, userId: string) {
   try {
     await connectDB();
     const data = await Wishlist.find({ user_id: userId }).populate('product_id');
-    return NextResponse.json({ data });
+    return NextResponse.json({ success: true, data });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
 

@@ -5,6 +5,7 @@ import Cart from '@/lib/models/Cart';
 import Wishlist from '@/lib/models/Wishlist';
 import { getUserIdFromRequest } from '@/lib/auth';
 import mongoose from 'mongoose';
+import Category from '@/lib/models/Category';
 
 /**
  * GET /api/v1/products          → product list (with optional filters)
@@ -27,10 +28,24 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category')    || '';
     const brand    = searchParams.get('brand')       || '';
 
+    const category_id = searchParams.get('category_id') || '';
+
     const query: any = { is_active: '1' };
     if (search)   query.product_name = { $regex: search, $options: 'i' };
     if (category) query.category     = { $regex: category, $options: 'i' };
     if (brand)    query.brand        = { $regex: brand, $options: 'i' };
+
+    if (category_id) {
+        if (mongoose.Types.ObjectId.isValid(category_id)) {
+            const catDoc = await Category.findById(category_id).lean();
+            if (catDoc && (catDoc as any).name) {
+                query.category = { $regex: (catDoc as any).name, $options: 'i' };
+            }
+        } else if (category_id.toLowerCase() !== 'all') {
+            // Fallback just in case a string name/slug is passed instead of ObjectId
+            query.category = { $regex: category_id, $options: 'i' };
+        }
+    }
 
     const [data, total] = await Promise.all([
       Product.find(query).skip((page - 1) * limit).limit(limit).lean(),

@@ -26,10 +26,10 @@ export default function EditProductPage() {
   const [vendors, setVendors] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch('/api/category-types?limit=100').then(r => r.json()).then(j => setCategoryTypes(j.data || []));
-    fetch('/api/categories?limit=200').then(r => r.json()).then(j => setCategories(j.data || []));
-    fetch('/api/subcategories?limit=200').then(r => r.json()).then(j => setSubcategories(j.data || []));
-    fetch('/api/vendors?limit=100').then(r => r.json()).then(j => setVendors(j.data || []));
+    fetch(`/api/category-types?limit=100`).then(r => r.json()).then(j => setCategoryTypes(j.data || []));
+    fetch(`/api/categories?limit=200`).then(r => r.json()).then(j => setCategories(j.data || []));
+    fetch(`/api/subcategories?limit=200`).then(r => r.json()).then(j => setSubcategories(j.data || []));
+    fetch(`/api/vendors?limit=100`).then(r => r.json()).then(j => setVendors(j.data || []));
   }, []);
 
   const [form, setForm] = useState({
@@ -121,7 +121,7 @@ export default function EditProductPage() {
         fd.append('file', files[i]);
       }
 
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const res = await fetch(`/api/upload`, { method: 'POST', body: fd });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
 

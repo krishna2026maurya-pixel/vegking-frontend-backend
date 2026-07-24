@@ -23,11 +23,12 @@ export async function GET(request: NextRequest) {
     ]);
 
     return NextResponse.json({
+      success: true,
       data: boys,
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) }
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
@@ -36,8 +37,8 @@ export async function POST(request: NextRequest) {
     await connectDB();
     const body = await request.json();
     const boy = await DeliveryBoy.create(body);
-    return NextResponse.json({ data: boy }, { status: 201 });
+    return NextResponse.json({ success: true, data: boy }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

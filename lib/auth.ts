@@ -48,6 +48,9 @@ export function verifyToken(token: string): any | null {
 export function getUserIdFromRequest(request: NextRequest): string | null {
   const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (process.env.NODE_ENV === 'development') {
+      return '64c123456789012345678901'; // Dummy user ID for local development
+    }
     return null;
   }
   const token = authHeader.substring(7);

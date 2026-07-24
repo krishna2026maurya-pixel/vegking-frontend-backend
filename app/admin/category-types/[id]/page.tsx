@@ -55,7 +55,7 @@ export default function EditCategoryTypePage() {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const res = await fetch(`/api/upload`, { method: 'POST', body: fd });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       setImageUrl(json.url);

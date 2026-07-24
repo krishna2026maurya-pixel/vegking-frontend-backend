@@ -45,11 +45,12 @@ export async function GET() {
     }
 
     return NextResponse.json({
+      success: true,
       stats: { totalRevenue: revenueResult[0]?.total ?? 0, todayOrders, pendingOrders, totalOrders, totalVendors, totalProducts, totalUsers, totalDeliveryBoys },
       latestOrders,
       chart: { labels: chartLabels, data: chartData },
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

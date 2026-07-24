@@ -3,33 +3,79 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Leaf, LogIn, Mail, Lock, Loader2, ShieldCheck, Truck } from 'lucide-react';
+import { Leaf, LogIn, Phone, Lock, Loader2, ShieldCheck, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [mobileNo, setMobileNo] = useState('');
+  const [otp, setOtp] = useState('');
+  const [step, setStep] = useState<'mobile' | 'otp'>('mobile');
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!mobileNo || mobileNo.length < 10) {
+      setError('Please enter a valid mobile number');
+      return;
+    }
     setLoading(true);
     setError('');
+    setMessage('');
 
-    // DUMMY LOGIN LOGIC
-    setTimeout(() => {
-      if (email === 'admin@veggiemart.com' && password === 'admin123') {
-        router.push('/admin');
-      } else if (email === 'user@gmail.com' && password === '123456') {
-        router.push('/profile');
-      } else {
-        setError('Invalid credentials. Try admin@veggiemart.com / admin123');
-      }
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/v1/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile_no: mobileNo })
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+
+      setMessage(data.message || 'OTP sent successfully! Demo OTP: 1234');
+      setStep('otp');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otp || otp.length < 4) {
+      setError('Please enter a valid OTP');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/v1/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile_no: mobileNo, otp })
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Failed to verify OTP');
+
+      // Store token (e.g. localStorage)
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+
+      router.push('/user/dashboard');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -102,36 +148,45 @@ export default function LoginPage() {
                 Enter your credentials to access your account.
               </p>
 
+              {message && (
+                <div className="mt-3 border border-green-100 bg-green-50 p-3 text-xs font-semibold text-green-600">
+                  {message}
+                </div>
+              )}
+
               {error && (
                 <div className="mt-3 border border-red-100 bg-red-50 p-3 text-xs font-semibold text-red-600 animate-shake">
                   {error}
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="mt-4 space-y-3">
-                <Input
-                  type="email"
-                  placeholder="Email Address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  icon={<Mail />}
-                  required
-                />
-                <Input
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  icon={<Lock />}
-                  required
-                />
+              <form onSubmit={step === 'mobile' ? handleSendOtp : handleVerifyOtp} className="mt-4 space-y-3">
+                {step === 'mobile' ? (
+                  <Input
+                    type="tel"
+                    placeholder="Mobile Number"
+                    value={mobileNo}
+                    onChange={(e) => setMobileNo(e.target.value)}
+                    icon={<Phone />}
+                    required
+                  />
+                ) : (
+                  <Input
+                    type="text"
+                    placeholder="Enter OTP"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    icon={<Lock />}
+                    required
+                  />
+                )}
 
                 <Button
                   type="submit"
                   disabled={loading}
                   className="w-full h-11 text-xs font-extrabold"
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sign In'}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : step === 'mobile' ? 'Send OTP' : 'Verify & Login'}
                 </Button>
               </form>
 

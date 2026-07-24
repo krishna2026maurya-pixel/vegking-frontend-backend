@@ -48,7 +48,7 @@ export default function CheckoutPage() {
 
         try {
             if (paymentMethod === 'COD') {
-                const res = await fetch('/api/orders', {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/orders`, {
                     method: 'POST',
                     credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
@@ -74,7 +74,7 @@ export default function CheckoutPage() {
                     throw new Error(data.message || 'Unable to place order.');
                 }
             } else {
-                const createRes = await fetch('/api/orders/create-payment', {
+                const createRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/orders/create-payment`, {
                     method: 'POST',
                     credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
@@ -109,7 +109,7 @@ export default function CheckoutPage() {
                     description: 'Order Payment',
                     order_id: paymentData.razorpayOrderId,
                     handler: async (response: any) => {
-                        const verifyRes = await fetch('/api/orders/verify-payment', {
+                        const verifyRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/orders/verify-payment`, {
                             method: 'POST',
                             credentials: 'include',
                             headers: { 'Content-Type': 'application/json' },

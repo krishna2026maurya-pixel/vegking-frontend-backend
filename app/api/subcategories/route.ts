@@ -14,8 +14,8 @@ export async function GET(request: NextRequest) {
       Subcategory.find(query).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit).lean(),
       Subcategory.countDocuments(query),
     ]);
-    return NextResponse.json({ data, meta: { total, page, limit, totalPages: Math.ceil(total/limit) } });
-  } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
+    return NextResponse.json({ success: true, data, meta: { total, page, limit, totalPages: Math.ceil(total/limit) } });
+  } catch (e: any) { return NextResponse.json({ success: false, error: e.message }, { status: 500 }); }
 }
 
 export async function POST(request: NextRequest) {
@@ -23,6 +23,6 @@ export async function POST(request: NextRequest) {
     await connectDB();
     const body = await request.json();
     const item = await Subcategory.create(body);
-    return NextResponse.json({ data: item }, { status: 201 });
-  } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
+    return NextResponse.json({ success: true, data: item }, { status: 201 });
+  } catch (e: any) { return NextResponse.json({ success: false, error: e.message }, { status: 500 }); }
 }

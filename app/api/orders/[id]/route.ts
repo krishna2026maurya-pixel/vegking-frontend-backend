@@ -7,10 +7,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     await connectDB();
     const order = await Order.findById(id).lean();
-    if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-    return NextResponse.json({ data: order });
+    if (!order) return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+    return NextResponse.json({ success: true, data: order });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
@@ -20,10 +20,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     await connectDB();
     const body = await request.json();
     const order = await Order.findByIdAndUpdate(id, body, { new: true });
-    if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-    return NextResponse.json({ data: order });
+    if (!order) return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+    return NextResponse.json({ success: true, data: order });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
@@ -34,6 +34,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await Order.findByIdAndDelete(id);
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

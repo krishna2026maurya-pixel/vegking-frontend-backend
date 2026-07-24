@@ -32,7 +32,7 @@ export default function CreateVendorCategoryPage() {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const res = await fetch(`/api/upload`, { method: 'POST', body: fd });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       setImageUrl(json.url);
@@ -48,7 +48,7 @@ export default function CreateVendorCategoryPage() {
     setSaving(true);
     setError('');
     try {
-      const res = await fetch('/api/vendor-categories', {
+      const res = await fetch(`/api/vendor-categories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, category_image: imageUrl, cat_type_id: Number(form.cat_type_id) }),

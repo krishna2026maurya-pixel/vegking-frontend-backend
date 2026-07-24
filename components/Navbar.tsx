@@ -565,7 +565,7 @@ export default function Navbar() {
 
 
 
-            <Link
+            {/* <Link
               href={isApprovedVendor ? '/vendor/dashboard' : '/sell'}
               className={`px-4 py-2 text-xs font-extrabold transition-all duration-300 flex items-center gap-1.5 ${pathname?.startsWith('/vendor')
                 ? 'bg-primary text-white shadow-md shadow-primary/10'
@@ -574,7 +574,7 @@ export default function Navbar() {
             >
               <Store className="w-3.5 h-3.5" strokeWidth={2.2} />
               {isApprovedVendor ? 'Vendor Dashboard' : 'Sell'}
-            </Link>
+            </Link> */}
 
             <Link
               href="/contact"

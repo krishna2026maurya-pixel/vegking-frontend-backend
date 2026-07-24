@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
       User.find(query).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit).lean(),
       User.countDocuments(query),
     ]);
-    return NextResponse.json({ data, meta: { total, page, limit, totalPages: Math.ceil(total/limit) } });
-  } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
+    return NextResponse.json({ success: true, data, meta: { total, page, limit, totalPages: Math.ceil(total/limit) } });
+  } catch (e: any) { return NextResponse.json({ success: false, error: e.message }, { status: 500 }); }
 }
 
 export async function POST(request: NextRequest) {

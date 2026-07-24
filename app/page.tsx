@@ -25,7 +25,7 @@ const dummyCategories = [
 export default function Home() {
   const { addToCart } = useCart();
   const [products, setProducts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categoryTypes, setCategoryTypes] = useState<any[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const alwaysVisibleCategorySlugs = new Set(['organic-daals']);
@@ -44,6 +44,8 @@ export default function Home() {
     '/images/banner4.jpg',
   ];
 
+  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroImages.length);
@@ -52,34 +54,38 @@ export default function Home() {
   }, [heroImages.length]);
 
   useEffect(() => {
-    // USING DUMMY DATA INSTEAD OF API CALLS
-    setProducts(dummyProducts);
-    setCategories(dummyCategories);
+    const fetchHomeData = async () => {
+      try {
+        const [categoriesRes, featuredRes] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/v1/hierarchy/category-types`).then(res => res.json()),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/v1/products/featured?limit=10`).then(res => res.json()),
+        ]);
+
+        const actualCategoryTypes = categoriesRes?.data || [];
+        setCategoryTypes(Array.isArray(actualCategoryTypes) ? actualCategoryTypes : []);
+
+        const actualFeatured = featuredRes?.data || [];
+        const mappedFeatured = (Array.isArray(actualFeatured) ? actualFeatured : []).map(p => ({
+            ...p,
+            name: p.name || p.product_name,
+            price: p.price || p.selling_price,
+            image: p.image || p.product_image,
+            discount: p.discount || p.discount_percent || (p.mrp && p.selling_price ? ((p.mrp - p.selling_price) / p.mrp * 100).toFixed(1) : 0),
+            stock: p.stock || p.stock_status || (p.in_stock ? 100 : 0)
+        }));
+        
+        setFeaturedProducts(mappedFeatured);
+      } catch (err) {
+        console.error('Failed to load home data', err);
+      }
+    };
+    fetchHomeData();
   }, []);
 
-  const categoriesWithProducts = categories.filter((category) =>
-    alwaysVisibleCategorySlugs.has(category.slug) ||
-    products.some((product) =>
-      product.categorySlug?.toLowerCase() === category.slug?.toLowerCase() ||
-      product.category?.toLowerCase() === category.name?.toLowerCase()
-    )
-  );
+  // We now use the featuredProducts from the API directly
 
-  const categoryShowcase = [
-    { label: 'Herbs', aliases: ['herbs', 'herb'] },
-    { label: 'Fruits', aliases: ['fruits', 'fruit'] },
-    { label: 'Seeds', aliases: ['seeds', 'seed'] },
-    { label: 'Milk', aliases: ['dairy', 'milk'] },
-    { label: 'Organic Daals', aliases: ['organic-daals', 'organic daals', 'daal', 'dal'] },
-  ];
-
-  const mostLovedProducts = categoryShowcase
-    .map((group) => products.find((product) => {
-      const category = product.category?.toLowerCase() || '';
-      const slug = product.categorySlug?.toLowerCase() || '';
-      return group.aliases.some((alias) => category.includes(alias) || slug.includes(alias));
-    }))
-    .filter(Boolean);
+  // We now use the featuredProducts from the API directly
+  const mostLovedProducts = featuredProducts;
 
   return (
     <div className="w-full flex flex-col">
@@ -174,36 +180,46 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 pt-2 sm:grid-cols-2 lg:grid-cols-3">
-            {categoriesWithProducts.length > 0 ? categoriesWithProducts.map((cat) => (
-              <Link
-                key={cat._id || cat.slug}
-                href={`/products?category=${encodeURIComponent(cat.slug || cat.name)}`}
-                className="group relative overflow-hidden rounded-xl aspect-[4/3] text-left shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1 focus:outline-none bg-green-50"
-              >
-                <img
-                  src={cat.image}
-                  alt={cat.name}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-in-out group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent transition-opacity duration-300 group-hover:from-black/90" />
-                <div className="absolute inset-0 z-10 flex flex-col justify-end p-3 sm:p-4">
-                  <h3 className="text-white font-bold text-sm sm:text-base leading-tight mb-1 drop-shadow">
-                    {cat.name}
-                  </h3>
-                  <p className="text-gray-300 text-[10px] sm:text-[11px] leading-snug mb-2 font-light opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    {cat.description || 'Explore fresh products added from admin.'}
-                  </p>
-                  <div className="flex items-center gap-1.5 text-[#a4d4b4] text-[11px] font-semibold opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300">
-                    Explore <ArrowRight className="w-3 h-3" />
-                  </div>
+          <div className="space-y-12 pt-2">
+            {categoryTypes.length > 0 ? categoryTypes.map((type: any) => (
+              <div key={type._id}>
+                <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                  {type.image && <img src={type.image} alt={type.name} className="w-8 h-8 rounded-full object-cover" />}
+                  {type.name}
+                </h3>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {type.categories && type.categories.map((cat: any) => (
+                    <Link
+                      key={cat._id || cat.slug}
+                      href={`/products?category_id=${cat._id}&category=${encodeURIComponent(cat.slug || cat.name)}`}
+                      className="group relative overflow-hidden rounded-xl aspect-[4/3] text-left shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1 focus:outline-none bg-green-50"
+                    >
+                      <img
+                        src={cat.image}
+                        alt={cat.name}
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-in-out group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent transition-opacity duration-300 group-hover:from-black/90" />
+                      <div className="absolute inset-0 z-10 flex flex-col justify-end p-3 sm:p-4">
+                        <h3 className="text-white font-bold text-sm sm:text-base leading-tight mb-1 drop-shadow">
+                          {cat.name}
+                        </h3>
+                        <p className="text-gray-300 text-[10px] sm:text-[11px] leading-snug mb-2 font-light opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          {cat.description || 'Explore fresh products added from admin.'}
+                        </p>
+                        <div className="flex items-center gap-1.5 text-[#a4d4b4] text-[11px] font-semibold opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300">
+                          Explore <ArrowRight className="w-3 h-3" />
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
                 </div>
-              </Link>
+              </div>
             )) : (
-              <div className="col-span-full rounded-3xl border border-dashed border-gray-200 bg-white px-6 py-12 text-center">
+              <div className="rounded-3xl border border-dashed border-gray-200 bg-white px-6 py-12 text-center">
                 <PackageSearch className="mx-auto mb-3 h-8 w-8 text-primary" />
                 <p className="font-bold text-gray-900">No categories available</p>
-                <p className="mt-1 text-sm text-gray-500">Add categories in the admin panel to show them here.</p>
+                <p className="mt-1 text-sm text-gray-500">Add category types and categories in the admin panel to show them here.</p>
               </div>
             )}
           </div>

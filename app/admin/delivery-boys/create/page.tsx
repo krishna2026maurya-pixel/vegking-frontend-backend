@@ -18,7 +18,7 @@ export default function CreateDeliveryBoyPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true); setError('');
     try {
-      const res = await fetch('/api/delivery-boys', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(`/api/delivery-boys`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, wallet_balance: 0 }) });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);

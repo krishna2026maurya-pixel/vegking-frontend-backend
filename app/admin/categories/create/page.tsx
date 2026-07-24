@@ -17,7 +17,7 @@ export default function CreateCategoryPage() {
   const [categoryTypes, setCategoryTypes] = useState<any[]>([]);
 
   React.useEffect(() => {
-    fetch('/api/category-types?limit=100').then(res => res.json()).then(json => {
+    fetch(`/api/category-types?limit=100`).then(res => res.json()).then(json => {
       setCategoryTypes(json.data || []);
     });
   }, []);
@@ -35,7 +35,7 @@ export default function CreateCategoryPage() {
     setImagePreview(URL.createObjectURL(file));
     setUploadingImg(true);
     const fd = new FormData(); fd.append('file', file);
-    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    const res = await fetch(`/api/upload`, { method: 'POST', body: fd });
     const json = await res.json();
     setImageUrl(json.url);
     setUploadingImg(false);
@@ -44,7 +44,7 @@ export default function CreateCategoryPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true); setError('');
     try {
-      const res = await fetch('/api/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(`/api/categories`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, image: imageUrl, sort_order: Number(form.sort_order) }) });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
