@@ -30,9 +30,6 @@ function VendorLoginForm() {
     setMessage('');
 
     try {
-      // DUMMY AUTH: Simulate network latency and then sign in as vendor
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
       // Basic validation simulation
       if (!email || !password) {
         setMessage('Email and password are required.');
@@ -40,8 +37,17 @@ function VendorLoginForm() {
         return;
       }
 
-      signIn('vendor');
-      router.push('/vendor/dashboard');
+      const res = await signIn('vendor', {
+        email,
+        password,
+        redirect: false
+      });
+
+      if (res?.error) {
+        setMessage('Invalid credentials.');
+      } else {
+        router.push('/vendor/dashboard');
+      }
     } catch {
       setMessage('Something went wrong.');
     } finally {

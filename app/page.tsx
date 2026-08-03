@@ -11,15 +11,16 @@ import { blogs } from '@/lib/blogs';
 const dummyProducts = [
   { _id: '1', name: 'Organic Tomatoes', category: 'Vegetables', categorySlug: 'vegetables', price: 40, stock: 50, discount: 10, image: 'https://images.unsplash.com/photo-1582284540020-8acaf0195b7b?q=80&w=900&auto=format&fit=crop' },
   { _id: '2', name: 'Fresh Spinach', category: 'Greens', categorySlug: 'greens', price: 30, stock: 30, discount: 0, image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?q=80&w=900&auto=format&fit=crop' },
-  { _id: '3', name: 'Arhar Dal', category: 'Organic Daals', categorySlug: 'organic-daals', price: 140, stock: 80, discount: 5, image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?q=80&w=900&auto=format&fit=crop' },
-  { _id: '4', name: 'Organic Apples', category: 'Fruits', categorySlug: 'fruits', price: 200, stock: 20, discount: 15, image: 'https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?q=80&w=900&auto=format&fit=crop' },
-  { _id: '5', name: 'Desi Cow Ghee', category: 'Dairy', categorySlug: 'dairy', price: 850, stock: 10, discount: 0, image: 'https://images.unsplash.com/photo-1596797038530-2c107229654b?q=80&w=900&auto=format&fit=crop' },
+
+  { _id: '3', name: 'Arhar Daal', category: 'Organic Daals', categorySlug: 'organic-daals', price: 140, stock: 80, discount: 5, image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRHg3HDC03TaQFeSG_KceGyjS_LwHCETqO9gV84DJmwPg&s=10' },
+  { _id: '4', name: 'Organic Apples', category: 'Fruits', categorySlug: 'fruits', price: 200, stock: 20, discount: 15, image: 'https://5.imimg.com/data5/UM/DM/MY-43685925/organic-apple-500x500.jpg' },
+  { _id: '5', name: 'Desi Cow Ghee', category: 'Dairy', categorySlug: 'dairy', price: 850, stock: 10, discount: 0, image: 'https://5.imimg.com/data5/OC/FD/ON/SELLER-95336941/shudh-desi-ghee-500x500.jpeg' },
 ];
 
 const dummyCategories = [
   { _id: 'c1', name: 'Vegetables', slug: 'vegetables', image: 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=400', isActive: true, description: 'Fresh farm veggies' },
-  { _id: 'c2', name: 'Fruits', slug: 'fruits', image: 'https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=400', isActive: true, description: 'Seasonal organic fruits' },
-  { _id: 'c3', name: 'Organic Daals', slug: 'organic-daals', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400', isActive: true, description: 'Healthy organic pulses' },
+  { _id: 'c2', name: 'Fruits', slug: 'fruits', image: 'https://images.unsplash.com/photo-1609780447631-05b93e5a88ea?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8ZnJ1aXQlMjBzaG9wfGVufDB8fDB8fHww', isActive: true, description: 'Seasonal organic fruits' },
+  { _id: 'c3', name: 'Organic Daals', slug: 'organic-daals', image: 'https://images.hindustantimes.com/rf/image_size_640x362/HT/p1/2013/08/28/Incoming/Pictures/1114295_Wallpaper2.jpg', isActive: true, description: 'Healthy organic pulses' },
 ];
 
 export default function Home() {

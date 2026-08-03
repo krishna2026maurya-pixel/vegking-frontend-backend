@@ -13,11 +13,11 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       if (existing) {
         return prev.map((item) =>
           (item.cartId || item._id) === id
-            ? { ...item, quantity: (item.quantity || 1) + 1 }
+            ? { ...item, cartQuantity: (item.cartQuantity || 1) + 1 }
             : item
         );
       }
-      return [...prev, { ...product, quantity: product.quantity || 1 }];
+      return [...prev, { ...product, cartQuantity: 1 }];
     });
     alert(`Added ${product.name} to cart!`);
   };
@@ -26,19 +26,20 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     setCart((prev) => prev.filter((item) => (item.cartId || item._id) !== id));
   };
 
-  const updateQuantity = (id: string, quantity: number) => {
-    if (quantity < 1) return;
+  const updateQuantity = (id: string, cartQuantity: number) => {
+    if (cartQuantity < 1) return;
     setCart((prev) =>
       prev.map((item) =>
-        (item.cartId || item._id) === id ? { ...item, quantity } : item
+        (item.cartId || item._id) === id ? { ...item, cartQuantity } : item
       )
     );
   };
 
-  const cartTotal = cart.reduce(
-    (total, item) => total + (item.price || 0) * (item.quantity || 1),
-    0
-  );
+  const cartTotal = cart.reduce((total, item) => {
+    const price = parseFloat(item.price) || 0;
+    const qty = parseInt(item.cartQuantity) || 1;
+    return total + price * qty;
+  }, 0);
 
   return (
     <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, cartTotal }}>

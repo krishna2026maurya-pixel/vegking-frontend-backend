@@ -1,11 +1,20 @@
 import React from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { 
   LayoutDashboard, Users, ShoppingCart, Truck, Wallet, Settings, Package, 
   ListTree, Tags, Image as ImageIcon, Bell, FileText, CreditCard, Shield, MapPin, Search
 } from 'lucide-react';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || !session.user || (session.user as any).role !== 'admin') {
+    redirect('/admin-login');
+  }
+
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       {/* Sidebar */}

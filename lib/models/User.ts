@@ -10,6 +10,17 @@ const UserSchema = new Schema({
   wallet_balance: { type: Number, default: 0 },
   fiberbase_token: String,
   referral_code: String,
+  addresses: [{
+    label: { type: String, default: 'Home' },
+    address_line_1: String,
+    address_line_2: String,
+    city: String,
+    state: String,
+    zip_code: String,
+    latitude: Number,
+    longitude: Number,
+    is_default: { type: Boolean, default: false }
+  }]
 }, { timestamps: true });
 
 export default models.User || model('User', UserSchema);

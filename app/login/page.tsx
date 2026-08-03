@@ -3,33 +3,74 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Leaf, LogIn, Mail, Lock, Loader2, ShieldCheck, Truck } from 'lucide-react';
+import { signIn } from 'next-auth/react';
+import { Leaf, LogIn, Mail, Lock, Loader2, ShieldCheck, Truck, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [mobileNo, setMobileNo] = useState('');
+  const [otp, setOtp] = useState('');
+  const [step, setStep] = useState(1);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mobileNo) {
+      setError('Mobile number is required');
+      return;
+    }
+    if (!/^\d{10}$/.test(mobileNo)) {
+      setError('Mobile number must be exactly 10 digits');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    
+    // Call our custom send-otp endpoint or simulate for now
+    try {
+      const res = await fetch('/api/v1/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile_no: mobileNo })
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || 'Failed to send OTP');
+      } else {
+        setStep(2);
+      }
+    } catch (err: any) {
+      setError('Something went wrong.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    // DUMMY LOGIN LOGIC
-    setTimeout(() => {
-      if (email === 'admin@veggiemart.com' && password === 'admin123') {
-        router.push('/admin');
-      } else if (email === 'user@gmail.com' && password === '123456') {
-        router.push('/profile');
+    try {
+      const res = await signIn('user-login', {
+        mobile_no: mobileNo,
+        otp,
+        redirect: false,
+      });
+
+      if (res?.error) {
+        setError(res.error);
       } else {
-        setError('Invalid credentials. Try admin@veggiemart.com / admin123');
+        router.push('/cart');
       }
+    } catch (err: any) {
+      setError('Something went wrong. Please try again.');
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -108,32 +149,56 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="mt-4 space-y-3">
-                <Input
-                  type="email"
-                  placeholder="Email Address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  icon={<Mail />}
-                  required
-                />
-                <Input
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  icon={<Lock />}
-                  required
-                />
-
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full h-11 text-xs font-extrabold"
-                >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sign In'}
-                </Button>
-              </form>
+              {step === 1 ? (
+                <form onSubmit={handleSendOtp} className="mt-4 space-y-3">
+                  <Input
+                    type="tel"
+                    placeholder="Mobile Number"
+                    value={mobileNo}
+                    onChange={(e) => setMobileNo(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    icon={<Phone />}
+                    minLength={10}
+                    maxLength={10}
+                    pattern="[0-9]{10}"
+                    required
+                  />
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-11 text-xs font-extrabold"
+                  >
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send OTP'}
+                  </Button>
+                </form>
+              ) : (
+                <form onSubmit={handleLogin} className="mt-4 space-y-3">
+                  <div className="text-xs font-medium text-green-600 bg-green-50 p-2 border border-green-100 rounded-md">
+                    OTP sent successfully (Dummy: 1234)
+                  </div>
+                  <Input
+                    type="text"
+                    placeholder="Enter OTP"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    icon={<Lock />}
+                    required
+                  />
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-11 text-xs font-extrabold"
+                  >
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Login'}
+                  </Button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setStep(1); setOtp(''); setError(''); }} 
+                    className="w-full text-xs text-gray-500 hover:underline pt-2 block"
+                  >
+                    Back to Mobile Number
+                  </button>
+                </form>
+              )}
 
               <p className="mt-4 text-center text-xs font-semibold text-gray-600">
                 Don&apos;t have an account?{' '}

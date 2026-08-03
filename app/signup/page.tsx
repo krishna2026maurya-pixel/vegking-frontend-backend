@@ -3,12 +3,14 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Leaf, Mail, Lock, User, UserPlus, Loader2, ShieldCheck, Truck } from 'lucide-react';
+import { Leaf, Mail, Lock, User, UserPlus, Loader2, ShieldCheck, Truck, Phone, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 export default function SignupPage() {
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '', mobile_no: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -18,15 +20,38 @@ export default function SignupPage() {
     setLoading(true);
     setError('');
 
-    // DUMMY SIGNUP LOGIC
-    setTimeout(() => {
-      if (formData.email && formData.password && formData.name) {
-        router.push('/login');
-      } else {
-        setError('Please fill in all fields');
-      }
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
       setLoading(false);
-    }, 1000);
+      return;
+    }
+    
+    if (!/^\d{10}$/.test(formData.mobile_no)) {
+      setError('Mobile number must be exactly 10 digits');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { confirmPassword, ...submitData } = formData;
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(submitData)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Signup failed');
+      } else {
+        router.push('/login');
+      }
+    } catch (err: any) {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -115,6 +140,17 @@ export default function SignupPage() {
                   required
                 />
                 <Input
+                  type="tel"
+                  placeholder="Mobile Number"
+                  value={formData.mobile_no}
+                  onChange={(e) => setFormData({ ...formData, mobile_no: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                  icon={<Phone />}
+                  minLength={10}
+                  maxLength={10}
+                  pattern="[0-9]{10}"
+                  required
+                />
+                <Input
                   type="email"
                   placeholder="Email Address"
                   value={formData.email}
@@ -123,11 +159,29 @@ export default function SignupPage() {
                   required
                 />
                 <Input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   icon={<Lock />}
+                  endIcon={
+                    showPassword ? 
+                      <EyeOff onClick={() => setShowPassword(false)} className="h-4 w-4" /> : 
+                      <Eye onClick={() => setShowPassword(true)} className="h-4 w-4" />
+                  }
+                  required
+                />
+                <Input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm Password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  icon={<Lock />}
+                  endIcon={
+                    showConfirmPassword ? 
+                      <EyeOff onClick={() => setShowConfirmPassword(false)} className="h-4 w-4" /> : 
+                      <Eye onClick={() => setShowConfirmPassword(true)} className="h-4 w-4" />
+                  }
                   required
                 />
 

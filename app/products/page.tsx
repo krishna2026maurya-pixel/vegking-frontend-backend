@@ -39,8 +39,22 @@ function ProductsContent() {
                 }
                 const productsData = await productsRes.json();
                 const categoriesData = await categoriesRes.json();
-                setProducts(Array.isArray(productsData) ? productsData : []);
-                setCategories(Array.isArray(categoriesData) ? categoriesData.filter((category) => category.isActive) : []);
+
+                // API returns { success, data, meta } — extract the array
+                const productsArray = Array.isArray(productsData)
+                    ? productsData
+                    : Array.isArray(productsData.data)
+                    ? productsData.data
+                    : [];
+
+                const categoriesArray = Array.isArray(categoriesData)
+                    ? categoriesData
+                    : Array.isArray(categoriesData.data)
+                    ? categoriesData.data
+                    : [];
+
+                setProducts(productsArray);
+                setCategories(categoriesArray.filter((c: any) => c.isActive !== false));
             } catch (err) {
                 console.error('Failed to fetch products:', err);
                 setError('Products are not available right now. Please try again shortly.');

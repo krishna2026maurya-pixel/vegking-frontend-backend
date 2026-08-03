@@ -1,26 +1,16 @@
 'use client';
-import React, { createContext, useContext, useState } from 'react';
 
-const AuthContext = createContext<any>(null);
+import { SessionProvider, useSession, signIn, signOut } from 'next-auth/react';
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [session, setSession] = useState<{ user: any } | null>(null);
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  return <SessionProvider>{children}</SessionProvider>;
+}
 
-  const signIn = (role: string = 'admin') => {
-    setSession({
-      user: { name: role === 'admin' ? 'Admin User' : 'Test Vendor', role, vendorStatus: 'approved' }
-    });
+export function useAuth() {
+  const session = useSession();
+  return {
+    ...session,
+    signIn,
+    signOut,
   };
-
-  const signOut = () => {
-    setSession(null);
-  };
-
-  return (
-    <AuthContext.Provider value={{ data: session, signIn, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = () => useContext(AuthContext);
+}
