@@ -229,7 +229,7 @@ export default function OrdersPage() {
             </select>
             <div className="flex gap-3">
               <button
-                onClick={() => setStatusModal({ open: false, orderId: null, current: 0 })}
+                onClick={() => setStatusModal({ open: false, orderId: null, current: 'Order Placed' })}
                 className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
               >Cancel</button>
               <button

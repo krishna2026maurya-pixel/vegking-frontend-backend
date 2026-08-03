@@ -38,8 +38,8 @@ export default function SubscriptionsPage() {
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
-    } else if (session?.user?.role !== 'user') {
-      router.push(session?.user?.role === 'admin' ? '/admin' : '/vendor/dashboard');
+    } else if ((session?.user as any)?.role !== 'user') {
+      router.push((session?.user as any)?.role === 'admin' ? '/admin' : '/vendor/dashboard');
     } else if (status === 'authenticated') {
       fetchSubscriptions();
     }
