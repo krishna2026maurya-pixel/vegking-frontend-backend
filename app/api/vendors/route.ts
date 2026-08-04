@@ -38,8 +38,43 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
     const body = await request.json();
-    const vendor = await Vendor.create(body);
-    return NextResponse.json({ success: true, data: vendor }, { status: 201 });
+    const bcrypt = (await import('bcryptjs')).default;
+
+    // Map registration form fields if they come from the frontend registration page
+    const vendorData = {
+      full_name: body.name || body.full_name || '',
+      email: body.email?.trim().toLowerCase(),
+      mobile_number: body.phone || body.mobile_number || '',
+      password: body.password,
+      shop_name: body.businessName || body.shop_name || '',
+      address: body.address || '',
+      gst_number: body.gstNumber || body.gst_number || '',
+      is_verified: body.is_verified || '0', // Defaults to '0' (needs admin verification)
+    };
+
+    if (!vendorData.email || !vendorData.password) {
+      return NextResponse.json({ success: false, error: 'Email and password are required' }, { status: 400 });
+    }
+
+    // Check if vendor already exists
+    const existingVendor = await Vendor.findOne({ email: vendorData.email });
+    if (existingVendor) {
+      return NextResponse.json({ success: false, error: 'Vendor with this email already exists' }, { status: 409 });
+    }
+
+    // Hash the password
+    const salt = await bcrypt.genSalt(10);
+    vendorData.password = await bcrypt.hash(vendorData.password, salt);
+
+    const vendor = await Vendor.create(vendorData);
+    
+    // Return vendor without password
+    const result = vendor.toObject ? vendor.toObject() : vendor;
+    if (result.password) {
+      delete result.password;
+    }
+
+    return NextResponse.json({ success: true, data: result }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

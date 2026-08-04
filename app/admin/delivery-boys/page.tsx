@@ -15,6 +15,7 @@ interface DeliveryBoy {
   is_active: string;
   wallet_balance: number;
   is_verified: string;
+  vendor_id?: { shop_name: string } | null;
 }
 
 export default function DeliveryBoysPage() {
@@ -50,7 +51,7 @@ export default function DeliveryBoysPage() {
   const toggleVerify = async (boy: DeliveryBoy) => {
     try {
       const newVal = boy.is_verified === '1' ? '0' : '1';
-      await fetch(`/api/s/${boy._id}`, {
+      await fetch(`/api/delivery-boys/${boy._id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_verified: newVal }),
@@ -74,6 +75,11 @@ export default function DeliveryBoysPage() {
     { key: 'vehicle_type', label: 'Vehicle' },
     { key: 'vehicle_number', label: 'Vehicle No.' },
     {
+      key: 'vendor_id',
+      label: 'Sellers/Vendor',
+      render: (row) => <span>{row.vendor_id?.shop_name || 'Global/Admin'}</span>
+    },
+    {
       key: 'wallet_balance',
       label: 'Wallet',
       render: (row) => <span className="font-semibold">₹{(row.wallet_balance ?? 0).toFixed(2)}</span>
@@ -95,7 +101,7 @@ export default function DeliveryBoysPage() {
   ];
 
   const actions: Action<DeliveryBoy>[] = [
-    { label: 'View', icon: <Eye size={15} />, onClick: (row) => window.open(`/admin/s/${row._id}`, '_blank'), color: 'default' },
+    { label: 'View', icon: <Eye size={15} />, onClick: (row) => window.open(`/admin/delivery-boys/${row._id}`, '_blank'), color: 'default' },
     { label: 'Toggle Verify', icon: <UserCheck size={15} />, onClick: toggleVerify, color: 'success' },
     {
       label: 'Delete', icon: <Trash2 size={15} />, color: 'danger',

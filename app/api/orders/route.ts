@@ -32,12 +32,25 @@ export async function GET(request: NextRequest) {
     }
 
     // Role-based filtering
-    if ((session.user as any).role !== 'admin') {
+    if ((session.user as any).role === 'vendor') {
+      const Product = (await import('@/lib/models/Product')).default;
+      const OrderItem = (await import('@/lib/models/OrderItem')).default;
+      
+      const vendorProducts = await Product.find({ vendor_id: (session.user as any).id }).select('_id').lean();
+      const vendorProductIds = vendorProducts.map((p: any) => p._id);
+      
+      const vendorItems = await OrderItem.find({ product_id: { $in: vendorProductIds } }).select('order_id').lean();
+      const vendorOrderIds = vendorItems.map((item: any) => item.order_id);
+      
+      query._id = { $in: vendorOrderIds };
+    } else if ((session.user as any).role !== 'admin') {
       query.user_id = (session.user as any).id;
     }
 
     const [orders, total] = await Promise.all([
       Order.find(query)
+        .populate('items')
+        .populate('user_id')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)

@@ -75,7 +75,7 @@ body {
 }
 
 .animate-fadeIn {
-  animation: fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fade-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes slide-in-right {

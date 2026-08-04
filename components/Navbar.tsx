@@ -557,6 +557,16 @@ export default function Navbar() {
               About
             </Link>
 
+            <Link
+              href="/vendors"
+              className={`px-4 py-2 text-xs font-extrabold transition-all duration-300 ${pathname === '/vendors'
+                ? 'bg-primary text-white shadow-md shadow-primary/10'
+                : 'text-gray-600 hover:text-primary hover:bg-gray-50'
+                }`}
+            >
+              Sellers
+            </Link>
+
             <div className="relative" onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
@@ -721,6 +731,16 @@ export default function Navbar() {
                   >
                     <Menu className="h-5 w-5 text-gray-900" />
                     About Organic Vatika
+                  </Link>
+
+                  <Link
+                    href="/vendors"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-4 px-1 py-3 text-base font-bold transition ${pathname === '/vendors' ? 'text-primary' : 'text-gray-950 hover:text-primary'
+                      }`}
+                  >
+                    <Store className="h-5 w-5 text-gray-900" />
+                    Our Sellers
                   </Link>
                 </div>
 

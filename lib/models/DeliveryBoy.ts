@@ -15,6 +15,10 @@ const DeliveryBoySchema = new Schema({
   fiberbase_token: String,
   current_lat: String,
   current_long: String,
+  vendor_id: { type: Schema.Types.ObjectId, ref: 'Vendor', default: null },
 }, { timestamps: true });
 
-export default models.DeliveryBoy || model('DeliveryBoy', DeliveryBoySchema);
+// Delete cached model so schema changes are picked up on hot-reload
+delete (mongoose.models as any)['DeliveryBoy'];
+
+export default model('DeliveryBoy', DeliveryBoySchema);

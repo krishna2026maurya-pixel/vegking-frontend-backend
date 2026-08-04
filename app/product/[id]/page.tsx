@@ -25,6 +25,7 @@ export default function ProductDetailPage() {
   const [subFreq, setSubFreq] = useState('weekly');
   const [subQty, setSubQty] = useState(1);
   const [deliveryDate, setDeliveryDate] = useState('Monday');
+  const [sellers, setSellers] = useState<any[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -53,6 +54,25 @@ export default function ProductDetailPage() {
         setProduct(normalized);
         setImgSrc(normalized.image);
         setQty(normalized.quantity);
+
+        // Fetch other sellers with same product name
+        const sellersRes = await fetch(`/api/products?search=${encodeURIComponent(normalized.name)}&limit=100`);
+        const sellersJson = await sellersRes.json();
+        const otherSellers = (sellersJson.data || [])
+          .filter((p: any) => 
+            p.name.toLowerCase() === normalized.name.toLowerCase() && 
+            p._id !== normalized._id
+          )
+          .map((p: any) => ({
+            _id: p._id,
+            vendor_id: p.vendor_id,
+            vendor_name: p.vendor_shop_name || 'Other Seller',
+            price: p.price,
+            mrp: p.mrp,
+            discount: p.discount,
+            stock: p.stock,
+          }));
+        setSellers(otherSellers);
       } catch (err: any) {
         setError(err.message || 'Failed to load product details');
       } finally {
@@ -234,6 +254,53 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Other Sellers Section */}
+      {sellers.length > 0 && (
+        <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm space-y-6">
+          <div className="border-b border-gray-100 pb-4">
+            <h2 className="text-xl font-serif font-bold text-[#1e3b2b]">Other Sellers</h2>
+            <p className="text-xs text-gray-500 mt-1">This product is also sold by other verified sellers</p>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {sellers.map((seller) => (
+              <div key={seller._id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 first:pt-0 last:pb-0">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900">{seller.vendor_name}</h3>
+                  <p className="text-xs font-semibold text-gray-400 mt-0.5">Price: ₹{seller.price}</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <span className="text-lg font-extrabold text-gray-900">₹{seller.price}</span>
+                    {seller.mrp > seller.price && (
+                      <div className="text-[10px] font-bold text-green-600">₹{seller.mrp - seller.price} off</div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      addToCart({
+                        _id: seller._id,
+                        name: product.name,
+                        price: seller.price,
+                        mrp: seller.mrp,
+                        discount: seller.discount,
+                        image: product.image,
+                        description: product.description,
+                        stock: seller.stock,
+                        quantity: product.quantity,
+                      });
+                      alert(`Added item from "${seller.vendor_name}" to cart!`);
+                    }}
+                    className="bg-primary text-white text-xs font-extrabold px-4 py-2.5 rounded-xl hover:bg-primary-hover transition"
+                  >
+                    Add to Cart
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Subscription Modal */}
       {isModalOpen && (

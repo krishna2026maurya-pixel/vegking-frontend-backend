@@ -27,15 +27,28 @@ export default function VendorRegisterPage() {
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
+        
+        if (formData.password !== formData.confirmPassword) {
+            setError('Passwords do not match.');
+            return;
+        }
+
         setLoading(true);
         setError('');
 
         try {
-            // DUMMY API CALL: Simulate network request since /api/vendor/register isn't built yet
-            await new Promise((resolve) => setTimeout(resolve, 1500));
+            const res = await fetch('/api/vendors', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData),
+            });
+            const json = await res.json();
+            if (!res.ok || !json.success) {
+                throw new Error(json.error || 'Failed to submit application');
+            }
             router.push('/vendor/login?registered=1');
-        } catch {
-            setError('Something went wrong.');
+        } catch (err: any) {
+            setError(err.message || 'Something went wrong.');
         } finally {
             setLoading(false);
         }

@@ -18,13 +18,35 @@ export async function GET(request: NextRequest) {
     if (vendor_id) query.vendor_id = vendor_id;
     if (category && category !== 'All') query.category = { $regex: category, $options: 'i' };
 
-    const [rawProducts, total] = await Promise.all([
-      Product.find(query).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    const [rawProducts, totalRaw] = await Promise.all([
+      Product.find(query).sort({ createdAt: -1 }).limit(vendor_id ? limit : 1000).skip(vendor_id ? (page - 1) * limit : 0).lean(),
       Product.countDocuments(query),
     ]);
 
+    let productsList = rawProducts;
+    let total = totalRaw;
+    if (!vendor_id) {
+      const seen = new Map<string, any>();
+      for (const p of rawProducts) {
+        const key = `${(p.product_name || '').trim().toLowerCase()}_${(p.brand || '').trim().toLowerCase()}`;
+        if (!seen.has(key)) {
+          seen.set(key, p);
+        } else {
+          const existing = seen.get(key);
+          const existingPrice = Number(existing.selling_price) || Number(existing.total_amt) || 0;
+          const currentPrice = Number(p.selling_price) || Number(p.total_amt) || 0;
+          if (currentPrice < existingPrice) {
+            seen.set(key, p);
+          }
+        }
+      }
+      const groupedList = Array.from(seen.values());
+      total = groupedList.length;
+      productsList = groupedList.slice((page - 1) * limit, page * limit);
+    }
+
     // Normalize to the shape ProductCard expects
-    const products = rawProducts.map((p: any) => {
+    const products = productsList.map((p: any) => {
       // Parse images array — stored as JSON string or array
       let images: string[] = [];
       if (Array.isArray(p.images) && p.images.length > 0) {

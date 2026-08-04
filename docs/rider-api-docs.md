@@ -9,19 +9,34 @@ It is divided into three sections:
 
 ---
 
-## Part 1: Admin APIs (Managing Delivery Boys)
+## Part 1: Admin & Vendor APIs (Managing Delivery Boys)
 **Base URL:** `/api/delivery-boys`
 
 ### 1.1 Get All Riders (with Pagination & Search)
 - **Method:** `GET`
 - **URL:** `/api/delivery-boys`
-- **Query Parameters:** `page`, `limit`, `search`
-- **Response:** Paginated list of delivery boys.
+- **Query Parameters:** 
+  - `page` (optional): Page number (default: `1`)
+  - `limit` (optional): Limit per page (default: `10`)
+  - `search` (optional): Search by name or mobile number
+  - `vendor_id` (optional): Filter to only return riders belonging to a specific vendor
+- **Response:** Paginated list of delivery boys, populating `vendor_id` (shop_name) details if associated.
 
 ### 1.2 Add New Rider
 - **Method:** `POST`
 - **URL:** `/api/delivery-boys`
-- **Body:** `{ "name": "...", "mobile_number": "...", "password": "...", "vehicle_number": "..." }`
+- **Body:** 
+```json
+{
+  "name": "Rider Name",
+  "email": "rider@example.com",
+  "mobile_number": "9876543210",
+  "password": "securepassword",
+  "vehicle_type": "Bike",
+  "vehicle_number": "MH-12-AB-1234",
+  "vendor_id": "64d..." // Optional: Vendor ID (leave null/omit for global admin riders)
+}
+```
 
 ### 1.3 Update Rider Details
 - **Method:** `PATCH`

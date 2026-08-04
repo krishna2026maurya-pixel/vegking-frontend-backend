@@ -14,17 +14,40 @@ export const authOptions: AuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        // DUMMY AUTH: Allow any email/password to login as a vendor
-        if (credentials?.email && credentials?.password) {
-          return {
-            id: "vendor-1",
-            name: "Dummy Vendor",
-            email: credentials.email,
-            role: "vendor",
-            vendorStatus: "approved"
-          };
+        const email = credentials?.email?.trim().toLowerCase();
+        const password = credentials?.password;
+
+        if (!email || !password) {
+          throw new Error("Missing email or password");
         }
-        return null;
+
+        await connectDB();
+        const Vendor = (await import("@/lib/models/Vendor")).default;
+        const vendor = await Vendor.findOne({ email });
+
+        if (!vendor) {
+          throw new Error("Vendor account not found");
+        }
+
+        // Compare password using bcrypt
+        const bcrypt = (await import("bcryptjs")).default;
+        const isMatch = await bcrypt.compare(password, vendor.password);
+        if (!isMatch) {
+          throw new Error("Invalid credentials");
+        }
+
+        // Check if verified by admin
+        if (vendor.is_verified !== '1') {
+          throw new Error("Your account is pending verification by admin");
+        }
+
+        return {
+          id: vendor._id.toString(),
+          name: vendor.full_name,
+          email: vendor.email,
+          role: "vendor",
+          vendorStatus: "approved"
+        };
       }
     }),
     CredentialsProvider({

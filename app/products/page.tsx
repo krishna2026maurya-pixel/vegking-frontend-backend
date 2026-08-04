@@ -49,7 +49,7 @@ function ProductsContent() {
                         headers: { Accept: 'application/json' },
                     }),
                     explorePromise
-                ]);
+                ]) as [Response, Response, any];
 
                 const ct = productsRes.headers.get('content-type') || '';
                 if (!ct.includes('application/json')) {
