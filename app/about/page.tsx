@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 export const metadata = {
-    title: 'About Us | Organic Vatika',
+    title: 'About Us | VegKing',
     description:
         'Learn how Organic Vatika brings fresh, organic, and responsibly sourced farm products to your home.',
 };
@@ -83,12 +83,12 @@ const platformHighlights = [
 
 export default function AboutPage() {
     return (
-        <div className="space-y-16 pb-8 md:mx-18 md:my-8">
+        <div className="space-y-16 pb-8 px-4 sm:px-6 md:px-8 md:mx-18 md:my-8">
             <section className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
                 <div className="space-y-7">
                     <div className="inline-flex items-center gap-2 border border-green-200 bg-green-50 px-4 py-2 text-xs font-black uppercase tracking-widest text-green-700">
                         <Sprout className="h-4 w-4" />
-                        About Organic Vatika
+                        About VegKing
                     </div>
 
                     <div className="space-y-5">
@@ -96,7 +96,7 @@ export default function AboutPage() {
                             Fresh food, honest sourcing, and everyday wellness.
                         </h1>
                         <p className="max-w-2xl text-base leading-8 text-gray-600 sm:text-lg">
-                            Organic Vatika was built for families who want dependable access to fresh vegetables, fruits, dairy, herbs, seeds, and pantry essentials without compromising on quality. We connect careful sourcing with simple online ordering so healthy food fits naturally into daily life.
+                            VegKing was built for families who want dependable access to fresh vegetables, fruits, dairy, herbs, seeds, and pantry essentials without compromising on quality. We connect careful sourcing with simple online ordering so healthy food fits naturally into daily life.
                         </p>
                     </div>
 
@@ -167,7 +167,7 @@ export default function AboutPage() {
             <section className="relative overflow-hidden bg-[#fbfdf9] py-10">
                 <div className="mx-auto max-w-3xl text-center">
                     <p className="text-xs font-black uppercase tracking-widest text-green-700">Our strengths</p>
-                    <h2 className="mt-3 text-3xl font-bold text-[#1e3b2b] sm:text-4xl">Why families choose Organic Vatika</h2>
+                    <h2 className="mt-3 text-3xl font-bold text-[#1e3b2b] sm:text-4xl">Why families choose VegKing</h2>
                     <p className="mt-4 text-sm leading-7 text-gray-600 sm:text-base">
                         We keep the experience practical, fresh, and transparent so your weekly groceries feel easier to trust.
                     </p>
