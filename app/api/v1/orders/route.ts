@@ -25,6 +25,7 @@ async function getMyOrders(request: NextRequest, userId: string) {
     ]);
     
     return NextResponse.json({
+      success: true,
       data,
       meta: {
         total,
@@ -34,7 +35,7 @@ async function getMyOrders(request: NextRequest, userId: string) {
       }
     });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
 
@@ -45,7 +46,7 @@ async function placeOrder(request: NextRequest, userId: string) {
     const { address_id, payment_method, coupon_code, items, delivery_charge, total_amount } = body;
     
     if (!address_id || !items || items.length === 0) {
-      return NextResponse.json({ error: 'Address and items are required.' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Address and items are required.' }, { status: 400 });
     }
     
     const orderNumber = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
@@ -101,11 +102,12 @@ async function placeOrder(request: NextRequest, userId: string) {
     const populatedOrder = await Order.findById(order._id).populate('items');
     
     return NextResponse.json({
+      success: true,
       message: 'Order placed successfully.',
       data: populatedOrder
     }, { status: 201 });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
 

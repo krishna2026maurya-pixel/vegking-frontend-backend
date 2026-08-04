@@ -117,7 +117,7 @@ export default function ProductCard({ product }: { product: any }) {
 
   const handleSubscribe = async () => {
     try {
-      const response = await fetch('/api/subscription/create', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/subscription/create`, {
         method: 'POST',
         credentials: 'include',
         headers: {

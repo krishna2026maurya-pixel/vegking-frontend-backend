@@ -26,7 +26,7 @@ export default function CouponsPage() {
   const fetchData = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const res = await fetch('/api/coupons');
+      const res = await fetch(`/api/coupons`);
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const json = await res.json();
       setCoupons(json.data || []);

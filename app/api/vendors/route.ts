@@ -28,9 +28,9 @@ export async function GET(request: NextRequest) {
       Vendor.countDocuments(query),
     ]);
 
-    return NextResponse.json({ data: vendors, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } });
+    return NextResponse.json({ success: true, data: vendors, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
@@ -39,8 +39,8 @@ export async function POST(request: NextRequest) {
     await connectDB();
     const body = await request.json();
     const vendor = await Vendor.create(body);
-    return NextResponse.json({ data: vendor }, { status: 201 });
+    return NextResponse.json({ success: true, data: vendor }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

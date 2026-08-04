@@ -8,11 +8,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '10');
     
-    // Return top products by stock or creation date as featured
-    const data = await Product.find({}).sort({ createdAt: -1 }).limit(limit).lean();
+    // Return top active products marked as bestseller
+    const data = await Product.find({ is_active: '1', is_bestseller: '1' })
+                              .limit(limit)
+                              .lean();
     
-    return NextResponse.json({ data });
+    return NextResponse.json({ success: true, data });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }

@@ -10,17 +10,17 @@ async function applyCoupon(request: NextRequest, userId: string) {
     const { code, order_total } = body;
     
     if (!code || !order_total) {
-      return NextResponse.json({ error: 'Coupon code and order total are required.' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Coupon code and order total are required.' }, { status: 400 });
     }
     
     const coupon = await Coupon.findOne({ code, is_active: '1' });
     if (!coupon) {
-      return NextResponse.json({ error: 'Invalid or inactive coupon code.' }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'Invalid or inactive coupon code.' }, { status: 404 });
     }
     
     // Check min order amount requirement
     if (coupon.min_order && Number(order_total) < coupon.min_order) {
-      return NextResponse.json({ error: `Minimum order amount of Rs. ${coupon.min_order} required for this coupon.` }, { status: 400 });
+      return NextResponse.json({ success: false, error: `Minimum order amount of Rs. ${coupon.min_order} required for this coupon.` }, { status: 400 });
     }
     
     // Calculate discount
@@ -32,6 +32,7 @@ async function applyCoupon(request: NextRequest, userId: string) {
     }
     
     return NextResponse.json({
+      success: true,
       message: 'Coupon applied successfully.',
       coupon: {
         code: coupon.code,
@@ -41,7 +42,7 @@ async function applyCoupon(request: NextRequest, userId: string) {
       }
     });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
 

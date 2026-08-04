@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
 
     if (!process.env.MONGODB_URI) {
-      return NextResponse.json({ data: [], meta: buildMeta(page, limit, 0), message: 'Database is not configured yet.' });
+      return NextResponse.json({ success: true, data: [], meta: buildMeta(page, limit, 0), message: 'Database is not configured yet.' });
     }
 
     await connectDB();
@@ -36,29 +36,29 @@ export async function GET(request: NextRequest) {
       User.countDocuments(query),
     ]);
 
-    return NextResponse.json({ data, meta: buildMeta(page, limit, total) });
+    return NextResponse.json({ success: true, data, meta: buildMeta(page, limit, total) });
   } catch (e: unknown) {
     if (isDatabaseUnavailableError(e)) {
-      return NextResponse.json({ data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 }, message: 'Database is not available right now.' });
+      return NextResponse.json({ success: false, data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 }, message: 'Database is not available right now.' });
     }
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'Unknown error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Unknown error' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     if (!process.env.MONGODB_URI) {
-      return NextResponse.json({ data: null, message: 'Database is not configured yet.' }, { status: 503 });
+      return NextResponse.json({ success: false, data: null, message: 'Database is not configured yet.' }, { status: 503 });
     }
 
     await connectDB();
     const body = await request.json();
     const item = await User.create(body);
-    return NextResponse.json({ data: item }, { status: 201 });
+    return NextResponse.json({ success: true, data: item }, { status: 201 });
   } catch (e: unknown) {
     if (isDatabaseUnavailableError(e)) {
-      return NextResponse.json({ data: null, message: 'Database is not available right now.' }, { status: 503 });
+      return NextResponse.json({ success: false, data: null, message: 'Database is not available right now.' }, { status: 503 });
     }
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'Unknown error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Unknown error' }, { status: 500 });
   }
 }

@@ -8,11 +8,11 @@ async function getWallet(request: NextRequest, userId: string) {
     await connectDB();
     const user = await User.findById(userId).select('wallet_balance');
     if (!user) {
-      return NextResponse.json({ error: 'User not found.' }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'User not found.' }, { status: 404 });
     }
-    return NextResponse.json({ wallet_balance: user.wallet_balance || 0 });
+    return NextResponse.json({ success: true, data: { wallet_balance: user.wallet_balance || 0 } });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
 

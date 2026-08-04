@@ -8,11 +8,11 @@ async function getProfile(request: NextRequest, userId: string) {
     await connectDB();
     const user = await User.findById(userId).select('-password');
     if (!user) {
-      return NextResponse.json({ error: 'User not found.' }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'User not found.' }, { status: 404 });
     }
-    return NextResponse.json({ data: user });
+    return NextResponse.json({ success: true, data: user });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
 
@@ -29,12 +29,12 @@ async function updateProfile(request: NextRequest, userId: string) {
     ).select('-password');
     
     if (!user) {
-      return NextResponse.json({ error: 'User not found.' }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'User not found.' }, { status: 404 });
     }
     
-    return NextResponse.json({ message: 'Profile updated.', data: user });
+    return NextResponse.json({ success: true, message: 'Profile updated.', data: user });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
 

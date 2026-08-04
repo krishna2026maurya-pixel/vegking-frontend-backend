@@ -46,7 +46,7 @@ export default function EditCategoryPage() {
   }, [id]);
 
   useEffect(() => {
-    fetch('/api/category-types?limit=100').then(res => res.json()).then(json => {
+    fetch(`/api/category-types?limit=100`).then(res => res.json()).then(json => {
       setCategoryTypes(json.data || []);
     });
   }, []);
@@ -63,7 +63,7 @@ export default function EditCategoryPage() {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const res = await fetch(`/api/upload`, { method: 'POST', body: fd });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       setImageUrl(json.url);

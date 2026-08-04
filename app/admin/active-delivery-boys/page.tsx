@@ -13,7 +13,7 @@ export default function ActiveDeliveryBoysPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/delivery-boys?limit=100');
+      const res = await fetch(`/api/delivery-boys?limit=100`);
       const json = await res.json();
       setData((json.data || []).filter((d: DeliveryBoy) => d.is_active === '1'));
     } catch (e: any) { setError(e.message); } finally { setLoading(false); }

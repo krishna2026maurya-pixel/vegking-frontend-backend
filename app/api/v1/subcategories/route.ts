@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
     ]);
     
     return NextResponse.json({
+      success: true,
       data,
       meta: {
         total,
@@ -30,6 +31,6 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }

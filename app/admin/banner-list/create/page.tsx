@@ -25,7 +25,7 @@ export default function CreateBannerPage() {
   const [categories, setCategories] = useState<any[]>([]);
 
   React.useEffect(() => {
-    fetch('/api/categories?limit=100')
+    fetch(`/api/categories?limit=100`)
       .then(res => res.json())
       .then(json => setCategories(json.data || []))
       .catch(err => console.error('Error fetching categories:', err));
@@ -47,7 +47,7 @@ export default function CreateBannerPage() {
       const fd = new FormData();
       fd.append('file', file);
 
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const res = await fetch(`/api/upload`, { method: 'POST', body: fd });
       const json = await res.json();
 
       if (!res.ok) throw new Error(json.error);
@@ -73,7 +73,7 @@ export default function CreateBannerPage() {
     setError('');
 
     try {
-      const res = await fetch('/api/banners', {
+      const res = await fetch(`/api/banners`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

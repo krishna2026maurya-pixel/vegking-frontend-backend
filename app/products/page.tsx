@@ -10,9 +10,12 @@ function ProductsContent() {
 
     // Read will category from URL, default to 'All'
     const selectedCategory = searchParams.get('category') || 'All';
+    const categoryId = searchParams.get('category_id');
     const searchQuery = searchParams.get('q')?.trim() || '';
     const [products, setProducts] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
+    const [subcategories, setSubcategories] = useState<any[]>([]);
+    const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -20,17 +23,32 @@ function ProductsContent() {
         const fetchData = async () => {
             try {
                 setError('');
-                const [productsRes, categoriesRes] = await Promise.all([
-                    fetch('/api/products', {
+                let productUrl = '/api/v1/products?page=1&limit=1000';
+                if (searchQuery) {
+                    productUrl += `&search=${encodeURIComponent(searchQuery)}`;
+                }
+
+                let explorePromise = Promise.resolve(null);
+                if (categoryId) {
+                    explorePromise = fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/v1/hierarchy/explore?category_id=${categoryId}`, {
+                        method: 'GET',
+                        cache: 'no-store',
+                        headers: { Accept: 'application/json' },
+                    }).then(res => res.json());
+                }
+
+                const [productsRes, categoriesRes, exploreRes] = await Promise.all([
+                    fetch(productUrl, {
                         method: 'GET',
                         cache: 'no-store',
                         headers: { Accept: 'application/json' },
                     }),
-                    fetch('/api/categories', {
+                    fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/v1/categories?page=1&limit=20`, {
                         method: 'GET',
                         cache: 'no-store',
                         headers: { Accept: 'application/json' },
                     }),
+                    explorePromise
                 ]);
 
                 const ct = productsRes.headers.get('content-type') || '';
@@ -40,7 +58,7 @@ function ProductsContent() {
                 const productsData = await productsRes.json();
                 const categoriesData = await categoriesRes.json();
 
-                // API returns { success, data, meta } — extract the array
+                // Extract array from standard response formats
                 const productsArray = Array.isArray(productsData)
                     ? productsData
                     : Array.isArray(productsData.data)
@@ -53,7 +71,22 @@ function ProductsContent() {
                     ? categoriesData.data
                     : [];
 
-                setProducts(productsArray);
+                if (exploreRes?.success && exploreRes?.data?.subcategories) {
+                    setSubcategories(exploreRes.data.subcategories);
+                } else {
+                    setSubcategories([]);
+                }
+
+                const mappedProducts = productsArray.map((p: any) => ({
+                    ...p,
+                    name: p.name || p.product_name,
+                    price: p.price || p.selling_price,
+                    image: p.image || p.product_image,
+                    discount: p.discount || p.discount_percent || (p.mrp && p.selling_price ? ((p.mrp - p.selling_price) / p.mrp * 100).toFixed(1) : 0),
+                    stock: p.stock || p.stock_status || (p.in_stock ? 100 : 0)
+                }));
+
+                setProducts(mappedProducts);
                 setCategories(categoriesArray.filter((c: any) => c.isActive !== false));
             } catch (err) {
                 console.error('Failed to fetch products:', err);
@@ -70,7 +103,7 @@ function ProductsContent() {
             clearInterval(refresh);
             window.removeEventListener('focus', fetchData);
         };
-    }, []);
+    }, [searchQuery, categoryId]);
 
     const selectedCategoryData = categories.find((category) =>
         category.slug?.toLowerCase() === selectedCategory.toLowerCase() ||
@@ -94,7 +127,8 @@ function ProductsContent() {
             (selectedCategoryData && (
                 product.category?.toLowerCase() === selectedCategoryData.name.toLowerCase() ||
                 product.subcategory?.toLowerCase() === selectedCategoryData.name.toLowerCase()
-            ))
+            )) ||
+            product.category === categoryId
         );
 
         const matchesSearch = !normalizedSearch || [
@@ -104,7 +138,9 @@ function ProductsContent() {
             product.description,
         ].some((value) => value?.toLowerCase().includes(normalizedSearch));
 
-        return matchesCategory && matchesSearch;
+        const matchesSubcategory = !selectedSubcategoryId || product.subcategory === selectedSubcategoryId || product.sub_category === selectedSubcategoryId;
+
+        return matchesCategory && matchesSearch && matchesSubcategory;
     });
 
     const pageTitle = searchQuery
@@ -133,6 +169,26 @@ function ProductsContent() {
                         )}
                     </div>
                 </div>
+
+                {subcategories.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pb-2">
+                        <button 
+                            onClick={() => setSelectedSubcategoryId(null)}
+                            className={`px-5 py-2 rounded-full text-sm font-semibold transition-colors ${!selectedSubcategoryId ? 'bg-primary text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                        >
+                            All Products
+                        </button>
+                        {subcategories.map(sub => (
+                            <button
+                                key={sub._id}
+                                onClick={() => setSelectedSubcategoryId(sub._id)}
+                                className={`px-5 py-2 rounded-full text-sm font-semibold transition-colors ${selectedSubcategoryId === sub._id ? 'bg-primary text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                            >
+                                {sub.category_name}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 {loading ? (
                     <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4 md:gap-5">

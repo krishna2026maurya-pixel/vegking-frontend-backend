@@ -6,7 +6,6 @@ import { connectDB } from '@/lib/mongodb';
 import Order from '@/lib/models/Order';
 import OrderItem from '@/lib/models/OrderItem';
 
-
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -47,11 +46,12 @@ export async function GET(request: NextRequest) {
     ]);
 
     return NextResponse.json({
+      success: true,
       data: orders,
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) }
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     if (!items?.length || totalAmount == null || !shippingAddress) {
       return NextResponse.json(
-        { message: `Missing required order fields. items=${items?.length || 0}, totalAmount=${totalAmount}, shippingAddress=${!!shippingAddress}` },
+        { success: false, message: `Missing required order fields. items=${items?.length || 0}, totalAmount=${totalAmount}, shippingAddress=${!!shippingAddress}` },
         { status: 400 }
       );
     }
@@ -102,12 +102,11 @@ export async function POST(request: NextRequest) {
     await order.save();
 
     return NextResponse.json(
-      { _id: order._id.toString(), order_number },
+      { success: true, _id: order._id.toString(), order_number, data: order },
       { status: 201 }
     );
   } catch (error: any) {
     console.error('COD order error:', error);
-    return NextResponse.json({ message: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
-

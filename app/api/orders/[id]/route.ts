@@ -10,13 +10,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     await connectDB();
     const order = await Order.findById(id).lean();
-    if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    if (!order) return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
 
     // Fetch order items separately
     const items = await OrderItem.find({ order_id: id }).lean();
-    return NextResponse.json({ data: { ...order, populatedItems: items } });
+    return NextResponse.json({ success: true, data: { ...order, populatedItems: items } });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
@@ -28,7 +28,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     
     // Fetch the order first to properly track history
     const order = await Order.findById(id);
-    if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    if (!order) return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
 
     // Track status history if orderStatus is being updated
     if (body.orderStatus && body.orderStatus !== order.orderStatus) {
@@ -56,9 +56,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       });
     }
 
-    return NextResponse.json({ data: order });
+    return NextResponse.json({ success: true, data: order });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
@@ -69,6 +69,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await Order.findByIdAndDelete(id);
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

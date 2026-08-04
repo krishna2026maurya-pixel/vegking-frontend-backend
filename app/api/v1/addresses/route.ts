@@ -7,9 +7,9 @@ async function getAddresses(request: NextRequest, userId: string) {
   try {
     await connectDB();
     const addresses = await Address.find({ user_id: userId }).sort({ createdAt: -1 });
-    return NextResponse.json({ data: addresses });
+    return NextResponse.json({ success: true, data: addresses });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
 
@@ -20,7 +20,7 @@ async function addAddress(request: NextRequest, userId: string) {
     const { label, name, mobile, address_line, city, state, pincode, is_default } = body;
     
     if (!name || !mobile || !address_line || !city || !state || !pincode) {
-      return NextResponse.json({ error: 'All address fields are required.' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'All address fields are required.' }, { status: 400 });
     }
     
     // If setting default, unset others first
@@ -40,9 +40,9 @@ async function addAddress(request: NextRequest, userId: string) {
       is_default: is_default === true || is_default === '1'
     });
     
-    return NextResponse.json({ message: 'Address added successfully.', data: address }, { status: 201 });
+    return NextResponse.json({ success: true, message: 'Address added successfully.', data: address }, { status: 201 });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
 

@@ -44,13 +44,13 @@ export default function CreateVendorProductPage() {
 
   useEffect(() => {
     // Fetch Vendors
-    fetch('/api/vendors')
+    fetch(`/api/vendors`)
       .then(res => res.json())
       .then(json => setVendors(json.data || []))
       .catch(err => console.error('Error fetching vendors:', err));
 
     // Fetch Categories
-    fetch('/api/categories')
+    fetch(`/api/categories`)
       .then(res => res.json())
       .then(json => setCategories(json.data || []))
       .catch(err => console.error('Error fetching categories:', err));
@@ -68,7 +68,7 @@ export default function CreateVendorProductPage() {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const res = await fetch(`/api/upload`, { method: 'POST', body: fd });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
 
@@ -87,7 +87,7 @@ export default function CreateVendorProductPage() {
     setSaving(true);
     setError('');
     try {
-      const res = await fetch('/api/vendor-add-products', {
+      const res = await fetch(`/api/vendor-add-products`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

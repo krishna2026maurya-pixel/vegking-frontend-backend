@@ -36,7 +36,7 @@ export default function ProductsPage() {
 
   // Load Vendors for Filter
   useEffect(() => {
-    fetch('/api/vendors?limit=1000')
+    fetch(`/api/vendors?limit=1000`)
       .then(r => r.json())
       .then(j => setVendors(j.data || []))
       .catch(console.error);

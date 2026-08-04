@@ -23,7 +23,7 @@ export default function SubscriptionsPage() {
 
   async function fetchSubscriptions() {
     try {
-      const res = await fetch('/api/subscription/user', { credentials: 'include' });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/subscription/user`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setSubscriptions(data);
@@ -59,7 +59,7 @@ export default function SubscriptionsPage() {
   const handleSaveEdit = async () => {
     setIsSavingEdit(true);
     try {
-      const res = await fetch('/api/subscription/update', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/subscription/update`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -104,7 +104,7 @@ export default function SubscriptionsPage() {
 
     setUpdatingId(subscriptionId);
     try {
-      const res = await fetch('/api/subscription/cancel', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/subscription/cancel`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -143,7 +143,7 @@ export default function SubscriptionsPage() {
     const targetStatus = currentStatus === 'active' ? 'paused' : 'active';
     setUpdatingId(subscriptionId);
     try {
-      const res = await fetch('/api/subscription/status', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/subscription/status`, {
         method: 'POST',
         credentials: 'include',
         headers: {

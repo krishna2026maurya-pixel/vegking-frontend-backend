@@ -12,7 +12,7 @@ export default function BannerListPage() {
   const fetchData = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const res = await fetch('/api/banners');
+      const res = await fetch(`/api/banners`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       setData(json.data || []);

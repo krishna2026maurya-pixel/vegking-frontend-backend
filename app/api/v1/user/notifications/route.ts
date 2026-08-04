@@ -19,9 +19,9 @@ async function getNotifications(request: NextRequest, userId: string) {
         createdAt: new Date().toISOString()
       }
     ];
-    return NextResponse.json({ data: notifications });
+    return NextResponse.json({ success: true, data: notifications });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
 

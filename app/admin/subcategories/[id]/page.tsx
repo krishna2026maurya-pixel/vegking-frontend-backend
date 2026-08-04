@@ -21,7 +21,7 @@ export default function EditSubcategoryPage() {
   const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch('/api/categories?limit=200').then(r => r.json()).then(j => setCategories(j.data || []));
+    fetch(`/api/categories?limit=200`).then(r => r.json()).then(j => setCategories(j.data || []));
   }, []);
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export default function EditSubcategoryPage() {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const res = await fetch(`/api/upload`, { method: 'POST', body: fd });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       setImageUrl(json.url);

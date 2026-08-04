@@ -23,7 +23,7 @@ export default function CategoryTypesPage() {
   const fetchData = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const res = await fetch('/api/category-types?limit=100');
+      const res = await fetch(`/api/category-types?limit=100`);
       if (!res.ok) throw new Error('Failed to load');
       const json = await res.json();
       setData(json.data || []);
