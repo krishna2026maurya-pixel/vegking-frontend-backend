@@ -28,7 +28,7 @@ function ProductsContent() {
                     productUrl += `&search=${encodeURIComponent(searchQuery)}`;
                 }
 
-                let explorePromise = Promise.resolve(null);
+                let explorePromise: Promise<any> = Promise.resolve(null);
                 if (categoryId) {
                     explorePromise = fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/v1/hierarchy/explore?category_id=${categoryId}`, {
                         method: 'GET',
