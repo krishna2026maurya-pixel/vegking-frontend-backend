@@ -49,6 +49,12 @@ export async function POST(request: NextRequest) {
       shop_name: body.businessName || body.shop_name || '',
       address: body.address || '',
       gst_number: body.gstNumber || body.gst_number || '',
+      pan_number: body.panNumber || body.pan_number || '',
+      licence_number: body.licenceNumber || body.licence_number || '',
+      gst_certificate: body.gstCertificate || body.gst_certificate || '',
+      pan_card: body.panCard || body.pan_card || '',
+      aadhar_front: body.aadharFront || body.aadhar_front || '',
+      aadhar_back: body.aadharBack || body.aadhar_back || '',
       is_verified: body.is_verified || '0', // Defaults to '0' (needs admin verification)
     };
 
