@@ -1,69 +1,164 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Product from '@/lib/models/Product';
+import mongoose from 'mongoose';
 
 const SEED_PRODUCTS = [
   // ── Vegetables ──────────────────────────────────────────────────────────────
-  { product_name: 'Fresh Tomatoes', category: 'Vegetables', subcategory: 'Root Vegetables', brand: 'Farm Fresh', mrp: 50, selling_price: 40, gst: 0, total_amt: 40, quantity: '1 kg', stock_status: 1, product_description: 'Ripe, juicy farm-fresh tomatoes. Rich in lycopene and Vitamin C.', product_image: 'https://images.unsplash.com/photo-1582284540020-8acaf0195b7b?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1582284540020-8acaf0195b7b?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Baby Spinach', category: 'Vegetables', subcategory: 'Leafy Greens', brand: 'Organic Valley', mrp: 35, selling_price: 28, gst: 0, total_amt: 28, quantity: '250 g', stock_status: 1, product_description: 'Tender baby spinach leaves, washed and ready to eat. High in iron and folate.', product_image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Yellow Onions', category: 'Vegetables', subcategory: 'Bulb Vegetables', brand: 'Farm Fresh', mrp: 40, selling_price: 32, gst: 0, total_amt: 32, quantity: '1 kg', stock_status: 1, product_description: 'Sharp and pungent yellow onions, the base of every great curry.', product_image: 'https://images.unsplash.com/photo-1508747703725-719777637510?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1508747703725-719777637510?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Organic Potatoes', category: 'Vegetables', subcategory: 'Root Vegetables', brand: 'Organic Valley', mrp: 38, selling_price: 30, gst: 0, total_amt: 30, quantity: '1 kg', stock_status: 1, product_description: 'Organically grown potatoes, perfect for sabzi, chips, and curries.', product_image: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Green Capsicum', category: 'Vegetables', subcategory: 'Gourds & Capsicums', brand: 'Farm Fresh', mrp: 60, selling_price: 48, gst: 0, total_amt: 48, quantity: '500 g', stock_status: 1, product_description: 'Crisp green capsicums loaded with Vitamin C. Great for stir-fries and salads.', product_image: 'https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Broccoli', category: 'Vegetables', subcategory: 'Brassica', brand: 'Organic Valley', mrp: 90, selling_price: 75, gst: 0, total_amt: 75, quantity: '500 g', stock_status: 1, product_description: 'Fresh broccoli florets, packed with fibre, vitamins, and antioxidants.', product_image: 'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=500&auto=format&fit=crop'], is_active: '1' },
+  { name: 'Carrot (Gajar)', category: 'Root Vegetables', subcategory: 'Vegetables', unit: '500 g', mrp: 40, sp: 32, is_bestseller: true, imgId: 'photo-1598170845058-32b9d6a5da37' },
+  { name: 'Green Cucumber (Kakdi)', category: 'Root Vegetables', subcategory: 'Vegetables', unit: '500 g', mrp: 54, sp: 43, is_bestseller: false, imgId: 'photo-1604928141064-207ec669695a' },
+  { name: 'Cabbage (Kobi)', category: 'Leafy Greens', subcategory: 'Vegetables', unit: '1 pc', mrp: 30, sp: 24, is_bestseller: false, imgId: 'photo-1581447100512-68b5c1013d22' },
+  { name: 'Capsicum (Simla Marcha)', category: 'Vegetables', subcategory: 'Vegetables', unit: '250 g', mrp: 35, sp: 28, is_bestseller: false, imgId: 'photo-1583089892943-e02e5b97d07e' },
+  { name: 'Potato (Bateta)', category: 'Root Vegetables', subcategory: 'Vegetables', unit: '1 kg', mrp: 34, sp: 28, is_bestseller: true, imgId: 'photo-1518977676601-b53f82aba655' },
+  { name: 'Onion (Dungdi)', category: 'Root Vegetables', subcategory: 'Vegetables', unit: '1 kg', mrp: 43, sp: 37, is_bestseller: true, imgId: 'photo-1618512457222-1d5757d54e42' },
+  { name: 'French Beans (Fansi)', category: 'Vegetables', subcategory: 'Vegetables', unit: '250 g', mrp: 83, sp: 68, is_bestseller: false, imgId: 'photo-1567375695-300649067da6' },
+  { name: 'Spinach (Palak)', category: 'Leafy Greens', subcategory: 'Vegetables', unit: '250 g', mrp: 25, sp: 20, is_bestseller: false, imgId: 'photo-1576045057995-568f588f82fb' },
+  { name: 'Stuffed Vegetables (Bharela Shaak)', category: 'Vegetables', subcategory: 'Vegetables', unit: '500 g', mrp: 60, sp: 48, is_bestseller: false, imgId: 'photo-1592417817098-8f3d6eb19675' },
+  { name: 'Hybrid Tomato (Tameta)', category: 'Vegetables', subcategory: 'Vegetables', unit: '500 g', mrp: 54, sp: 43, is_bestseller: true, imgId: 'photo-1595855759920-86582396756a' },
+  { name: 'Green Tomato (Leela Tameta)', category: 'Vegetables', subcategory: 'Vegetables', unit: '500 g', mrp: 40, sp: 32, is_bestseller: false, imgId: 'photo-1564758788915-d419b49bbbb7' },
+  { name: 'Cauliflower (Fulaver)', category: 'Vegetables', subcategory: 'Vegetables', unit: '1 pc', mrp: 45, sp: 36, is_bestseller: false, imgId: 'photo-1568584711075-3d021a7c3ce3' },
+  { name: 'Kaddu (Kolku / Pumpkin)', category: 'Vegetables', subcategory: 'Vegetables', unit: '1 kg', mrp: 35, sp: 28, is_bestseller: false, imgId: 'photo-1506806732259-39c2d0268443' },
+  { name: 'Saragava (Drumstick)', category: 'Vegetables', subcategory: 'Vegetables', unit: '250 g', mrp: 30, sp: 24, is_bestseller: false, imgId: 'photo-1608797178974-15b35a61d121' },
+  { name: 'Beetroot (Beet)', category: 'Root Vegetables', subcategory: 'Vegetables', unit: '500 g', mrp: 25, sp: 20, is_bestseller: false, imgId: 'photo-1528137871218-7f487e6a8b63' },
+  { name: 'Potato Wafer', category: 'Vegetables', subcategory: 'Vegetables', unit: '100 g', mrp: 30, sp: 25, is_bestseller: false, imgId: 'photo-1566478989037-eec170784d0b' },
+  { name: 'Ravya (Ravaiya / Small Brinjal)', category: 'Vegetables', subcategory: 'Vegetables', unit: '500 g', mrp: 40, sp: 32, is_bestseller: false, imgId: 'photo-1590301157890-4810ed352733' },
+  { name: 'Picador Chilli', category: 'Vegetables', subcategory: 'Vegetables', unit: '150 g', mrp: 35, sp: 28, is_bestseller: false, imgId: 'photo-1588252303782-cb80119abd6d' },
+  { name: 'Loki (Dudhi / Bottle Gourd)', category: 'Vegetables', subcategory: 'Vegetables', unit: '1 pc', mrp: 30, sp: 24, is_bestseller: false, imgId: 'photo-1592417817098-8f3d6eb19675' },
+  { name: 'Lady Finger (Bhinda)', category: 'Vegetables', subcategory: 'Vegetables', unit: '250 g', mrp: 25, sp: 20, is_bestseller: true, imgId: 'photo-1627914562479-7a3b3469a536' },
+  { name: 'Galka (Sponge Gourd)', category: 'Vegetables', subcategory: 'Vegetables', unit: '500 g', mrp: 35, sp: 28, is_bestseller: false, imgId: 'photo-1592417817098-8f3d6eb19675' },
+  { name: 'Palwar (Parval)', category: 'Vegetables', subcategory: 'Vegetables', unit: '250 g', mrp: 40, sp: 32, is_bestseller: false, imgId: 'photo-1592417817098-8f3d6eb19675' },
+  { name: 'Gavar (Guvar / Cluster Beans)', category: 'Vegetables', subcategory: 'Vegetables', unit: '250 g', mrp: 35, sp: 28, is_bestseller: false, imgId: 'photo-1567375695-300649067da6' },
+  { name: 'Red / Yellow Capsicum', category: 'Vegetables', subcategory: 'Vegetables', unit: '2 pcs', mrp: 120, sp: 99, is_bestseller: false, imgId: 'photo-1601004890684-d8cbf643f5f2' },
+  { name: 'Broccoli', category: 'Exotic Vegetables', subcategory: 'Vegetables', unit: '1 pc', mrp: 80, sp: 65, is_bestseller: true, imgId: 'photo-1459411621453-7b03977f4bfc' },
+  { name: 'Zucchini (Zugni)', category: 'Exotic Vegetables', subcategory: 'Vegetables', unit: '500 g', mrp: 50, sp: 40, is_bestseller: false, imgId: 'photo-1509358271058-acd22cc93898' },
+  { name: 'Celery (Salary)', category: 'Exotic Vegetables', subcategory: 'Vegetables', unit: '250 g', mrp: 40, sp: 32, is_bestseller: false, imgId: 'photo-1610832958506-ee563361f17e' },
+  { name: 'Parsley (Parsly)', category: 'Exotic Vegetables', subcategory: 'Vegetables', unit: '100 g', mrp: 30, sp: 24, is_bestseller: false, imgId: 'photo-1592417817098-8fd3d9eb14a5' },
+  { name: 'Basil', category: 'Exotic Vegetables', subcategory: 'Vegetables', unit: '50 g', mrp: 25, sp: 20, is_bestseller: false, imgId: 'photo-1618220179428-22790b461013' },
+  { name: 'Baby Corn', category: 'Exotic Vegetables', subcategory: 'Vegetables', unit: '200 g', mrp: 40, sp: 32, is_bestseller: false, imgId: 'photo-1551754655-cd27e38d2076' },
+  { name: 'Lettuce', category: 'Exotic Vegetables', subcategory: 'Vegetables', unit: '1 pc', mrp: 50, sp: 40, is_bestseller: false, imgId: 'photo-1622206194165-af55f028a3f9' },
+  { name: 'Red Cabbage', category: 'Leafy Greens', subcategory: 'Vegetables', unit: '1 pc', mrp: 60, sp: 48, is_bestseller: false, imgId: 'photo-1611080626919-7cf5a9dbab5b' },
+  { name: 'American Corn', category: 'Exotic Vegetables', subcategory: 'Vegetables', unit: '2 pcs', mrp: 40, sp: 32, is_bestseller: false, imgId: 'photo-1551754655-cd27e38d2076' },
+  { name: 'Green Peas (Vatana)', category: 'Vegetables', subcategory: 'Vegetables', unit: '500 g', mrp: 50, sp: 40, is_bestseller: false, imgId: 'photo-1587570256529-6a869e4d416b' },
+  { name: 'Mushroom', category: 'Exotic Vegetables', subcategory: 'Vegetables', unit: '200 g', mrp: 60, sp: 48, is_bestseller: true, imgId: 'photo-1534422298391-e4f8c172dddb' },
+  { name: 'Leek', category: 'Exotic Vegetables', subcategory: 'Vegetables', unit: '250 g', mrp: 40, sp: 32, is_bestseller: false, imgId: 'photo-1604928127065-22485f401620' },
+  { name: 'Bok Choy (Popchau)', category: 'Exotic Vegetables', subcategory: 'Vegetables', unit: '250 g', mrp: 50, sp: 40, is_bestseller: false, imgId: 'photo-1608686214566-b9b5f884fbc9' },
+  { name: 'Cherry Tomato', category: 'Exotic Vegetables', subcategory: 'Vegetables', unit: '250 g', mrp: 60, sp: 48, is_bestseller: false, imgId: 'photo-1590301157890-4810ed352733' },
+  { name: 'Banana Leaf', category: 'Vegetables', subcategory: 'Vegetables', unit: '5 pcs', mrp: 30, sp: 24, is_bestseller: false, imgId: 'photo-1528825871115-3581a5387919' },
+
+  // ── Herbs & Spices ───────────────────────────────────────────────────────────
+  { name: 'Green Chilli (Lila Marcha)', category: 'Herbs & Spices', subcategory: 'Vegetables', unit: '100 g', mrp: 26, sp: 21, is_bestseller: true, imgId: 'photo-1601004890684-d8cbf643f5f2' },
+  { name: 'Surati Chilli (Surti Marcha)', category: 'Herbs & Spices', subcategory: 'Vegetables', unit: '100 g', mrp: 30, sp: 25, is_bestseller: false, imgId: 'photo-1588252303782-cb80119abd6d' },
+  { name: 'Coriander (Kothmir)', category: 'Herbs & Spices', subcategory: 'Vegetables', unit: '100 g', mrp: 20, sp: 15, is_bestseller: false, imgId: 'photo-1608797178974-15b35a61d121' },
+  { name: 'Ginger (Adu)', category: 'Herbs & Spices', subcategory: 'Vegetables', unit: '200 g', mrp: 64, sp: 56, is_bestseller: true, imgId: 'photo-1615485500704-8e990f9900f7' },
+  { name: 'Lemon (Limbu)', category: 'Herbs & Spices', subcategory: 'Vegetables', unit: '200 g', mrp: 26, sp: 20, is_bestseller: false, imgId: 'photo-1590502593747-42a996133562' },
+  { name: 'Mint Leaves (Pudina)', category: 'Herbs & Spices', subcategory: 'Vegetables', unit: '100 g', mrp: 28, sp: 23, is_bestseller: false, imgId: 'photo-1628556270448-4d4e4148e1b1' },
+  { name: 'Spring Onion (Lila Dungli)', category: 'Herbs & Spices', subcategory: 'Vegetables', unit: '250 g', mrp: 30, sp: 24, is_bestseller: false, imgId: 'photo-1508747703725-719777637510' },
+  { name: 'Garlic (Lasan)', category: 'Herbs & Spices', subcategory: 'Vegetables', unit: '250 g', mrp: 60, sp: 50, is_bestseller: true, imgId: 'photo-1540148426945-6cf22a6b2383' },
+  { name: 'Lemon Grass', category: 'Herbs & Spices', subcategory: 'Vegetables', unit: '100 g', mrp: 20, sp: 15, is_bestseller: false, imgId: 'photo-1560806887-1e4cd0b6cbd6' },
 
   // ── Fruits ───────────────────────────────────────────────────────────────────
-  { product_name: 'Organic Red Apples', category: 'Fruits', subcategory: 'Pome Fruits', brand: 'Himalayan Orchards', mrp: 240, selling_price: 199, gst: 0, total_amt: 199, quantity: '1 kg', stock_status: 1, product_description: 'Crisp Himalayan red apples, naturally sweet and crunchy. Rich in antioxidants.', product_image: 'https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Alphonso Mangoes', category: 'Fruits', subcategory: 'Tropical Fruits', brand: 'Ratnagiri Farms', mrp: 350, selling_price: 299, gst: 0, total_amt: 299, quantity: '6 Pieces', stock_status: 1, product_description: 'The king of mangoes — authentic Ratnagiri Alphonso, fibreless and divinely sweet.', product_image: 'https://images.unsplash.com/photo-1553279768-865429fa0078?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1553279768-865429fa0078?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Seedless Grapes', category: 'Fruits', subcategory: 'Berries & Grapes', brand: 'Farm Fresh', mrp: 120, selling_price: 99, gst: 0, total_amt: 99, quantity: '500 g', stock_status: 1, product_description: 'Sweet, juicy seedless green grapes. Perfect for snacking and fruit platters.', product_image: 'https://images.unsplash.com/photo-1537640538966-79f369143f8f?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1537640538966-79f369143f8f?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Ripe Bananas', category: 'Fruits', subcategory: 'Tropical Fruits', brand: 'Farm Fresh', mrp: 50, selling_price: 40, gst: 0, total_amt: 40, quantity: '1 Dozen', stock_status: 1, product_description: 'Fresh ripe bananas, a rich source of potassium and instant energy.', product_image: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Juicy Oranges', category: 'Fruits', subcategory: 'Citrus Fruits', brand: 'Nagpur Orchards', mrp: 90, selling_price: 75, gst: 0, total_amt: 75, quantity: '1 kg', stock_status: 1, product_description: 'Sweet, juicy Nagpur oranges bursting with Vitamin C. Great for juicing.', product_image: 'https://images.unsplash.com/photo-1547514701-42782101795e?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1547514701-42782101795e?w=500&auto=format&fit=crop'], is_active: '1' },
+  { name: 'Apple (Safarchand)', category: 'Fruits', subcategory: 'Fruits', unit: '1 kg', mrp: 220, sp: 180, is_bestseller: true, imgId: 'photo-1619546813926-a78fa6372cd2' },
+  { name: 'Orange (Santara)', category: 'Fruits', subcategory: 'Fruits', unit: '1 kg', mrp: 90, sp: 75, is_bestseller: false, imgId: 'photo-1611080626919-7cf5a9dbab5b' },
+  { name: 'Pineapple', category: 'Fruits', subcategory: 'Fruits', unit: '1 pc', mrp: 80, sp: 65, is_bestseller: false, imgId: 'photo-1550258987-190a2d41a8ba' },
+  { name: 'Watermelon (Tarbuj)', category: 'Fruits', subcategory: 'Fruits', unit: '1 pc', mrp: 100, sp: 80, is_bestseller: true, imgId: 'photo-1589984662646-e7b2e4962f18' },
+  { name: 'Banana (Kela)', category: 'Fruits', subcategory: 'Fruits', unit: '1 Dozen', mrp: 60, sp: 48, is_bestseller: true, imgId: 'photo-1571771894821-ce9b6c11b08e' },
+  { name: 'Grapes (Draksh)', category: 'Fruits', subcategory: 'Fruits', unit: '500 g', mrp: 100, sp: 80, is_bestseller: false, imgId: 'photo-1537640538966-79f369143f8f' },
+  { name: 'Kiwi', category: 'Fruits', subcategory: 'Fruits', unit: '3 pcs', mrp: 120, sp: 99, is_bestseller: false, imgId: 'photo-1585241936222-6b80119abd6d' },
+  { name: 'Chiku', category: 'Fruits', subcategory: 'Fruits', unit: '500 g', mrp: 60, sp: 48, is_bestseller: false, imgId: 'photo-1596797038530-2c107229654b' },
+  { name: 'Anar (Dadam)', category: 'Fruits', subcategory: 'Fruits', unit: '1 kg', mrp: 180, sp: 150, is_bestseller: true, imgId: 'photo-1601004890684-d8cbf643f5f2' },
+  { name: 'Papaya (Papaiya)', category: 'Fruits', subcategory: 'Fruits', unit: '1 pc', mrp: 80, sp: 65, is_bestseller: false, imgId: 'photo-1526318896980-cf78c088247c' },
+  { name: 'Mango (Keri)', category: 'Fruits', subcategory: 'Fruits', unit: '1 kg', mrp: 250, sp: 199, is_bestseller: true, imgId: 'photo-1553279768-865429fa0078' },
 
-  // ── Dairy ────────────────────────────────────────────────────────────────────
-  { product_name: 'Fresh Full Cream Milk', category: 'Dairy', subcategory: 'Milk', brand: 'Farm Fresh', mrp: 65, selling_price: 58, gst: 0, total_amt: 58, quantity: '1 Litre', stock_status: 1, product_description: 'Pure, fresh full-cream cow milk sourced directly from local farms. Rich in calcium and essential vitamins.', product_image: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1563636619-e9143da7973b?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Desi Cow Ghee', category: 'Dairy', subcategory: 'Ghee', brand: 'Pure Organic', mrp: 950, selling_price: 849, gst: 5, total_amt: 849, quantity: '500 ml', stock_status: 1, product_description: 'Hand-churned bilona ghee made from pure desi cow milk. Rich in healthy fats and has a distinctive aroma.', product_image: 'https://images.unsplash.com/photo-1620706857370-e1b9770e8bb1?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1620706857370-e1b9770e8bb1?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Homemade Paneer', category: 'Dairy', subcategory: 'Paneer', brand: 'Farm Fresh', mrp: 110, selling_price: 95, gst: 0, total_amt: 95, quantity: '200 g', stock_status: 1, product_description: 'Soft, fresh paneer prepared daily from full-fat cow milk. Perfect for curries, tikkas, and snacks.', product_image: 'https://images.unsplash.com/photo-1631452180539-96eca7d73c8c?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1631452180539-96eca7d73c8c?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Natural Curd (Dahi)', category: 'Dairy', subcategory: 'Curd', brand: 'Farm Fresh', mrp: 55, selling_price: 48, gst: 0, total_amt: 48, quantity: '400 g', stock_status: 1, product_description: 'Thick, creamy, naturally set curd made from pure whole milk. High in probiotics, great for digestion.', product_image: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1488477181946-6428a0291777?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Fresh White Butter', category: 'Dairy', subcategory: 'Butter', brand: 'Pure Organic', mrp: 85, selling_price: 72, gst: 0, total_amt: 72, quantity: '100 g', stock_status: 1, product_description: 'Churned white butter from farm-fresh cream. No preservatives, no artificial colour — just pure makhan.', product_image: 'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Sweet Lassi', category: 'Dairy', subcategory: 'Drinks', brand: 'Farm Fresh', mrp: 40, selling_price: 35, gst: 0, total_amt: 35, quantity: '250 ml', stock_status: 1, product_description: 'Thick, chilled sweet lassi blended from fresh curd and sugar. A classic refreshing drink.', product_image: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Mozzarella Cheese', category: 'Dairy', subcategory: 'Cheese', brand: 'Artisan Dairy', mrp: 180, selling_price: 155, gst: 5, total_amt: 155, quantity: '200 g', stock_status: 1, product_description: 'Fresh mozzarella cheese, soft and milky. Ideal for pizzas, pasta, and salads.', product_image: 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=500&auto=format&fit=crop'], is_active: '1' },
+  // ── Dairy & Eggs ─────────────────────────────────────────────────────────────
+  { name: 'Fresh Full Cream Milk', category: 'Dairy & Eggs', subcategory: 'Dairy & Eggs', unit: '1 Litre', mrp: 65, sp: 58, is_bestseller: true, imgId: 'photo-1563636619-e9143da7973b' },
+  { name: 'Desi Cow Ghee', category: 'Dairy & Eggs', subcategory: 'Dairy & Eggs', unit: '500 ml', mrp: 950, sp: 849, is_bestseller: false, imgId: 'photo-1620706857370-e1b9770e8bb1' },
+  { name: 'Homemade Paneer', category: 'Dairy & Eggs', subcategory: 'Dairy & Eggs', unit: '200 g', mrp: 110, sp: 95, is_bestseller: true, imgId: 'photo-1631452180539-96eca7d73c8c' },
+  { name: 'Natural Curd (Dahi)', category: 'Dairy & Eggs', subcategory: 'Dairy & Eggs', unit: '400 g', mrp: 55, sp: 48, is_bestseller: false, imgId: 'photo-1488477181946-6428a0291777' },
+  { name: 'Fresh White Butter', category: 'Dairy & Eggs', subcategory: 'Dairy & Eggs', unit: '100 g', mrp: 85, sp: 72, is_bestseller: false, imgId: 'photo-1589985270826-4b7bb135bc9d' },
+  { name: 'Mozzarella Cheese', category: 'Dairy & Eggs', subcategory: 'Dairy & Eggs', unit: '200 g', mrp: 180, sp: 155, is_bestseller: false, imgId: 'photo-1486297678162-eb2a19b0a32d' },
+
+  // ── Seeds ────────────────────────────────────────────────────────────────────
+  { name: 'Chia Seeds', category: 'Seeds', subcategory: 'Seeds', unit: '200 g', mrp: 250, sp: 199, is_bestseller: false, imgId: 'photo-1502741126161-b048400d085d' },
+  { name: 'Sunflower Seeds', category: 'Seeds', subcategory: 'Seeds', unit: '200 g', mrp: 120, sp: 99, is_bestseller: false, imgId: 'photo-1592417817098-8f3d6eb19675' },
+  { name: 'Pumpkin Seeds', category: 'Seeds', subcategory: 'Seeds', unit: '150 g', mrp: 180, sp: 149, is_bestseller: false, imgId: 'photo-1574323347407-f5e1ad6d020b' },
 
   // ── Organic Daals ────────────────────────────────────────────────────────────
-  { product_name: 'Arhar Dal (Toor Dal)', category: 'Organic Daals', subcategory: 'Lentils', brand: 'Organic Valley', mrp: 165, selling_price: 140, gst: 0, total_amt: 140, quantity: '1 kg', stock_status: 1, product_description: 'Premium organically grown arhar dal. No pesticides, full of protein and fibre.', product_image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Masoor Dal (Red Lentil)', category: 'Organic Daals', subcategory: 'Lentils', brand: 'Organic Valley', mrp: 140, selling_price: 118, gst: 0, total_amt: 118, quantity: '1 kg', stock_status: 1, product_description: 'Organic red masoor dal, quick to cook and rich in plant-based protein.', product_image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Moong Dal (Split Green)', category: 'Organic Daals', subcategory: 'Lentils', brand: 'Pure Organic', mrp: 155, selling_price: 130, gst: 0, total_amt: 130, quantity: '1 kg', stock_status: 1, product_description: 'Light, easy-to-digest organic moong dal. Excellent for soups, khichdi, and halwa.', product_image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1585032226651-759b368d7246?w=500&auto=format&fit=crop'], is_active: '1' },
-
-  // ── Herbs ─────────────────────────────────────────────────────────────────────
-  { product_name: 'Fresh Coriander (Dhania)', category: 'Herbs', subcategory: 'Fresh Herbs', brand: 'Farm Fresh', mrp: 15, selling_price: 12, gst: 0, total_amt: 12, quantity: '1 Bunch', stock_status: 1, product_description: 'Fresh, aromatic coriander leaves. Essential for garnishing dals, curries, and chutneys.', product_image: 'https://images.unsplash.com/photo-1592417817098-8fd3d9eb14a5?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1592417817098-8fd3d9eb14a5?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Fresh Mint Leaves', category: 'Herbs', subcategory: 'Fresh Herbs', brand: 'Organic Valley', mrp: 15, selling_price: 12, gst: 0, total_amt: 12, quantity: '1 Bunch', stock_status: 1, product_description: 'Cool, fragrant mint leaves great for chutneys, raita, and refreshing drinks.', product_image: 'https://images.unsplash.com/photo-1628556270448-4d4e4148e1b1?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1628556270448-4d4e4148e1b1?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Fresh Ginger Root', category: 'Herbs', subcategory: 'Roots & Rhizomes', brand: 'Farm Fresh', mrp: 30, selling_price: 25, gst: 0, total_amt: 25, quantity: '200 g', stock_status: 1, product_description: 'Pungent, fresh ginger root. Ideal for chai, curries, and home remedies.', product_image: 'https://images.unsplash.com/photo-1615485500704-8e990f9900f7?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1615485500704-8e990f9900f7?w=500&auto=format&fit=crop'], is_active: '1' },
-
-  // ── Seeds ─────────────────────────────────────────────────────────────────────
-  { product_name: 'Chia Seeds', category: 'Seeds', subcategory: 'Super Seeds', brand: 'NutriLife', mrp: 250, selling_price: 199, gst: 5, total_amt: 199, quantity: '200 g', stock_status: 1, product_description: 'Organic chia seeds packed with omega-3, fibre, and protein. Perfect for smoothies and overnight oats.', product_image: 'https://images.unsplash.com/photo-1502741126161-b048400d085d?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1502741126161-b048400d085d?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Sunflower Seeds', category: 'Seeds', subcategory: 'Edible Seeds', brand: 'NutriLife', mrp: 120, selling_price: 99, gst: 5, total_amt: 99, quantity: '200 g', stock_status: 1, product_description: 'Raw sunflower seeds rich in Vitamin E and healthy fats. Great for snacking and salads.', product_image: 'https://images.unsplash.com/photo-1592591452832-66b7fcf2c24b?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1592591452832-66b7fcf2c24b?w=500&auto=format&fit=crop'], is_active: '1' },
-  { product_name: 'Pumpkin Seeds', category: 'Seeds', subcategory: 'Super Seeds', brand: 'Organic Valley', mrp: 180, selling_price: 149, gst: 5, total_amt: 149, quantity: '150 g', stock_status: 1, product_description: 'Roasted pumpkin seeds (pepitas) loaded with magnesium and zinc. A crunchy, nutritious snack.', product_image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=500&auto=format&fit=crop', images: ['https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=500&auto=format&fit=crop'], is_active: '1' },
+  { name: 'Arhar Dal (Toor Dal)', category: 'Organic Daals', subcategory: 'Organic Daals', unit: '1 kg', mrp: 165, sp: 140, is_bestseller: true, imgId: 'photo-1615485290382-441e4d049cb5' },
+  { name: 'Masoor Dal (Red Lentil)', category: 'Organic Daals', subcategory: 'Organic Daals', unit: '1 kg', mrp: 140, sp: 118, is_bestseller: false, imgId: 'photo-1542838132-92c53300491e' },
+  { name: 'Moong Dal (Split Green)', category: 'Organic Daals', subcategory: 'Organic Daals', unit: '1 kg', mrp: 155, sp: 130, is_bestseller: false, imgId: 'photo-1585032226651-759b368d7246' }
 ];
+
+const categoryToTypeMap: Record<string, string> = {
+  'Vegetables': 'Fresh Vegetables',
+  'Exotic Vegetables': 'Fresh Vegetables',
+  'Leafy Greens': 'Fresh Vegetables',
+  'Root Vegetables': 'Fresh Vegetables',
+  'Fruits': 'Fresh Fruits',
+  'Dairy & Eggs': 'Dairy Products',
+  'Herbs & Spices': 'Organic & Herbs',
+  'Organic Daals': 'Organic & Herbs',
+  'Seeds': 'Organic & Herbs'
+};
 
 export async function GET() {
   try {
     await connectDB();
 
-    const results: any[] = [];
-
-    // Group by category and only insert categories that don't exist yet
-    const categories = [...new Set(SEED_PRODUCTS.map(p => p.category))];
-
-    for (const category of categories) {
-      const existing = await Product.countDocuments({ category });
-      if (existing > 0) {
-        results.push({ category, status: 'skipped', existing });
-        continue;
-      }
-      const toInsert = SEED_PRODUCTS.filter(p => p.category === category);
-      const inserted = await Product.insertMany(toInsert);
-      results.push({ category, status: 'inserted', count: inserted.length });
+    const db = mongoose.connection.db;
+    if (!db) {
+      throw new Error('Database connection not established');
     }
 
-    return NextResponse.json({ message: 'Seed complete', results });
+    const categoryTypes = await db.collection('categorytypes').find().toArray();
+    const vendors = await db.collection('vendors').find().toArray();
+    const brands = await db.collection('brands').find().toArray();
+
+    const typeMap: Record<string, string> = {};
+    categoryTypes.forEach((ct: any) => {
+      typeMap[ct.name] = ct._id.toString();
+    });
+
+    const vendorIds = vendors.map((v: any) => v._id);
+    const shopNames = vendors.map((v: any) => v.shop_name);
+    const brandNames = brands.map((b: any) => b.name);
+
+    const rand = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
+    const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+    const toInsert = SEED_PRODUCTS.map((p) => {
+      const typeName = categoryToTypeMap[p.category] || 'Fresh Vegetables';
+      const cat_type_id = typeMap[typeName] || '';
+      const imgUrl = `https://images.unsplash.com/${p.imgId}?w=500&auto=format&fit=crop&q=80`;
+
+      return {
+        product_name: p.name,
+        vendor_id: rand(vendorIds),
+        vendor_shop_name: rand(shopNames),
+        brand: rand(brandNames) || 'Farm Fresh',
+        cat_type_id,
+        category: p.category,
+        subcategory: p.subcategory,
+        quantity: p.unit,
+        mrp: p.mrp,
+        selling_price: p.sp,
+        total_amt: p.sp,
+        gst: rand([0, 5, 12]),
+        stock_status: 1,
+        product_image: imgUrl,
+        images: [imgUrl],
+        is_active: '1',
+        is_bestseller: p.is_bestseller ? '1' : '0',
+        description: `Fresh ${p.name} sourced directly from verified local farms. Cleaned, graded, and packed under strict hygiene conditions.`,
+      };
+    });
+
+    await Product.deleteMany({});
+    const inserted = await Product.insertMany(toInsert);
+
+    return NextResponse.json({
+      message: 'Seed complete',
+      count: inserted.length
+    });
   } catch (error: any) {
     console.error('Seed error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

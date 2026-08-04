@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
         category:     p.category || '',
         categorySlug: (p.category || '').toLowerCase().replace(/\s+/g, '-'),
         subcategory:  p.subcategory || '',
+        subcategorySlug: (p.subcategory || '').toLowerCase().replace(/\s+/g, '-'),
         description:  p.product_description || p.description || '',
         stock:        p.stock_status === 1 || p.stock_status === '1' ? 99 : 0,
         quantity:     p.quantity || '',

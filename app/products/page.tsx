@@ -89,7 +89,12 @@ function ProductsContent() {
         const matchesCategory = !hasCategoryFilter || (
             product.categorySlug?.toLowerCase() === selectedCategory.toLowerCase() ||
             product.category?.toLowerCase() === selectedCategory.toLowerCase() ||
-            (selectedCategoryData && product.category?.toLowerCase() === selectedCategoryData.name.toLowerCase())
+            product.subcategory?.toLowerCase() === selectedCategory.toLowerCase() ||
+            product.subcategorySlug?.toLowerCase() === selectedCategory.toLowerCase() ||
+            (selectedCategoryData && (
+                product.category?.toLowerCase() === selectedCategoryData.name.toLowerCase() ||
+                product.subcategory?.toLowerCase() === selectedCategoryData.name.toLowerCase()
+            ))
         );
 
         const matchesSearch = !normalizedSearch || [
@@ -130,7 +135,7 @@ function ProductsContent() {
                 </div>
 
                 {loading ? (
-                    <div className="grid grid-cols-2 justify-items-center gap-4 md:grid-cols-3 xl:grid-cols-5">
+                    <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4 md:gap-5">
                         {[...Array(8)].map((_, i) => (
                             <div key={i} className="h-[310px] w-full max-w-[220px] animate-pulse rounded-xl border border-gray-100 bg-white shadow-sm" />
                         ))}
@@ -140,7 +145,7 @@ function ProductsContent() {
                         {error}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 justify-items-center gap-4 md:grid-cols-3 xl:grid-cols-5">
+                    <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4 md:gap-5">
                         {filtered.length > 0 ? (
                             filtered.map(product => (
                                 <ProductCard key={product._id} product={product} />

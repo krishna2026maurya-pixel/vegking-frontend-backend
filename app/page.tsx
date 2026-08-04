@@ -3,25 +3,38 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import BlogCard from '@/components/BlogCard';
+import ProductCard from '@/components/ProductCard';
 import { useCart } from '@/context/CartContext';
 import { Leaf, ShieldCheck, Truck, Droplets, UserCheck, Star, Quote, Clock, MapPin, CalendarRange, CheckCircle2, ArrowRight, PackageSearch } from 'lucide-react';
 import { blogs } from '@/lib/blogs';
 
-// DUMMY DATA FOR FRONTEND MIGRATION
-const dummyProducts = [
-  { _id: '1', name: 'Organic Tomatoes', category: 'Vegetables', categorySlug: 'vegetables', price: 40, stock: 50, discount: 10, image: 'https://images.unsplash.com/photo-1582284540020-8acaf0195b7b?q=80&w=900&auto=format&fit=crop' },
-  { _id: '2', name: 'Fresh Spinach', category: 'Greens', categorySlug: 'greens', price: 30, stock: 30, discount: 0, image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?q=80&w=900&auto=format&fit=crop' },
-
-  { _id: '3', name: 'Arhar Daal', category: 'Organic Daals', categorySlug: 'organic-daals', price: 140, stock: 80, discount: 5, image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRHg3HDC03TaQFeSG_KceGyjS_LwHCETqO9gV84DJmwPg&s=10' },
-  { _id: '4', name: 'Organic Apples', category: 'Fruits', categorySlug: 'fruits', price: 200, stock: 20, discount: 15, image: 'https://5.imimg.com/data5/UM/DM/MY-43685925/organic-apple-500x500.jpg' },
-  { _id: '5', name: 'Desi Cow Ghee', category: 'Dairy', categorySlug: 'dairy', price: 850, stock: 10, discount: 0, image: 'https://5.imimg.com/data5/OC/FD/ON/SELLER-95336941/shudh-desi-ghee-500x500.jpeg' },
+const CATEGORY_ORDER = [
+  'Vegetables',
+  'Exotic Vegetables',
+  'Leafy Greens',
+  'Root Vegetables',
+  'Fruits',
+  'Dairy & Eggs',
+  'Herbs & Spices',
+  'Organic Daals',
+  'Seeds'
 ];
 
-const dummyCategories = [
-  { _id: 'c1', name: 'Vegetables', slug: 'vegetables', image: 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=400', isActive: true, description: 'Fresh farm veggies' },
-  { _id: 'c2', name: 'Fruits', slug: 'fruits', image: 'https://images.unsplash.com/photo-1609780447631-05b93e5a88ea?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8ZnJ1aXQlMjBzaG9wfGVufDB8fDB8fHww', isActive: true, description: 'Seasonal organic fruits' },
-  { _id: 'c3', name: 'Organic Daals', slug: 'organic-daals', image: 'https://images.hindustantimes.com/rf/image_size_640x362/HT/p1/2013/08/28/Incoming/Pictures/1114295_Wallpaper2.jpg', isActive: true, description: 'Healthy organic pulses' },
-];
+const categoryImageMap: Record<string, string> = {
+  'Vegetables': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=400&auto=format&fit=crop&q=80',
+  'Exotic Vegetables': 'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=400&auto=format&fit=crop&q=80',
+  'Leafy Greens': 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&auto=format&fit=crop&q=80',
+  'Root Vegetables': 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&auto=format&fit=crop&q=80',
+  'Fruits': 'https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=400&auto=format&fit=crop&q=80',
+  'Dairy & Eggs': 'https://images.unsplash.com/photo-1596797038530-2c107229654b?w=400&auto=format&fit=crop&q=80',
+  'Herbs & Spices': 'https://images.unsplash.com/photo-1596003906949-67221c37965c?w=400&auto=format&fit=crop&q=80',
+  'Organic Daals': 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&auto=format&fit=crop&q=80',
+  'Seeds': 'https://images.unsplash.com/photo-1502741126161-b048400d085d?w=400&auto=format&fit=crop&q=80'
+};
+
+// Dummy fallback categories and products if API fails
+const dummyProducts: any[] = [];
+const dummyCategories: any[] = [];
 
 export default function Home() {
   const { addToCart } = useCart();
@@ -53,34 +66,41 @@ export default function Home() {
   }, [heroImages.length]);
 
   useEffect(() => {
-    // USING DUMMY DATA INSTEAD OF API CALLS
-    setProducts(dummyProducts);
-    setCategories(dummyCategories);
+    const fetchData = async () => {
+      try {
+        const [productsRes, categoriesRes] = await Promise.all([
+          fetch('/api/products?limit=250', { cache: 'no-store' }),
+          fetch('/api/categories?limit=50', { cache: 'no-store' }),
+        ]);
+
+        const productsJson = await productsRes.json();
+        const categoriesJson = await categoriesRes.json();
+
+        const productsArray = Array.isArray(productsJson) ? productsJson : productsJson.data || [];
+        const categoriesArray = Array.isArray(categoriesJson) ? categoriesJson : categoriesJson.data || [];
+
+        setProducts(productsArray);
+        setCategories(categoriesArray);
+      } catch (err) {
+        console.error('Failed to fetch home page data:', err);
+        setProducts(dummyProducts);
+        setCategories(dummyCategories);
+      }
+    };
+    fetchData();
   }, []);
 
-  const categoriesWithProducts = categories.filter((category) =>
-    alwaysVisibleCategorySlugs.has(category.slug) ||
-    products.some((product) =>
-      product.categorySlug?.toLowerCase() === category.slug?.toLowerCase() ||
-      product.category?.toLowerCase() === category.name?.toLowerCase()
-    )
-  );
-
-  const categoryShowcase = [
-    { label: 'Herbs', aliases: ['herbs', 'herb'] },
-    { label: 'Fruits', aliases: ['fruits', 'fruit'] },
-    { label: 'Seeds', aliases: ['seeds', 'seed'] },
-    { label: 'Milk', aliases: ['dairy', 'milk'] },
-    { label: 'Organic Daals', aliases: ['organic-daals', 'organic daals', 'daal', 'dal'] },
-  ];
-
-  const mostLovedProducts = categoryShowcase
-    .map((group) => products.find((product) => {
-      const category = product.category?.toLowerCase() || '';
-      const slug = product.categorySlug?.toLowerCase() || '';
-      return group.aliases.some((alias) => category.includes(alias) || slug.includes(alias));
-    }))
-    .filter(Boolean);
+  const orderedCategories = CATEGORY_ORDER.map((name) => {
+    const found = categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
+    if (found) return found;
+    return {
+      _id: name,
+      name,
+      slug: name.toLowerCase().replace(/\s+&\s+/g, '-').replace(/\s+/g, '-'),
+      image: categoryImageMap[name] || null,
+      description: `Explore fresh ${name} direct from farm.`
+    };
+  });
 
   return (
     <div className="w-full flex flex-col">
@@ -164,8 +184,8 @@ export default function Home() {
         </section>
 
         {/* Organic Categories Section */}
-        <section className="space-y-8">
-          <div className="text-center max-w-2xl mx-auto space-y-4">
+        <section className="space-y-6">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
             <h2 className="text-3xl font-serif text-accent-darker sm:text-4xl font-bold">
               Shop by Category
             </h2>
@@ -175,38 +195,25 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 pt-2 sm:grid-cols-2 lg:grid-cols-3">
-            {categoriesWithProducts.length > 0 ? categoriesWithProducts.map((cat) => (
+          <div className="flex flex-wrap justify-center gap-6 sm:gap-8 pt-4">
+            {orderedCategories.map((cat) => (
               <Link
                 key={cat._id || cat.slug}
                 href={`/products?category=${encodeURIComponent(cat.slug || cat.name)}`}
-                className="group relative overflow-hidden rounded-xl aspect-[4/3] text-left shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1 focus:outline-none bg-green-50"
+                className="group flex flex-col items-center gap-2.5 text-center focus:outline-none"
               >
-                <img
-                  src={cat.image}
-                  alt={cat.name}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-in-out group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent transition-opacity duration-300 group-hover:from-black/90" />
-                <div className="absolute inset-0 z-10 flex flex-col justify-end p-3 sm:p-4">
-                  <h3 className="text-white font-bold text-sm sm:text-base leading-tight mb-1 drop-shadow">
-                    {cat.name}
-                  </h3>
-                  <p className="text-gray-300 text-[10px] sm:text-[11px] leading-snug mb-2 font-light opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    {cat.description || 'Explore fresh products added from admin.'}
-                  </p>
-                  <div className="flex items-center gap-1.5 text-[#a4d4b4] text-[11px] font-semibold opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300">
-                    Explore <ArrowRight className="w-3 h-3" />
-                  </div>
+                <div className="relative w-20 h-20 sm:w-24 sm:h-24 overflow-hidden rounded-full border border-gray-100 bg-white shadow-sm transition-all duration-300 group-hover:scale-105 group-hover:border-primary group-hover:shadow-md">
+                  <img
+                    src={cat.image || categoryImageMap[cat.name] || 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=400&q=80'}
+                    alt={cat.name}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
+                <span className="text-xs sm:text-sm font-semibold text-gray-700 transition-colors duration-200 group-hover:text-primary">
+                  {cat.name}
+                </span>
               </Link>
-            )) : (
-              <div className="col-span-full rounded-3xl border border-dashed border-gray-200 bg-white px-6 py-12 text-center">
-                <PackageSearch className="mx-auto mb-3 h-8 w-8 text-primary" />
-                <p className="font-bold text-gray-900">No categories available</p>
-                <p className="mt-1 text-sm text-gray-500">Add categories in the admin panel to show them here.</p>
-              </div>
-            )}
+            ))}
           </div>
         </section>
 
@@ -224,77 +231,57 @@ export default function Home() {
           </div>
         </section>
 
-        {mostLovedProducts.length > 0 && (
-          <section className="space-y-8 pt-4">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-gray-950 sm:text-4xl">
-                Most Loved Products
-              </h2>
-            </div>
-            <div className="grid grid-cols-2 justify-items-center gap-4 md:grid-cols-3 xl:grid-cols-5">
-              {mostLovedProducts.map((product) => {
-                const inStock = Number(product.stock) > 0;
-                const discount = Number(product.discount) || 0;
-                const price = Number(product.price) || 0;
-                const mrp = discount > 0 ? Math.round(price / (1 - discount / 100)) : price;
+        <section className="space-y-10 pt-4">
+          <div className="text-center max-w-2xl mx-auto space-y-4">
+            <h2 className="text-3xl font-serif text-accent-darker sm:text-4xl font-bold">
+              Our Fresh Harvest
+            </h2>
+            <div className="w-16 h-0.5 bg-primary-variant mx-auto"></div>
+            <p className="text-gray-500 text-sm sm:text-base leading-relaxed">
+              Explore fresh organic products by category
+            </p>
+          </div>
 
-                return (
-                  <div key={product._id} className="relative flex min-h-[330px] w-full max-w-[220px] flex-col bg-white px-3 pb-3 text-center border border-gray-100 rounded-md">
-                    {discount > 0 && (
-                      <span className="absolute left-3 top-0 z-10 rounded-sm bg-primary px-2 py-1 text-xs font-bold text-white">
-                        -{discount}%
-                      </span>
-                    )}
-                    <Link href={`/product/${product._id}`} className="block">
-                      <div className="flex h-[170px] items-center justify-center bg-white px-2 pt-2">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="max-h-[150px] w-full object-contain"
-                        />
-                      </div>
+          <div className="space-y-12">
+            {CATEGORY_ORDER.map((categoryName) => {
+              const categoryProducts = products
+                .filter(
+                  (product) =>
+                    product.category?.toLowerCase() === categoryName.toLowerCase() ||
+                    product.subcategory?.toLowerCase() === categoryName.toLowerCase()
+                )
+                .slice(0, 5);
+
+              return (
+                <div key={categoryName} className="space-y-4 border-b border-gray-100 pb-8 last:border-0">
+                  <div className="flex justify-between items-end px-2">
+                    <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#1e3b2b]">
+                      {categoryName}
+                    </h3>
+                    <Link
+                      href={`/products?category=${encodeURIComponent(categoryName)}`}
+                      className="text-xs sm:text-sm font-bold text-primary hover:text-primary-hover flex items-center gap-1"
+                    >
+                      View All <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
-                    <div className="flex flex-1 flex-col items-center">
-                      <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-gray-800">
-                        {product.category || 'Organic Products'}
-                      </p>
-                      <Link href={`/product/${product._id}`} className="block">
-                        <h3 className="line-clamp-2 min-h-[38px] text-[14px] font-bold leading-snug text-gray-800 hover:text-primary transition-colors">
-                          {product.name}
-                        </h3>
-                      </Link>
-                      <div className="mt-1 flex items-center justify-center gap-0.5 text-yellow-500">
-                        {[...Array(5)].map((_, index) => (
-                          <Star key={index} className="h-3.5 w-3.5 fill-current" />
-                        ))}
-                      </div>
-                      <p className="mt-1 min-h-[20px] text-[12px] font-medium text-gray-950">
-                        ₹{price.toFixed(2)}
-                        {mrp > price && (
-                          <>
-                            <span> – </span>
-                            <span className="line-through text-gray-400">₹{mrp.toFixed(2)}</span>
-                          </>
-                        )}
-                        <span className="ml-1 text-[10px] font-normal text-gray-700">
-                          (Inc. taxes).
-                        </span>
-                      </p>
-                      <button
-                        type="button"
-                        disabled={!inStock}
-                        onClick={() => addToCart({ ...product, qty: 'default' })}
-                        className="mt-auto inline-flex h-9 w-full items-center justify-center rounded-[4px] bg-primary px-3 text-xs font-extrabold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-gray-400"
-                      >
-                        {inStock ? 'Select options' : 'Out of Stock'}
-                      </button>
-                    </div>
                   </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
+
+                  {categoryProducts.length > 0 ? (
+                    <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4 md:gap-5">
+                      {categoryProducts.map((product) => (
+                        <ProductCard key={product._id} product={product} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-gray-200 bg-white py-12 text-center text-sm font-medium text-gray-500 shadow-sm">
+                      no item we have
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
         {/* Subscription Plans Section */}
         <section className="space-y-8 pt-8">
