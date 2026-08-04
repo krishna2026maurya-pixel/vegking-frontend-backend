@@ -1,12 +1,35 @@
+"use client";
+
 import React from 'react';
-import { Users, ShoppingCart, DollarSign, Package } from 'lucide-react';
+import { Users, ShoppingCart, DollarSign, Package, Download } from 'lucide-react';
 
 export default function AdminDashboard() {
+  const downloadReport = () => {
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + ["Metric,Value,Trend",
+         "Total Vendors,124,+12% this month",
+         "Total Products,856,+5% this month",
+         "Total Orders,1245,+18% this month",
+         "Total Revenue,Rs 45600,+24% this month"
+        ].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "vegking_admin_report.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h1>
-        <button className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+        <button 
+          onClick={downloadReport}
+          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors cursor-pointer flex items-center gap-1.5 text-sm font-semibold"
+        >
+          <Download size={16} />
           Download Report
         </button>
       </div>

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Loader2, LogOut, Package, PackagePlus, ReceiptText, Store, User, X, Bike, Bell, Settings, ShieldCheck, CheckCircle2, AlertTriangle, Landmark, Search, Mail, ChevronDown, Plus, Heart, Filter, MessageSquare, HelpCircle, Sparkles } from 'lucide-react';
+import { BarChart3, Loader2, LogOut, Package, PackagePlus, ReceiptText, Store, User, X, Bike, Bell, Settings, ShieldCheck, CheckCircle2, AlertTriangle, Landmark, Search, Mail, ChevronDown, Plus, Heart, Filter, MessageSquare, HelpCircle, Sparkles, Download } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 const tabs = [
@@ -25,6 +25,44 @@ const getSafeProductImage = (img: any) => {
   }
   return '/images/product-card-default.jpg';
 };
+
+const ShimmerProductCard = () => (
+  <div className="border border-gray-100 bg-white rounded-2xl p-3 flex flex-col justify-between animate-pulse">
+    <div className="h-28 w-full bg-gray-200 rounded-xl mb-3" />
+    <div className="space-y-2">
+      <div className="h-4 bg-gray-200 rounded-md w-3/4 animate-pulse" />
+      <div className="h-3 bg-gray-200 rounded-md w-1/2 animate-pulse" />
+    </div>
+    <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50">
+      <div className="h-4 bg-gray-200 rounded-md w-1/3 animate-pulse" />
+      <div className="h-7 w-7 bg-gray-200 rounded-lg animate-pulse" />
+    </div>
+  </div>
+);
+
+const ShimmerCategoryCard = () => (
+  <div className="border border-gray-100 bg-white rounded-2xl p-4 flex flex-col gap-4 items-start animate-pulse">
+    <div className="h-8 w-8 bg-gray-200 rounded-xl animate-pulse" />
+    <div className="space-y-1.5 w-full">
+      <div className="h-2.5 bg-gray-200 rounded-md w-1/2 animate-pulse" />
+      <div className="h-4 bg-gray-200 rounded-md w-3/4 animate-pulse" />
+    </div>
+  </div>
+);
+
+const ShimmerListRow = () => (
+  <div className="p-4 border border-gray-100 bg-white rounded-xl flex items-center justify-between gap-4 animate-pulse">
+     <div className="flex items-center gap-4 w-full">
+       <div className="h-14 w-14 bg-gray-200 rounded-lg shrink-0 animate-pulse" />
+       <div className="space-y-2 w-full">
+         <div className="h-4 bg-gray-200 rounded-md w-1/3 animate-pulse" />
+         <div className="h-3 bg-gray-200 rounded-md w-1/2 animate-pulse" />
+       </div>
+     </div>
+     <div className="h-8 w-16 bg-gray-200 rounded-lg shrink-0 animate-pulse" />
+  </div>
+);
+
 
 const emptyProduct = {
   name: '',
@@ -471,9 +509,24 @@ export default function VendorDashboardPage() {
     setFavorites(prev => ({ ...prev, [productId]: !prev[productId] }));
   };
 
-  if (loading) {
-    return <div className="flex min-h-screen items-center justify-center text-sm font-bold text-gray-500">Loading VeggieMart...</div>;
-  }
+  const downloadVendorReport = () => {
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [
+          "Metric,Value",
+          `Total Products,${products.length}`,
+          `Total Orders,${orders.length}`,
+          `Total Customers,${vendorCustomers.length}`,
+          `Total Revenue,Rs ${stats.revenue.toFixed(2)}`
+        ].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `vegking_vendor_report_${profile?.name || 'store'}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
 
   return (
     <div className="h-screen overflow-hidden bg-[#f3f8f4] flex text-gray-800 font-sans antialiased">
@@ -485,7 +538,7 @@ export default function VendorDashboardPage() {
             <div className="h-10 w-10 bg-[#2bb673] rounded-xl flex items-center justify-center text-white shadow-md shadow-[#2bb673]/20">
               <Store className="h-5 w-5" />
             </div>
-            <span className="font-extrabold text-lg text-gray-900 tracking-tight">VeggieMart</span>
+            <span className="font-extrabold text-lg text-gray-900 tracking-tight">VegKing</span>
           </div>
 
           {/* Navigation Links */}
@@ -498,16 +551,16 @@ export default function VendorDashboardPage() {
                   key={tab.id}
                   type="button"
                   onClick={() => changeTab(tab.id)}
-                  className={`flex w-full items-center gap-3.5 px-4 py-3.5 rounded-xl text-left text-sm transition-all ${
+                  className={`flex w-full items-center gap-3.5 px-4 py-3.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                     isActive 
-                      ? 'bg-[#e7f7ee] text-[#2bb673] font-bold' 
-                      : 'text-[#4e6557] hover:text-[#2bb673] hover:bg-[#f6faf7] font-medium'
+                      ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] text-emerald-700 shadow-xs scale-[1.01]' 
+                      : 'text-gray-500 hover:text-emerald-700 hover:bg-[#f6faf7] hover:scale-[1.01]'
                   }`}
                 >
-                  <Icon className={`h-5 w-5 ${isActive ? 'text-[#2bb673]' : 'text-[#4e6557]'}`} />
+                  <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-600' : 'text-gray-400'}`} />
                   {tab.label}
                   {tab.id === 'orders' && orders.filter(o => o.orderStatus === 'Pending').length > 0 && (
-                    <span className="ml-auto bg-[#2bb673] text-white text-[10px] font-bold h-5 px-1.5 min-w-5 rounded-full flex items-center justify-center">
+                    <span className="ml-auto bg-red-500 text-white text-[9px] font-bold h-5 px-1.5 min-w-5 rounded-full flex items-center justify-center animate-pulse shadow-sm shadow-red-200">
                       {orders.filter(o => o.orderStatus === 'Pending').length}
                     </span>
                   )}
@@ -525,13 +578,13 @@ export default function VendorDashboardPage() {
                   key={tab.id}
                   type="button"
                   onClick={() => changeTab(tab.id)}
-                  className={`flex w-full items-center gap-3.5 px-4 py-3.5 rounded-xl text-left text-sm transition-all ${
+                  className={`flex w-full items-center gap-3.5 px-4 py-3.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                     isActive 
-                      ? 'bg-[#e7f7ee] text-[#2bb673] font-bold' 
-                      : 'text-[#4e6557] hover:text-[#2bb673] hover:bg-[#f6faf7] font-medium'
+                      ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] text-emerald-700 shadow-xs scale-[1.01]' 
+                      : 'text-gray-500 hover:text-emerald-700 hover:bg-[#f6faf7] hover:scale-[1.01]'
                   }`}
                 >
-                  <Icon className={`h-5 w-5 ${isActive ? 'text-[#2bb673]' : 'text-[#4e6557]'}`} />
+                  <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-600' : 'text-gray-400'}`} />
                   {tab.label}
                 </button>
               );
@@ -557,10 +610,21 @@ export default function VendorDashboardPage() {
             <div className="h-9 w-9 bg-[#2bb673] rounded-lg flex items-center justify-center text-white">
               <Store className="h-5 w-5" />
             </div>
-            <span className="font-extrabold text-sm text-gray-900">VeggieMart</span>
+            <span className="font-extrabold text-sm text-gray-900">VegKing</span>
           </div>
 
-          <h2 className="hidden md:block font-extrabold text-xl text-gray-900">Welcome to Market</h2>
+          <div className="hidden md:flex items-center gap-4">
+            <h2 className="font-extrabold text-xl text-gray-900">Welcome to Market</h2>
+            <button
+              type="button"
+              onClick={downloadVendorReport}
+              className="text-xs font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100/80 px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+              title="Download Shop Stats CSV"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Download Report
+            </button>
+          </div>
 
           {/* Right Controls */}
           <div className="flex items-center gap-6">
@@ -615,19 +679,19 @@ export default function VendorDashboardPage() {
               <div className="xl:col-span-2 space-y-8">
                 
                 {/* Discount Special Banner */}
-                <div className="bg-[#2bb673] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden flex flex-col sm:flex-row justify-between sm:items-center gap-6">
-                  <div className="relative z-10 space-y-2 max-w-sm">
-                    <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Get special discounts up to 45%</h2>
-                    <p className="text-xs text-white/80 font-medium">Enjoy listing your fresh vegetables, grains, and greens at competitive prices.</p>
+                <div className="bg-gradient-to-r from-[#2bb673] via-[#24a365] to-[#10b981] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden flex flex-col sm:flex-row justify-between sm:items-center gap-6 border border-emerald-500/10 shadow-lg shadow-emerald-700/5">
+                  <div className="relative z-10 space-y-2.5 max-w-md">
+                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">Get special discounts up to 45%</h2>
+                    <p className="text-xs text-emerald-50/90 font-semibold leading-relaxed">Enjoy listing your fresh vegetables, grains, and greens at competitive prices.</p>
                   </div>
                   <button 
                     type="button"
                     onClick={openAddProduct}
-                    className="relative z-10 bg-white text-[#2bb673] text-xs font-black px-6 py-3 rounded-xl hover:bg-green-50 transition shrink-0"
+                    className="relative z-10 bg-white text-[#1e613f] hover:text-[#10b981] text-xs font-black px-6 py-3.5 rounded-2xl hover:bg-emerald-50 transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-950/10 shrink-0 cursor-pointer"
                   >
                     Use Now
                   </button>
-                  <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none transform translate-y-1/4 translate-x-1/4">
+                  <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none transform translate-y-1/4 translate-x-1/4 select-none">
                     <Store className="h-64 w-64" />
                   </div>
                 </div>
@@ -643,23 +707,27 @@ export default function VendorDashboardPage() {
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                    {[
-                      { label: 'Veggies', stock: `${categoryStock.veggies} stock`, bg: 'bg-[#e8f7ee] border-[#cbeed8] text-[#1e3b2b]', iconBg: 'bg-[#2bb673] text-white', icon: <Store className="h-5 w-5" /> },
-                      { label: 'Tubers', stock: `${categoryStock.others} stock`, bg: 'bg-[#eefcf5] border-[#d4f7e2] text-[#0f5132]', iconBg: 'bg-[#0f9f59] text-white', icon: <Store className="h-5 w-5" /> },
-                      { label: 'Grains', stock: `${categoryStock.grains} stock`, bg: 'bg-[#fffbeb] border-[#fde68a] text-[#78350f]', iconBg: 'bg-[#d97706] text-white', icon: <Store className="h-5 w-5" /> },
-                      { label: 'Fruits', stock: `${categoryStock.fruits} stock`, bg: 'bg-[#fff5f0] border-[#fed7aa] text-[#9a3412]', iconBg: 'bg-[#ea580c] text-white', icon: <Store className="h-5 w-5" /> },
-                      { label: 'Dairy', stock: `${categoryStock.dairy} stock`, bg: 'bg-[#eff6ff] border-[#bfdbfe] text-[#1e3a8a]', iconBg: 'bg-[#2563eb] text-white', icon: <Store className="h-5 w-5" /> },
-                    ].map((cat) => (
-                      <div key={cat.label} className={`border rounded-2xl p-4 flex flex-col gap-4 items-start transition ${cat.bg}`}>
-                        <div className={`h-8 w-8 rounded-xl flex items-center justify-center ${cat.iconBg}`}>
-                          {cat.icon}
+                    {loading ? (
+                      Array.from({ length: 5 }).map((_, i) => <ShimmerCategoryCard key={i} />)
+                    ) : (
+                      [
+                        { label: 'Veggies', stock: `${categoryStock.veggies} stock`, bg: 'bg-[#e7f7ee]/60 border-emerald-100 text-emerald-900', iconBg: 'bg-emerald-600 text-white', icon: <Store className="h-4.5 w-4.5" /> },
+                        { label: 'Tubers', stock: `${categoryStock.others} stock`, bg: 'bg-[#eefcf5]/60 border-green-100 text-green-950', iconBg: 'bg-green-600 text-white', icon: <Store className="h-4.5 w-4.5" /> },
+                        { label: 'Grains', stock: `${categoryStock.grains} stock`, bg: 'bg-[#fffbeb]/60 border-amber-100 text-amber-900', iconBg: 'bg-amber-600 text-white', icon: <Store className="h-4.5 w-4.5" /> },
+                        { label: 'Fruits', stock: `${categoryStock.fruits} stock`, bg: 'bg-[#fff5f0]/60 border-orange-100 text-orange-950', iconBg: 'bg-orange-600 text-white', icon: <Store className="h-4.5 w-4.5" /> },
+                        { label: 'Dairy', stock: `${categoryStock.dairy} stock`, bg: 'bg-[#eff6ff]/60 border-blue-100 text-blue-900', iconBg: 'bg-blue-600 text-white', icon: <Store className="h-4.5 w-4.5" /> },
+                      ].map((cat) => (
+                        <div key={cat.label} className={`border rounded-2xl p-4 flex flex-col gap-4 items-start hover:shadow-md hover:shadow-gray-200/50 hover:scale-[1.03] transition-all duration-300 ${cat.bg}`}>
+                          <div className={`h-8 w-8 rounded-xl flex items-center justify-center shadow-xs ${cat.iconBg}`}>
+                            {cat.icon}
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">{cat.stock}</p>
+                            <p className="text-xs font-extrabold mt-0.5 leading-tight">{cat.label}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-gray-500">{cat.stock}</p>
-                          <p className="text-sm font-black mt-1 leading-tight">{cat.label}</p>
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
 
@@ -671,43 +739,49 @@ export default function VendorDashboardPage() {
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {products.slice(0, 4).map((p) => {
-                      const isFav = !!favorites[p._id];
-                      return (
-                        <div key={p._id} className="border border-[#e9f2eb] bg-white rounded-2xl p-3 flex flex-col justify-between group transition duration-300">
-                          <div className="relative h-28 w-full bg-[#f4f7f5] rounded-xl overflow-hidden mb-3">
-                            <img src={getSafeProductImage(p.image)} alt={p.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                            <button 
-                              type="button" 
-                              onClick={() => toggleFavorite(p._id)}
-                              className="absolute top-2 right-2 h-7 w-7 bg-white rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 transition"
-                            >
-                              <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : ''}`} />
-                            </button>
-                          </div>
+                    {loading ? (
+                      Array.from({ length: 4 }).map((_, i) => <ShimmerProductCard key={i} />)
+                    ) : (
+                      <>
+                        {products.slice(0, 4).map((p) => {
+                          const isFav = !!favorites[p._id];
+                          return (
+                            <div key={p._id} className="border border-gray-100 bg-white rounded-2xl p-3 flex flex-col justify-between hover:shadow-lg hover:shadow-gray-200/40 hover:-translate-y-1 group transition-all duration-300">
+                              <div className="relative h-28 w-full bg-[#f4f7f5] rounded-xl overflow-hidden mb-3">
+                                <img src={getSafeProductImage(p.image)} alt={p.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                <button 
+                                  type="button" 
+                                  onClick={() => toggleFavorite(p._id)}
+                                  className="absolute top-2 right-2 h-7 w-7 bg-white/90 backdrop-blur-xs rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 transition-all cursor-pointer"
+                                >
+                                  <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : ''}`} />
+                                </button>
+                              </div>
 
-                          <div className="space-y-1">
-                            <h4 className="font-black text-sm text-gray-900 truncate">{p.name}</h4>
-                            <p className="text-[10px] font-bold text-gray-400">{p.stock} in stock</p>
-                          </div>
+                              <div className="space-y-1">
+                                <h4 className="font-black text-sm text-gray-900 truncate">{p.name}</h4>
+                                <p className="text-[10px] font-bold text-gray-400">{p.stock} in stock</p>
+                              </div>
 
-                          <div className="flex justify-between items-center mt-3 pt-2 border-t border-[#f6faf7]">
-                            <span className="text-sm font-black text-gray-950">₹{Number(p.price).toFixed(2)}<span className="text-[10px] text-gray-400 font-bold">/kg</span></span>
-                            <button 
-                              type="button"
-                              onClick={() => editProduct(p)}
-                              className="h-7 w-7 bg-[#2bb673] text-white rounded-lg flex items-center justify-center hover:bg-green-600 transition"
-                            >
-                              <Plus className="h-4 w-4" />
-                            </button>
+                              <div className="flex justify-between items-center mt-3 pt-2 border-t border-[#f6faf7]">
+                                <span className="text-sm font-black text-gray-950">₹{Number(p.price).toFixed(2)}<span className="text-[10px] text-gray-400 font-bold">/kg</span></span>
+                                <button 
+                                  type="button"
+                                  onClick={() => editProduct(p)}
+                                  className="h-7 w-7 bg-gradient-to-br from-[#2bb673] to-[#10b981] text-white rounded-lg flex items-center justify-center hover:bg-green-600 transition-all hover:scale-105 cursor-pointer shadow-xs"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {products.length === 0 && (
+                          <div className="col-span-4 py-10 text-center border border-dashed border-[#e9f2eb] rounded-2xl bg-white text-gray-400 text-xs font-semibold">
+                            No products added yet. Go to Add Product to create one.
                           </div>
-                        </div>
-                      );
-                    })}
-                    {products.length === 0 && (
-                      <div className="col-span-4 py-10 text-center border border-dashed border-[#e9f2eb] rounded-2xl bg-white text-gray-400 text-xs font-semibold">
-                        No products added yet. Go to Add Product to create one.
-                      </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -720,43 +794,49 @@ export default function VendorDashboardPage() {
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {products.slice(4, 8).map((p) => {
-                      const isFav = !!favorites[p._id];
-                      return (
-                        <div key={p._id} className="border border-[#e9f2eb] bg-white rounded-2xl p-3 flex flex-col justify-between shadow-sm hover:shadow-md group transition duration-300">
-                          <div className="relative h-28 w-full bg-[#f4f7f5] rounded-xl overflow-hidden mb-3">
-                            <img src={getSafeProductImage(p.image)} alt={p.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                            <button 
-                              type="button" 
-                              onClick={() => toggleFavorite(p._id)}
-                              className="absolute top-2 right-2 h-7 w-7 bg-white rounded-full flex items-center justify-center shadow-sm text-gray-400 hover:text-red-500 transition"
-                            >
-                              <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : ''}`} />
-                            </button>
-                          </div>
+                    {loading ? (
+                      Array.from({ length: 4 }).map((_, i) => <ShimmerProductCard key={i} />)
+                    ) : (
+                      <>
+                        {products.slice(4, 8).map((p) => {
+                          const isFav = !!favorites[p._id];
+                          return (
+                            <div key={p._id} className="border border-gray-100 bg-white rounded-2xl p-3 flex flex-col justify-between hover:shadow-lg hover:shadow-gray-200/40 hover:-translate-y-1 group transition-all duration-300">
+                              <div className="relative h-28 w-full bg-[#f4f7f5] rounded-xl overflow-hidden mb-3">
+                                <img src={getSafeProductImage(p.image)} alt={p.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                <button 
+                                  type="button" 
+                                  onClick={() => toggleFavorite(p._id)}
+                                  className="absolute top-2 right-2 h-7 w-7 bg-white/90 backdrop-blur-xs rounded-full flex items-center justify-center shadow-sm text-gray-400 hover:text-red-500 transition-all cursor-pointer"
+                                >
+                                  <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : ''}`} />
+                                </button>
+                              </div>
 
-                          <div className="space-y-1">
-                            <h4 className="font-black text-sm text-gray-900 truncate">{p.name}</h4>
-                            <p className="text-[10px] font-bold text-gray-400">{p.stock} in stock</p>
-                          </div>
+                              <div className="space-y-1">
+                                <h4 className="font-black text-sm text-gray-900 truncate">{p.name}</h4>
+                                <p className="text-[10px] font-bold text-gray-400">{p.stock} in stock</p>
+                              </div>
 
-                          <div className="flex justify-between items-center mt-3 pt-2 border-t border-[#f6faf7]">
-                            <span className="text-sm font-black text-gray-950">₹{Number(p.price).toFixed(2)}<span className="text-[10px] text-gray-400 font-bold">/kg</span></span>
-                            <button 
-                              type="button" 
-                              onClick={() => editProduct(p)}
-                              className="h-7 w-7 bg-[#2bb673] text-white rounded-lg flex items-center justify-center hover:bg-green-600 transition"
-                            >
-                              <Plus className="h-4 w-4" />
-                            </button>
+                              <div className="flex justify-between items-center mt-3 pt-2 border-t border-[#f6faf7]">
+                                <span className="text-sm font-black text-gray-950">₹{Number(p.price).toFixed(2)}<span className="text-[10px] text-gray-400 font-bold">/kg</span></span>
+                                <button 
+                                  type="button" 
+                                  onClick={() => editProduct(p)}
+                                  className="h-7 w-7 bg-gradient-to-br from-[#2bb673] to-[#10b981] text-white rounded-lg flex items-center justify-center hover:bg-green-600 transition-all hover:scale-105 cursor-pointer shadow-xs"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {products.length < 5 && (
+                          <div className="col-span-4 py-8 text-center border border-dashed border-[#e9f2eb] rounded-2xl bg-white text-gray-400 text-xs font-semibold">
+                            Add more products to populate Top Items section.
                           </div>
-                        </div>
-                      );
-                    })}
-                    {products.length < 5 && (
-                      <div className="col-span-4 py-8 text-center border border-dashed border-[#e9f2eb] rounded-2xl bg-white text-gray-400 text-xs font-semibold">
-                        Add more products to populate Top Items section.
-                      </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -767,33 +847,44 @@ export default function VendorDashboardPage() {
               <div className="space-y-8">
                 
                 {/* Income Stat Panel */}
-                <div className="border border-[#e9f2eb] bg-white rounded-3xl p-6 space-y-6">
+                <div className="border border-gray-100 bg-white rounded-3xl p-6 space-y-6 shadow-xs">
                   <h3 className="font-extrabold text-base text-gray-900">Income</h3>
                   
                   <div className="grid grid-cols-3 gap-4">
-                    {[
-                      { label: 'Daily', val: `₹${(stats.revenue * 0.15).toFixed(0)}`, pct: 45 },
-                      { label: 'Weekly', val: `₹${(stats.revenue * 0.45).toFixed(0)}`, pct: 65 },
-                      { label: 'Monthly', val: `₹${stats.revenue.toFixed(0)}`, pct: 85 },
-                    ].map((inc) => (
-                      <div key={inc.label} className="flex flex-col items-center gap-3">
-                        {/* Circular Progress Ring */}
-                        <div className="relative h-14 w-14 flex items-center justify-center">
-                          <svg className="absolute transform -rotate-90 h-full w-full">
-                            <circle cx="28" cy="28" r="22" stroke="#f0f6f2" strokeWidth="4" fill="transparent" />
-                            <circle cx="28" cy="28" r="22" stroke="#2bb673" strokeWidth="4" fill="transparent" 
-                              strokeDasharray={138} 
-                              strokeDashoffset={138 - (138 * inc.pct) / 100} 
-                            />
-                          </svg>
-                          <span className="text-[10px] font-black text-gray-500">{inc.pct}%</span>
+                    {loading ? (
+                      Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="flex flex-col items-center gap-3 animate-pulse">
+                          <div className="h-14 w-14 rounded-full bg-gray-200" />
+                          <div className="h-3 bg-gray-200 rounded-md w-10 mt-1" />
+                          <div className="h-3 bg-gray-200 rounded-md w-12 mt-1" />
                         </div>
-                        <div className="text-center">
-                          <p className="text-[11px] font-black text-gray-900">{inc.val}</p>
-                          <p className="text-[10px] font-bold text-gray-500 mt-0.5">{inc.label}</p>
+                      ))
+                    ) : (
+                      [
+                        { label: 'Daily', val: `₹${(stats.revenue * 0.15).toFixed(0)}`, pct: 45 },
+                        { label: 'Weekly', val: `₹${(stats.revenue * 0.45).toFixed(0)}`, pct: 65 },
+                        { label: 'Monthly', val: `₹${stats.revenue.toFixed(0)}`, pct: 85 },
+                      ].map((inc) => (
+                        <div key={inc.label} className="flex flex-col items-center gap-3">
+                          {/* Circular Progress Ring */}
+                          <div className="relative h-14 w-14 flex items-center justify-center">
+                            <svg className="absolute transform -rotate-90 h-full w-full">
+                              <circle cx="28" cy="28" r="22" stroke="#f4fbf7" strokeWidth="3.5" fill="transparent" />
+                              <circle cx="28" cy="28" r="22" stroke="#10b981" strokeWidth="3.5" strokeLinecap="round" fill="transparent" 
+                                strokeDasharray={138} 
+                                strokeDashoffset={138 - (138 * inc.pct) / 100}
+                                className="filter drop-shadow-[0_2px_4px_rgba(16,185,129,0.25)]"
+                              />
+                            </svg>
+                            <span className="text-[10px] font-black text-gray-600">{inc.pct}%</span>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-[11px] font-black text-gray-900">{inc.val}</p>
+                            <p className="text-[10px] font-bold text-gray-500 mt-0.5">{inc.label}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
 
@@ -802,15 +893,27 @@ export default function VendorDashboardPage() {
                   <h3 className="font-extrabold text-base text-gray-900">Notification</h3>
 
                   <div className="space-y-4">
-                    {notifications.map((item) => (
-                      <div key={item.id} className="flex items-start justify-between gap-3 group cursor-pointer" onClick={() => changeTab('notifications')}>
-                        <div>
-                          <p className="text-xs font-bold text-gray-900 group-hover:text-[#2bb673] transition-colors line-clamp-2 leading-snug">{item.message}</p>
-                          <p className="text-[10px] font-semibold text-gray-500 mt-1">{item.time}</p>
+                    {loading ? (
+                      Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="flex gap-4 items-center animate-pulse">
+                          <div className="h-9 w-9 bg-gray-200 rounded-xl shrink-0" />
+                          <div className="space-y-2 w-full">
+                            <div className="h-3 bg-gray-200 rounded-md w-2/3" />
+                            <div className="h-2 bg-gray-200 rounded-md w-1/4" />
+                          </div>
                         </div>
-                        <ChevronDown className="h-4 w-4 text-gray-400 transform -rotate-90 shrink-0" />
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      notifications.map((item) => (
+                        <div key={item.id} className="flex items-start justify-between gap-3 group cursor-pointer" onClick={() => changeTab('notifications')}>
+                          <div>
+                            <p className="text-xs font-bold text-gray-900 group-hover:text-[#2bb673] transition-colors line-clamp-2 leading-snug">{item.message}</p>
+                            <p className="text-[10px] font-semibold text-gray-500 mt-1">{item.time}</p>
+                          </div>
+                          <ChevronDown className="h-4 w-4 text-gray-400 transform -rotate-90 shrink-0" />
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
 
@@ -819,33 +922,47 @@ export default function VendorDashboardPage() {
                   <h3 className="font-extrabold text-base text-gray-900">Latest order</h3>
                   
                   <div className="divide-y divide-[#f6faf7]">
-                    {orders.slice(0, 4).map((order) => {
-                      const itemsText = order.items?.map((it: any) => `${it.product_name || it.name} (${it.qty || it.quantity})`).join(', ') || 'Produce';
-                      const isPending = order.orderStatus === 'Pending';
-                      return (
-                        <div key={order._id} className="py-3.5 flex items-center justify-between gap-4 first:pt-0 last:pb-0">
-                          <div className="min-w-0">
-                            <p className="text-xs font-black text-gray-900 truncate">{order.userId?.name || 'Customer'}</p>
-                            <p className="text-[10px] font-bold text-gray-400 truncate mt-0.5">{itemsText}</p>
+                    {loading ? (
+                      Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="py-3 flex items-center justify-between gap-4 animate-pulse">
+                          <div className="space-y-2 w-full">
+                            <div className="h-3.5 bg-gray-200 rounded-md w-1/2" />
+                            <div className="h-2.5 bg-gray-200 rounded-md w-3/4" />
                           </div>
-                          {isPending ? (
-                            <button
-                              type="button"
-                              onClick={() => acceptOrder(order._id)}
-                              className="bg-[#2bb673] text-white text-[10px] font-black px-3.5 py-1.5 rounded-lg hover:bg-green-600 transition shrink-0"
-                            >
-                              Accept
-                            </button>
-                          ) : (
-                            <span className="bg-[#e7f7ee] text-[#2bb673] text-[10px] font-black px-3 py-1 rounded-lg shrink-0">
-                              Accepted
-                            </span>
-                          )}
+                          <div className="h-6 w-12 bg-gray-200 rounded-lg shrink-0" />
                         </div>
-                      );
-                    })}
-                    {orders.length === 0 && (
-                      <p className="py-6 text-center text-xs font-bold text-gray-400">No orders placed yet.</p>
+                      ))
+                    ) : (
+                      <>
+                        {orders.slice(0, 4).map((order) => {
+                          const itemsText = order.items?.map((it: any) => `${it.product_name || it.name} (${it.qty || it.quantity})`).join(', ') || 'Produce';
+                          const isPending = order.orderStatus === 'Pending';
+                          return (
+                            <div key={order._id} className="py-3.5 flex items-center justify-between gap-4 first:pt-0 last:pb-0">
+                              <div className="min-w-0">
+                                <p className="text-xs font-black text-gray-900 truncate">{order.userId?.name || 'Customer'}</p>
+                                <p className="text-[10px] font-bold text-gray-400 truncate mt-0.5">{itemsText}</p>
+                              </div>
+                              {isPending ? (
+                                <button
+                                  type="button"
+                                  onClick={() => acceptOrder(order._id)}
+                                  className="bg-[#2bb673] text-white text-[10px] font-black px-3.5 py-1.5 rounded-lg hover:bg-green-600 transition shrink-0"
+                                >
+                                  Accept
+                                </button>
+                              ) : (
+                                <span className="bg-[#e7f7ee] text-[#2bb673] text-[10px] font-black px-3 py-1 rounded-lg shrink-0">
+                                  Accepted
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {orders.length === 0 && (
+                          <p className="py-6 text-center text-xs font-bold text-gray-400">No orders placed yet.</p>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -871,24 +988,30 @@ export default function VendorDashboardPage() {
                 </button>
               </div>
               <div className="grid gap-4">
-                {products.map((product) => (
-                  <div key={product._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-gray-100 p-4 bg-white shadow-xs">
-                    <div className="flex items-center gap-4">
-                      <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-lg overflow-hidden bg-gray-100 shrink-0">
-                        <img src={getSafeProductImage(product.image)} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
+                {loading ? (
+                  Array.from({ length: 5 }).map((_, i) => <ShimmerListRow key={i} />)
+                ) : (
+                  <>
+                    {products.map((product) => (
+                      <div key={product._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-gray-100 p-4 bg-white shadow-xs">
+                        <div className="flex items-center gap-4">
+                          <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+                            <img src={getSafeProductImage(product.image)} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
+                          </div>
+                          <div>
+                            <h2 className="font-black text-gray-950 text-sm sm:text-base">{product.name}</h2>
+                            <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-500">{product.category} &bull; ₹{Number(product.price).toFixed(2)} &bull; {product.stock} in stock</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 justify-end sm:justify-start">
+                          <button type="button" onClick={() => editProduct(product)} className="bg-gray-50 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-gray-700 hover:bg-gray-100 transition cursor-pointer">Edit</button>
+                          <button type="button" onClick={() => deleteProduct(product)} className="bg-red-50 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-red-600 hover:bg-red-100 transition cursor-pointer">Delete</button>
+                        </div>
                       </div>
-                      <div>
-                        <h2 className="font-black text-gray-950 text-sm sm:text-base">{product.name}</h2>
-                        <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-500">{product.category} &bull; ₹{Number(product.price).toFixed(2)} &bull; {product.stock} in stock</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 justify-end sm:justify-start">
-                      <button type="button" onClick={() => editProduct(product)} className="bg-gray-50 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-gray-700 hover:bg-gray-100 transition">Edit</button>
-                      <button type="button" onClick={() => deleteProduct(product)} className="bg-red-50 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-red-600 hover:bg-red-100 transition">Delete</button>
-                    </div>
-                  </div>
-                ))}
-                {products.length === 0 && <p className="py-10 text-center text-sm font-bold text-gray-500">No products added yet.</p>}
+                    ))}
+                    {products.length === 0 && <p className="py-10 text-center text-sm font-bold text-gray-500">No products added yet.</p>}
+                  </>
+                )}
               </div>
             </section>
           )}
@@ -897,69 +1020,95 @@ export default function VendorDashboardPage() {
             <section className="border border-[#e9f2eb] rounded-3xl bg-white p-5 sm:p-8 animate-fadeIn">
               <h1 className="text-2xl font-black text-gray-900">Orders</h1>
               <div className="mt-5 space-y-6">
-                {orders.map((order) => {
-                  const customer = order.user_id;
-                  return (
-                    <div key={order._id} className="border border-gray-100 rounded-2xl p-6 space-y-4">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-[#f6faf7]">
-                        <div>
-                          <p className="text-sm font-black text-gray-950">Order #{order.order_number || order._id.slice(-6).toUpperCase()}</p>
-                          <p className="text-[10px] font-bold text-gray-500 mt-0.5">{new Date(order.createdAt).toLocaleString()}</p>
+                {loading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="border border-gray-100 rounded-2xl p-6 space-y-4 animate-pulse">
+                      <div className="flex justify-between items-center pb-3 border-b border-gray-50">
+                        <div className="space-y-2">
+                          <div className="h-4 bg-gray-200 rounded-md w-28" />
+                          <div className="h-3 bg-gray-200 rounded-md w-20" />
                         </div>
-                        <span className="bg-[#e7f7ee] text-[#2bb673] text-xs font-black px-3.5 py-1.5 rounded-xl uppercase tracking-wide">
-                          {order.orderStatus}
-                        </span>
+                        <div className="h-6 w-16 bg-gray-200 rounded-xl" />
                       </div>
-
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Left Column: Order Items */}
                         <div className="space-y-3">
-                          <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Order Items</h4>
-                          <div className="divide-y divide-[#f6faf7] border border-[#f6faf7] rounded-xl px-4 bg-gray-50/50">
-                            {(order.items || []).map((item: any) => (
-                              <div key={`${order._id}-${item._id}`} className="py-3 flex justify-between gap-3 text-sm">
-                                <span className="font-semibold text-gray-700">{(item.product_name || item.name)} <span className="text-xs text-gray-400 font-bold">x {(item.qty || item.quantity)}</span></span>
-                                <span className="font-black text-gray-950">₹{(Number(item.price) * Number(item.qty || item.quantity)).toFixed(2)}</span>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="flex justify-between items-center px-4 pt-1">
-                            <span className="text-xs font-bold text-gray-500">Total Bill</span>
-                            <span className="text-base font-black text-gray-950">₹{Number(order.total_amount || 0).toFixed(2)}</span>
-                          </div>
+                          <div className="h-3 bg-gray-200 rounded-md w-16" />
+                          <div className="h-12 bg-gray-200 rounded-xl w-full" />
                         </div>
-
-                        {/* Right Column: Customer & Delivery Info */}
-                        <div className="space-y-4">
-                          {/* Customer Details */}
-                          <div className="space-y-2">
-                            <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Customer Details</h4>
-                            <div className="space-y-1">
-                              <p className="text-sm font-black text-gray-800">{customer?.name || 'Walk-in / Online Customer'}</p>
-                              {customer?.mobile_no && (
-                                <p className="text-xs text-gray-500 font-semibold flex items-center gap-1.5">
-                                  <span className="text-gray-400">Phone:</span> {customer.mobile_no}
-                                </p>
-                              )}
-                              {customer?.email && (
-                                <p className="text-xs text-gray-500 font-semibold flex items-center gap-1.5">
-                                  <span className="text-gray-400">Email:</span> {customer.email}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Shipping Address */}
-                          <div className="space-y-2 pt-2 border-t border-[#f6faf7]">
-                            <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Delivery Address</h4>
-                            <p className="text-xs text-gray-600 font-bold leading-relaxed">{getDeliveryAddress(order)}</p>
-                          </div>
+                        <div className="space-y-3">
+                          <div className="h-3 bg-gray-200 rounded-md w-24" />
+                          <div className="h-10 bg-gray-200 rounded-xl w-3/4" />
                         </div>
                       </div>
                     </div>
-                  );
-                })}
-                {orders.length === 0 && <p className="py-10 text-center text-sm font-bold text-gray-500">No vendor orders yet.</p>}
+                  ))
+                ) : (
+                  <>
+                    {orders.map((order) => {
+                      const customer = order.user_id;
+                      return (
+                        <div key={order._id} className="border border-gray-100 rounded-2xl p-6 space-y-4">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-[#f6faf7]">
+                            <div>
+                              <p className="text-sm font-black text-gray-950">Order #{order.order_number || order._id.slice(-6).toUpperCase()}</p>
+                              <p className="text-[10px] font-bold text-gray-500 mt-0.5">{new Date(order.createdAt).toLocaleString()}</p>
+                            </div>
+                            <span className="bg-[#e7f7ee] text-[#2bb673] text-xs font-black px-3.5 py-1.5 rounded-xl uppercase tracking-wide">
+                              {order.orderStatus}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Left Column: Order Items */}
+                            <div className="space-y-3">
+                              <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Order Items</h4>
+                              <div className="divide-y divide-[#f6faf7] border border-[#f6faf7] rounded-xl px-4 bg-gray-50/50">
+                                {(order.items || []).map((item: any) => (
+                                  <div key={`${order._id}-${item._id}`} className="py-3 flex justify-between gap-3 text-sm">
+                                    <span className="font-semibold text-gray-700">{(item.product_name || item.name)} <span className="text-xs text-gray-400 font-bold">x {(item.qty || item.quantity)}</span></span>
+                                    <span className="font-black text-gray-950">₹{(Number(item.price) * Number(item.qty || item.quantity)).toFixed(2)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="flex justify-between items-center px-4 pt-1">
+                                <span className="text-xs font-bold text-gray-500">Total Bill</span>
+                                <span className="text-base font-black text-gray-950">₹{Number(order.total_amount || 0).toFixed(2)}</span>
+                              </div>
+                            </div>
+
+                            {/* Right Column: Customer & Delivery Info */}
+                            <div className="space-y-4">
+                              {/* Customer Details */}
+                              <div className="space-y-2">
+                                <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Customer Details</h4>
+                                <div className="space-y-1">
+                                  <p className="text-sm font-black text-gray-800">{customer?.name || 'Walk-in / Online Customer'}</p>
+                                  {customer?.mobile_no && (
+                                    <p className="text-xs text-gray-500 font-semibold flex items-center gap-1.5">
+                                      <span className="text-gray-400">Phone:</span> {customer.mobile_no}
+                                    </p>
+                                  )}
+                                  {customer?.email && (
+                                    <p className="text-xs text-gray-500 font-semibold flex items-center gap-1.5">
+                                      <span className="text-gray-400">Email:</span> {customer.email}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Shipping Address */}
+                              <div className="space-y-2 pt-2 border-t border-[#f6faf7]">
+                                <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Delivery Address</h4>
+                                <p className="text-xs text-gray-600 font-bold leading-relaxed">{getDeliveryAddress(order)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {orders.length === 0 && <p className="py-10 text-center text-sm font-bold text-gray-500">No vendor orders yet.</p>}
+                  </>
+                )}
               </div>
             </section>
           )}
@@ -983,22 +1132,39 @@ export default function VendorDashboardPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#f6faf7]">
-                    {vendorCustomers.map((cust) => (
-                      <tr key={cust.user._id} className="text-sm hover:bg-[#fcfdfd]">
-                        <td className="py-4">
-                          <div>
-                            <p className="font-black text-gray-950">{cust.user.name || 'Walk-in'}</p>
-                            <p className="text-xs text-gray-400 font-semibold mt-0.5">{cust.user.email || 'No email'}</p>
-                          </div>
-                        </td>
-                        <td className="py-4 font-semibold text-gray-600">{cust.user.mobile_no || 'N/A'}</td>
-                        <td className="py-4 text-center font-bold text-gray-950">{cust.orderCount}</td>
-                        <td className="py-4 text-right font-black text-[#2bb673]">₹{cust.totalSpend.toFixed(2)}</td>
-                        <td className="py-4 text-right text-xs font-semibold text-gray-500">
-                          {new Date(cust.lastOrderDate).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
+                    {loading ? (
+                      Array.from({ length: 5 }).map((_, i) => (
+                        <tr key={i} className="animate-pulse">
+                          <td className="py-4">
+                            <div className="space-y-2">
+                              <div className="h-4 bg-gray-200 rounded-md w-28" />
+                              <div className="h-3 bg-gray-200 rounded-md w-20" />
+                            </div>
+                          </td>
+                          <td className="py-4"><div className="h-4 bg-gray-200 rounded-md w-24" /></td>
+                          <td className="py-4 text-center"><div className="h-4 bg-gray-200 rounded-md w-8 mx-auto" /></td>
+                          <td className="py-4 text-right"><div className="h-4 bg-gray-200 rounded-md w-16 ml-auto" /></td>
+                          <td className="py-4 text-right"><div className="h-4 bg-gray-200 rounded-md w-20 ml-auto" /></td>
+                        </tr>
+                      ))
+                    ) : (
+                      vendorCustomers.map((cust) => (
+                        <tr key={cust.user._id} className="text-sm hover:bg-[#fcfdfd]">
+                          <td className="py-4">
+                            <div>
+                              <p className="font-black text-gray-950">{cust.user.name || 'Walk-in'}</p>
+                              <p className="text-xs text-gray-400 font-semibold mt-0.5">{cust.user.email || 'No email'}</p>
+                            </div>
+                          </td>
+                          <td className="py-4 font-semibold text-gray-600">{cust.user.mobile_no || 'N/A'}</td>
+                          <td className="py-4 text-center font-bold text-gray-950">{cust.orderCount}</td>
+                          <td className="py-4 text-right font-black text-[#2bb673]">₹{cust.totalSpend.toFixed(2)}</td>
+                          <td className="py-4 text-right text-xs font-semibold text-gray-500">
+                            {new Date(cust.lastOrderDate).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
                 {vendorCustomers.length === 0 && (
@@ -1048,21 +1214,36 @@ export default function VendorDashboardPage() {
               )}
 
               <div className="mt-5 grid gap-4">
-                {riders.map((rider) => (
-                  <div key={rider._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-gray-100 p-4 bg-white shadow-sm hover:shadow-md transition">
-                    <div>
-                      <h2 className="font-black text-gray-950 text-sm sm:text-base">{rider.name}</h2>
-                      <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-500">{rider.mobile_number} &bull; {rider.vehicle_type} ({rider.vehicle_number})</p>
-                      <span className={`inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-semibold ${rider.is_active === '1' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {rider.is_active === '1' ? 'Online' : 'Offline'}
-                      </span>
+                {loading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="p-4 border border-gray-100 bg-white rounded-xl flex items-center justify-between gap-4 animate-pulse">
+                      <div className="space-y-2 w-full">
+                        <div className="h-4 bg-gray-200 rounded-md w-1/4 animate-pulse" />
+                        <div className="h-3 bg-gray-200 rounded-md w-1/2 animate-pulse" />
+                        <div className="h-5 bg-gray-200 rounded-full w-12 animate-pulse" />
+                      </div>
+                      <div className="h-8 w-16 bg-gray-200 rounded-lg shrink-0 animate-pulse" />
                     </div>
-                    <div className="flex justify-end sm:justify-start">
-                      <button type="button" onClick={() => deleteRider(rider._id, rider.name)} className="bg-red-50 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-red-600 hover:bg-red-100 transition">Delete</button>
-                    </div>
-                  </div>
-                ))}
-                {riders.length === 0 && <p className="py-10 text-center text-sm font-bold text-gray-500">No riders registered yet.</p>}
+                  ))
+                ) : (
+                  <>
+                    {riders.map((rider) => (
+                      <div key={rider._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-gray-100 p-4 bg-white shadow-sm hover:shadow-md transition">
+                        <div>
+                          <h2 className="font-black text-gray-950 text-sm sm:text-base">{rider.name}</h2>
+                          <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-500">{rider.mobile_number} &bull; {rider.vehicle_type} ({rider.vehicle_number})</p>
+                          <span className={`inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-semibold ${rider.is_active === '1' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {rider.is_active === '1' ? 'Online' : 'Offline'}
+                          </span>
+                        </div>
+                        <div className="flex justify-end sm:justify-start">
+                          <button type="button" onClick={() => deleteRider(rider._id, rider.name)} className="bg-red-50 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-red-600 hover:bg-red-100 transition cursor-pointer">Delete</button>
+                        </div>
+                      </div>
+                    ))}
+                    {riders.length === 0 && <p className="py-10 text-center text-sm font-bold text-gray-500">No riders registered yet.</p>}
+                  </>
+                )}
               </div>
             </section>
           )}
