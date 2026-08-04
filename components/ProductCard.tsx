@@ -95,7 +95,7 @@ export default function ProductCard({ product }: { product: any }) {
   const currentBasePrice = selectedOption ? selectedOption.price : Math.round(product.price * multiplier);
 
   const { yourPrice, mrp, saving, pct } = calcPrices(currentBasePrice, product.discount);
-  const stockCount = Number(product.stock) || 0;
+  const stockCount = Number(product.stock ?? product.stock_status ?? 10);
   const inStock = stockCount > 0;
 
   // Subscription states

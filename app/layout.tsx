@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Organic Vatika - Fresh Produce",
+  title: "VegKing - Fresh Produce",
   description: "Get fresh, organic produce delivered to your door.",
 };
 

@@ -34,7 +34,7 @@ export default function Footer() {
           {/* Logo & Slogan Column */}
           <div className="space-y-4">
             <Link href="/" className="group inline-flex items-center gap-2.5">
-              <Image src="/logo.PNG" alt="Organic Vatika" width={44} height={44} priority className="object-contain" />
+              <Image src="/logo.png" alt="Organic Vatika" width={44} height={44} priority className="object-contain" />
             </Link>
             <p className="max-w-sm text-xs sm:text-sm leading-relaxed text-green-100/80 font-medium">
               Fresh, organic, and locally grown vegetables delivered quickly from trusted farms to your kitchen. Healthy living starts here.

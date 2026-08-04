@@ -192,9 +192,9 @@ export default function Navbar() {
 
             {/* Logo */}
             <Link href="/" className="group flex items-center gap-2 transition-transform duration-200 hover:scale-[1.01] shrink-0">
-              <Image src="/logo.PNG" alt="Organic Vatika" width={48} height={48} priority className="object-contain" />
+              <Image src="/logo.png" alt="Organic Vatika" width={48} height={48} priority className="object-contain" />
               <span className="text-lg sm:text-xl font-extrabold tracking-tight text-text-brand transition-colors duration-200">
-                Organic<span className="text-[#6b4308] group-hover:text-[#80520d] transition-colors duration-200"> Vatika</span>
+                Veg<span className="text-[#6b4308] group-hover:text-[#80520d] transition-colors duration-200">King</span>
               </span>
             </Link>
 

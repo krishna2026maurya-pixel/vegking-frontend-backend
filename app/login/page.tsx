@@ -82,6 +82,7 @@ export default function LoginPage() {
             alt="Fresh vegetables from Organic Vatika"
             fill
             priority
+            sizes="(max-width: 1024px) 100vw, 50vw"
             className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-accent-dark/95 via-accent-dark/55 to-accent-dark/20" />
@@ -120,6 +121,7 @@ export default function LoginPage() {
               alt="Fresh vegetables from Organic Vatika"
               fill
               priority
+              sizes="100vw"
               className="object-cover"
             />
             <div className="absolute inset-0 bg-white/92" />
