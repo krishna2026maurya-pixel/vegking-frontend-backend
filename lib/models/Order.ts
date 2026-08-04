@@ -64,23 +64,23 @@ const OrderSchema = new Schema(
     payment_method:  { type: String, enum: ['COD', 'ONLINE'], default: 'COD' },
     payment_status:  { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
 
-    // Legacy numeric status (kept for backward compat)
+    // ── Legacy numeric status (kept for backward compat) ──────────────────
     status: { type: Number, default: 0 },
 
-    // String-based tracking status
+    // ── New string-based tracking status ──────────────────────────────────
     orderStatus: {
       type:    String,
       enum:    ORDER_STATUSES,
       default: 'Order Placed',
     },
 
-    // Audit trail
+    // ── Audit trail ───────────────────────────────────────────────────────
     statusHistory: {
       type:    [StatusHistorySchema],
       default: [],
     },
 
-    // Estimated delivery date (set by admin)
+    // ── Estimated delivery date (set by admin) ────────────────────────────
     estimated_delivery: { type: Date, default: null },
 
     items: [{ type: Schema.Types.ObjectId, ref: 'OrderItem' }],
@@ -89,4 +89,3 @@ const OrderSchema = new Schema(
 );
 
 export default models.Order || model('Order', OrderSchema);
-
