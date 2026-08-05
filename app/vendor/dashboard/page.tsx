@@ -535,8 +535,8 @@ export default function VendorDashboardPage() {
         <div className="space-y-8">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-[#2bb673] rounded-xl flex items-center justify-center text-white shadow-md shadow-[#2bb673]/20">
-              <Store className="h-5 w-5" />
+            <div className="h-10 w-10 relative shrink-0">
+              <img src="/logo.png" alt="VegKing Logo" className="w-full h-full object-contain" />
             </div>
             <span className="font-extrabold text-lg text-gray-900 tracking-tight">VegKing</span>
           </div>
@@ -607,8 +607,8 @@ export default function VendorDashboardPage() {
         {/* Top Header Bar */}
         <header className="h-20 bg-white border-b border-[#e9f2eb] px-6 lg:px-10 flex items-center justify-between gap-6 shrink-0">
           <div className="flex items-center gap-4 lg:hidden">
-            <div className="h-9 w-9 bg-[#2bb673] rounded-lg flex items-center justify-center text-white">
-              <Store className="h-5 w-5" />
+            <div className="h-9 w-9 relative shrink-0">
+              <img src="/logo.png" alt="VegKing Logo" className="w-full h-full object-contain" />
             </div>
             <span className="font-extrabold text-sm text-gray-900">VegKing</span>
           </div>

@@ -43,8 +43,8 @@ export default function AdminLoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-tr from-[#edf7f0] via-[#f5f9f6] to-[#fbfdfb] px-4 py-12 antialiased">
       <div className="w-full max-w-md rounded-3xl bg-white border border-gray-100/80 p-8 sm:p-10 shadow-[0_24px_60px_rgba(43,182,115,0.06)]">
         <div className="mb-8 flex flex-col items-center justify-center text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#e7f7ee] to-white text-[#2bb673] shadow-md shadow-green-100/50 ring-4 ring-green-50">
-            <Shield className="h-7 w-7" />
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl relative">
+            <img src="/logo.png" alt="VegKing Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-black text-gray-900 tracking-tight">Admin Portal</h1>
           <p className="mt-2 text-xs font-semibold text-gray-400">

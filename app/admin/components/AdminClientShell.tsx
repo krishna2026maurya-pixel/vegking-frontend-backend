@@ -57,9 +57,14 @@ export default function AdminClientShell({ children, sessionUser }: AdminClientS
   const sidebarContent = (
     <>
       <div className="h-16 flex items-center justify-between px-6 border-b border-gray-100 dark:border-gray-800 shrink-0">
-        <h1 className="text-lg font-black tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
-          VegKing <span className="text-gray-400 dark:text-gray-500 font-bold text-[10px] uppercase tracking-widest ml-1">Admin</span>
-        </h1>
+        <div className="flex items-center gap-2">
+          <div className="h-6 w-6 relative shrink-0">
+            <img src="/logo.png" alt="VegKing Logo" className="w-full h-full object-contain" />
+          </div>
+          <h1 className="text-lg font-black tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
+            VegKing <span className="text-gray-400 dark:text-gray-500 font-bold text-[10px] uppercase tracking-widest ml-1">Admin</span>
+          </h1>
+        </div>
         <button 
           onClick={closeSidebar}
           className="lg:hidden p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"

@@ -78,8 +78,8 @@ function VendorLoginForm() {
         
         {/* Brand Logo */}
         <div className="relative z-10 flex items-center gap-2">
-          <div className="h-8.5 w-8.5 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-md shadow-emerald-700/20">
-            <Store className="h-4.5 w-4.5" />
+          <div className="h-8.5 w-8.5 relative shrink-0">
+            <img src="/logo.png" alt="VegKing Logo" className="w-full h-full object-contain" />
           </div>
           <span className="font-extrabold text-base text-white tracking-tight">VegKing Merchant</span>
         </div>
@@ -119,8 +119,8 @@ function VendorLoginForm() {
           {/* Mobile Logo & Header Link */}
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2 md:hidden">
-              <div className="h-8 w-8 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-md">
-                <Store className="h-4.5 w-4.5" />
+              <div className="h-8 w-8 relative shrink-0">
+                <img src="/logo.png" alt="VegKing Logo" className="w-full h-full object-contain" />
               </div>
               <span className="font-extrabold text-sm text-gray-900 tracking-tight">VegKing</span>
             </div>
