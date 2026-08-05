@@ -420,13 +420,15 @@ const styles: any = {
     alignItems:      'center',
     justifyContent:  'center',
     background:      '#fff',
-    padding:         '18px 16px 8px',
-    height:          '140px',
+    padding:         '0',
+    height:          '150px',
+    width:           '100%',
+    overflow:        'hidden',
   },
   image: {
-    maxHeight:  '122px',
-    maxWidth:   '145px',
-    objectFit: 'contain',
+    width:      '100%',
+    height:     '100%',
+    objectFit:  'cover',
   },
 
   /* body */

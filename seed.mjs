@@ -249,10 +249,48 @@ const productList = [
 // Product Image Map with clear backgrounds (w=500, plain backgrounds)
 const buildUnsplashUrl = (id) => `https://images.unsplash.com/${id}?w=500&auto=format&fit=crop&q=80`;
 
+const customImages = {
+  'Spinach (Palak)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785933747/vegimart_products/cs06teana2dvii0xfvd1.jpg',
+  'Cabbage (Kobi)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785933749/vegimart_products/q2znuxsxxirvbzydrp42.jpg',
+  'Red Cabbage': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785933750/vegimart_products/f8gy8abw3dzf3awqqzwy.jpg',
+  'Beetroot (Beet)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785934192/vegimart_products/n0ldedvd6burco9ffnj8.jpg',
+  'Onion (Dungdi)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785934193/vegimart_products/hki8xyupw9osvax77ute.jpg',
+  'Green Cucumber (Kakdi)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785934194/vegimart_products/d0yt5vbfvzssgh9b3c64.jpg',
+  'Homemade Paneer': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785934195/vegimart_products/bz5j2zxuitjmmifwshbs.jpg',
+  'Desi Cow Ghee': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785934196/vegimart_products/c3cvpl5fmil6prjxkssi.jpg',
+  'Moong Dal (Split Green)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785934197/vegimart_products/p3bqomekrrvrtobxbgxi.jpg',
+  'Masoor Dal (Red Lentil)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785934198/vegimart_products/ykq0g4ffmcvjl3egrntb.jpg',
+  'Arhar Dal (Toor Dal)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785934199/vegimart_products/rco80qlgh06qkaiam5e0.jpg',
+  'Sunflower Seeds': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785934200/vegimart_products/hkhdm7r4upe4qshhu0ep.jpg',
+  'Chia Seeds': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785934201/vegimart_products/ukgto8hnh55u6nqxflgh.jpg',
+  'Lady Finger (Bhinda)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785936305/vegimart/lady_finger_bhinda.jpg',
+  'Gavar (Guvar / Cluster Beans)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785936307/vegimart/gavar_cluster_beans.jpg',
+  'Palwar (Parval)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785936308/vegimart/palwar_parval.jpg',
+  'Galka (Sponge Gourd)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785936309/vegimart/galka_sponge_gourd.jpg',
+  'Cherry Tomato': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785936310/vegimart/cherry_tomato.jpg',
+  'Bok Choy (Popchau)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785936311/vegimart/bok_choy_popchau.jpg',
+  'Parsley (Parsly)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785936311/vegimart/parsley_parsly.jpg',
+  'Leek': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785936312/vegimart/leek.jpg',
+  'Mushroom': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785936313/vegimart/mushroom.jpg',
+  'Lemon Grass': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785936314/vegimart/lemon_grass.jpg',
+  'Banana Leaf': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937279/vegimart/banana_leaf.jpg',
+  'Hybrid Tomato (Tameta)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937280/vegimart/hybrid_tomato.jpg',
+  'Saragava (Drumstick)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937446/vegimart/saragava_drumstick.jpg',
+  'Kaddu (Kolku / Pumpkin)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937965/vegimart/kaddu_pumpkin.png',
+  'Cauliflower (Fulaver)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937412/vegimart/cauliflower_fulaver.jpg',
+  'Green Tomato (Leela Tameta)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937412/vegimart/green_tomato.jpg',
+  'Loki (Dudhi / Bottle Gourd)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937413/vegimart/loki_bottle_gourd.jpg',
+  'Stuffed Vegetables (Bharela Shaak)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937414/vegimart/stuffed_vegetables.jpg',
+  'French Beans (Fansi)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937415/vegimart/french_beans.jpg',
+  'Capsicum (Simla Marcha)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937416/vegimart/capsicum_simla_marcha.jpg',
+  'Green Peas (Vatana)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937417/vegimart/green_peas_vatana.jpg',
+  'Red / Yellow Capsicum': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937418/vegimart/red_yellow_capsicum.jpg',
+};
+
 const products = productList.map((p, i) => {
   const typeName = categoryToTypeMap[p.category] || 'Fresh Vegetables';
   const cat_type_id = typeMap[typeName] || '';
-  const imgUrl = buildUnsplashUrl(p.imgId);
+  const imgUrl = customImages[p.name] || buildUnsplashUrl(p.imgId);
 
   return {
     product_name: p.name,

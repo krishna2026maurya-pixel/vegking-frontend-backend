@@ -247,10 +247,8 @@ export default function Home() {
               const categoryProducts = products
                 .filter(
                   (product) =>
-                    product.category?.toLowerCase() === categoryName.toLowerCase() ||
-                    product.subcategory?.toLowerCase() === categoryName.toLowerCase()
-                )
-                .slice(0, 5);
+                    product.category?.toLowerCase() === categoryName.toLowerCase()
+                );
 
               return (
                 <div key={categoryName} className="space-y-4 border-b border-gray-100 pb-8 last:border-0">
