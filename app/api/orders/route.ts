@@ -5,6 +5,8 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { connectDB } from '@/lib/mongodb';
 import Order from '@/lib/models/Order';
 import OrderItem from '@/lib/models/OrderItem';
+import '@/lib/models/DeliveryBoy';
+import '@/lib/models/User';
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,6 +53,7 @@ export async function GET(request: NextRequest) {
       Order.find(query)
         .populate('items')
         .populate('user_id')
+        .populate('delivery_boy_id')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -64,6 +67,7 @@ export async function GET(request: NextRequest) {
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) }
     });
   } catch (error: any) {
+    console.error(`\x1b[31m[API ERROR] GET /api/orders failed:\x1b[0m`, error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
@@ -119,7 +123,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
-    console.error('COD order error:', error);
+    console.error(`\x1b[31m[API ERROR] POST /api/orders failed:\x1b[0m`, error.message);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }

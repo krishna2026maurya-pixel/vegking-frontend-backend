@@ -3,13 +3,15 @@ import { connectDB } from '@/lib/mongodb';
 import Order from '@/lib/models/Order';
 import OrderItem from '@/lib/models/OrderItem';
 import { emitOrderStatusChanged } from '@/lib/socketClient';
+import '@/lib/models/DeliveryBoy';
+import '@/lib/models/User';
 
 // GET /api/orders/[id] — with populated items
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   try {
-    const { id } = await params;
     await connectDB();
-    const order = await Order.findById(id).lean();
+    const order = await Order.findById(id).populate('delivery_boy_id').lean();
     if (!order) return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
 
     // Fetch order items separately
@@ -21,14 +23,27 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   try {
-    const { id } = await params;
     await connectDB();
     const body = await request.json();
     
     // Fetch the order first to properly track history
     const order = await Order.findById(id);
     if (!order) return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+
+    // Enforce OTP check if marking order as Delivered
+    if (body.orderStatus === 'Delivered') {
+      if (!body.otp) {
+        return NextResponse.json({ success: false, error: 'Delivery OTP is required to complete the order.' }, { status: 400 });
+      }
+      const User = (await import('@/lib/models/User')).default;
+      const user = await User.findById(order.user_id);
+      const correctOtp = user?.delivery_otp || '1234';
+      if (body.otp !== correctOtp) {
+        return NextResponse.json({ success: false, error: 'Invalid Delivery OTP.' }, { status: 400 });
+      }
+    }
 
     // Track status history if orderStatus is being updated
     if (body.orderStatus && body.orderStatus !== order.orderStatus) {
@@ -42,7 +57,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     // Apply other updates
-    Object.assign(order, body);
+    const updateData = { ...body };
+    delete updateData.otp;
+    Object.assign(order, updateData);
     await order.save();
 
     // Emit real-time event to socket server
@@ -58,17 +75,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     return NextResponse.json({ success: true, data: order });
   } catch (error: any) {
+    console.error(`\x1b[31m[API ERROR] PATCH /api/orders/${id} failed:\x1b[0m`, error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   try {
-    const { id } = await params;
     await connectDB();
     await Order.findByIdAndDelete(id);
     return NextResponse.json({ success: true });
   } catch (error: any) {
+    console.error(`\x1b[31m[API ERROR] DELETE /api/orders/${id} failed:\x1b[0m`, error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

@@ -40,6 +40,7 @@ export default function Home() {
   const { addToCart } = useCart();
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const alwaysVisibleCategorySlugs = new Set(['organic-daals']);
@@ -68,6 +69,7 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
         const [productsRes, categoriesRes] = await Promise.all([
           fetch('/api/products?limit=250', { cache: 'no-store' }),
           fetch('/api/categories?limit=50', { cache: 'no-store' }),
@@ -85,6 +87,8 @@ export default function Home() {
         console.error('Failed to fetch home page data:', err);
         setProducts(dummyProducts);
         setCategories(dummyCategories);
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
@@ -264,7 +268,29 @@ export default function Home() {
                     </Link>
                   </div>
 
-                  {categoryProducts.length > 0 ? (
+                  {loading ? (
+                    <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4 md:gap-5">
+                      {Array.from({ length: 4 }).map((_, idx) => (
+                        <div
+                          key={idx}
+                          className="relative bg-white border border-gray-200 rounded-[12px] overflow-hidden flex flex-col w-[100%] max-w-[220px] animate-pulse"
+                          style={{ height: '350px' }}
+                        >
+                          <div className="w-full h-44 bg-gray-100 dark:bg-gray-750"></div>
+                          <div className="p-4 flex-1 flex flex-col justify-between">
+                            <div className="space-y-3">
+                              <div className="h-4 bg-gray-100 dark:bg-gray-750 rounded w-3/4"></div>
+                              <div className="h-3 bg-gray-100 dark:bg-gray-750 rounded w-1/2"></div>
+                            </div>
+                            <div className="space-y-2 mt-4">
+                              <div className="h-8 bg-gray-100 dark:bg-gray-750 rounded-full w-full"></div>
+                              <div className="h-8 bg-gray-100 dark:bg-gray-750 rounded-full w-full"></div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : categoryProducts.length > 0 ? (
                     <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4 md:gap-5">
                       {categoryProducts.map((product) => (
                         <ProductCard key={product._id} product={product} />

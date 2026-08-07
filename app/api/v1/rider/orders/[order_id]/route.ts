@@ -21,6 +21,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'Order not found or not assigned to you' }, { status: 404 });
     }
 
+    // Enforce OTP check if marking order as Delivered
+    if (body.orderStatus === 'Delivered') {
+      if (!body.otp) {
+        return NextResponse.json({ error: 'Delivery OTP is required to complete the order.' }, { status: 400 });
+      }
+      const User = (await import('@/lib/models/User')).default;
+      const user = await User.findById(order.user_id);
+      const correctOtp = user?.delivery_otp || '1234';
+      if (body.otp !== correctOtp) {
+        return NextResponse.json({ error: 'Invalid Delivery OTP.' }, { status: 400 });
+      }
+    }
+
     // Track status history if orderStatus is being updated
     if (body.orderStatus && body.orderStatus !== order.orderStatus) {
       order.statusHistory.push({
@@ -31,7 +44,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     // Apply other updates
-    Object.assign(order, body);
+    const updateData = { ...body };
+    delete updateData.otp;
+    Object.assign(order, updateData);
     await order.save();
 
     // Emit real-time event to socket server

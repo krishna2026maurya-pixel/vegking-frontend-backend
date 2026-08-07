@@ -7,8 +7,11 @@ if (typeof window === 'undefined' && process.env.NODE_ENV !== 'production') {
     const originalJson = NextResponse.json;
     NextResponse.json = function <JsonBody>(body: JsonBody, init?: ResponseInit): NextResponse<JsonBody> {
       const status = init?.status || 200;
-      const url = new Error().stack?.split('\n').find(line => line.includes('route.ts')) || '';
-      console.log(`\n[API RESPONSE] Status: ${status}`);
+      let statusColor = '\x1b[32m'; // Green
+      if (status >= 300 && status < 400) statusColor = '\x1b[33m'; // Yellow
+      if (status >= 400) statusColor = '\x1b[31m'; // Red
+
+      console.log(`\n\x1b[1m\x1b[34m[API RESPONSE]\x1b[0m Status: ${statusColor}${status}\x1b[0m`);
       try {
         const bodyStr = JSON.stringify(body, null, 2);
         // Truncate very long responses so terminal isn't flooded completely

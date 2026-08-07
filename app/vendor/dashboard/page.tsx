@@ -117,7 +117,8 @@ export default function VendorDashboardPage() {
   const [orderFilterStatus, setOrderFilterStatus] = useState('');
   const [orderLoading, setOrderLoading] = useState(true);
   const [orderError, setOrderError] = useState('');
-  const [orderStatusModal, setOrderStatusModal] = useState<{ open: boolean; orderId: string | null; current: string }>({ open: false, orderId: null, current: 'Order Placed' });
+  const [orderStatusModal, setOrderStatusModal] = useState<{ open: boolean; orderId: string | null; current: string; otp: string }>({ open: false, orderId: null, current: 'Order Placed', otp: '' });
+  const [assignRiderModal, setAssignRiderModal] = useState<{ open: boolean; orderId: string | null; currentRiderId: string }>({ open: false, orderId: null, currentRiderId: '' });
   const [viewingOrder, setViewingOrder] = useState<any>(null);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [showMobileMore, setShowMobileMore] = useState(false);
@@ -423,12 +424,12 @@ export default function VendorDashboardPage() {
   };
 
   const orderStatusMap: Record<string, { label: string; color: string }> = {
-    'Order Placed':     { label: 'Order Placed',     color: 'bg-yellow-100 text-yellow-800' },
-    'Order Confirmed':  { label: 'Order Confirmed',  color: 'bg-blue-100 text-blue-800' },
-    'Packing':          { label: 'Packing',          color: 'bg-purple-100 text-purple-800' },
-    'Out for Delivery': { label: 'Out for Delivery', color: 'bg-indigo-100 text-indigo-800' },
-    'Delivered':        { label: 'Delivered',        color: 'bg-green-100 text-green-800' },
-    'Cancelled':        { label: 'Cancelled',        color: 'bg-red-100 text-red-800' },
+    'Order Placed':     { label: 'Order Placed',     color: 'bg-yellow-100 dark:bg-yellow-950/30 text-yellow-800 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-900/20 text-xs font-semibold' },
+    'Order Confirmed':  { label: 'Order Confirmed',  color: 'bg-blue-100 dark:bg-blue-950/30 text-blue-800 dark:text-blue-400 border border-blue-200 dark:border-blue-900/20 text-xs font-semibold' },
+    'Packing':          { label: 'Packing',          color: 'bg-purple-100 dark:bg-purple-950/30 text-purple-800 dark:text-purple-450 border border-purple-200 dark:border-purple-900/20 text-xs font-semibold' },
+    'Out for Delivery': { label: 'Out for Delivery', color: 'bg-indigo-100 dark:bg-indigo-950/30 text-indigo-800 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/20 text-xs font-semibold' },
+    'Delivered':        { label: 'Delivered',        color: 'bg-green-100 dark:bg-green-950/30 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-900/20 text-xs font-semibold' },
+    'Cancelled':        { label: 'Cancelled',        color: 'bg-red-100 dark:bg-red-950/30 text-red-800 dark:text-red-400 border border-red-200 dark:border-red-900/20 text-xs font-semibold' },
   };
 
   const orderColumns: Column<any>[] = [
@@ -472,10 +473,42 @@ export default function VendorDashboardPage() {
         return <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${s.color}`}>{s.label}</span>;
       }
     },
+    {
+      key: 'rider',
+      label: 'Rider',
+      render: (row) => {
+        if (row.delivery_boy_id?.name) {
+          return <span className="font-semibold text-gray-800 dark:text-gray-200">{row.delivery_boy_id.name}</span>;
+        }
+        if (row.orderStatus === 'Delivered' || row.orderStatus === 'Cancelled') {
+          return <span className="text-gray-400">Not Assigned</span>;
+        }
+        return (
+          <button
+            type="button"
+            onClick={() => setAssignRiderModal({ open: true, orderId: row._id, currentRiderId: '' })}
+            className="inline-flex items-center gap-1 bg-green-50 text-primary border border-green-200 px-2 py-1 text-xs font-bold hover:bg-green-100 transition cursor-pointer rounded-lg"
+          >
+            <Bike size={13} />
+            Assign Rider
+          </button>
+        );
+      }
+    },
     { 
       key: 'createdAt', 
       label: 'Created At',
-      render: (row) => new Date(row.createdAt || row.created_at).toLocaleString()
+      render: (row) => {
+        const d = new Date(row.createdAt || row.created_at);
+        const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return (
+          <div className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold whitespace-nowrap leading-none flex flex-col gap-0.5">
+            <span>{dateStr}</span>
+            <span className="text-gray-450 dark:text-gray-500">{timeStr}</span>
+          </div>
+        );
+      }
     },
   ];
 
@@ -490,8 +523,15 @@ export default function VendorDashboardPage() {
       label: 'Change Status',
       icon: <ArrowUpDown size={15} />,
       disabled: (row) => row.orderStatus === 'Delivered' || row.orderStatus === 'Cancelled',
-      onClick: (row) => setOrderStatusModal({ open: true, orderId: row._id, current: row.orderStatus || 'Order Placed' }),
+      onClick: (row) => setOrderStatusModal({ open: true, orderId: row._id, current: row.orderStatus || 'Order Placed', otp: '' }),
       color: 'success'
+    },
+    {
+      label: 'Assign Rider',
+      icon: <Bike size={15} />,
+      disabled: (row) => row.orderStatus === 'Delivered' || row.orderStatus === 'Cancelled',
+      onClick: (row) => setAssignRiderModal({ open: true, orderId: row._id, currentRiderId: row.delivery_boy_id?._id || row.delivery_boy_id || '' }),
+      color: 'primary'
     },
     {
       label: 'Delete',
@@ -532,6 +572,10 @@ export default function VendorDashboardPage() {
 
   const applyOrderStatus = async (newStatus: string) => {
     if (!orderStatusModal.orderId) return;
+    if (newStatus === 'Delivered' && !orderStatusModal.otp) {
+      alert("Delivery OTP is required to mark the order as Delivered.");
+      return;
+    }
     try {
       const legacyMap: Record<string, number> = { 
         'Order Placed': 0, 
@@ -544,15 +588,39 @@ export default function VendorDashboardPage() {
       const res = await fetch(`/api/orders/${orderStatusModal.orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderStatus: newStatus, status: legacyMap[newStatus] }),
+        body: JSON.stringify({ 
+          orderStatus: newStatus, 
+          status: legacyMap[newStatus],
+          otp: orderStatusModal.otp
+        }),
       });
-      if (!res.ok) throw new Error('Update failed');
+      if (!res.ok) {
+        const errJson = await res.json();
+        throw new Error(errJson.error || 'Update failed');
+      }
       fetchPaginatedOrders();
       loadVendorData();
     } catch (e: any) {
       alert(e.message);
     } finally {
-      setOrderStatusModal({ open: false, orderId: null, current: 'Order Placed' });
+      setOrderStatusModal({ open: false, orderId: null, current: 'Order Placed', otp: '' });
+    }
+  };
+
+  const applyAssignRider = async (riderId: string) => {
+    if (!assignRiderModal.orderId) return;
+    try {
+      const res = await fetch(`/api/orders/${assignRiderModal.orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ delivery_boy_id: riderId || null }),
+      });
+      if (!res.ok) throw new Error('Failed to assign rider');
+      fetchPaginatedOrders();
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setAssignRiderModal({ open: false, orderId: null, currentRiderId: '' });
     }
   };
 
@@ -705,9 +773,9 @@ export default function VendorDashboardPage() {
 
 
   return (
-    <div className="h-screen overflow-hidden bg-[#f3f8f4] flex text-gray-800 font-sans antialiased">
+    <div className="h-screen overflow-hidden bg-[#f3f8f4] dark:bg-gray-900 flex text-gray-800 dark:text-gray-100 font-sans antialiased">
       {/* Sidebar Layout */}
-      <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-[#e9f2eb] px-6 py-8 justify-between shrink-0">
+      <aside className="hidden lg:flex flex-col w-56 bg-white dark:bg-gray-800 border-r border-[#e9f2eb] dark:border-gray-700 px-4 py-6 justify-between shrink-0">
         <div className="space-y-8">
           {/* Logo */}
           <div className="flex items-center gap-3">
@@ -779,22 +847,22 @@ export default function VendorDashboardPage() {
       </aside>
 
       {/* Main Container */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 bg-[#f3f8f4] dark:bg-gray-900">
         {/* Top Header Bar */}
-        <header className="h-20 bg-white border-b border-[#e9f2eb] px-6 lg:px-10 flex items-center justify-between gap-6 shrink-0">
+        <header className="h-14 bg-white dark:bg-gray-800 border-b border-[#e9f2eb] dark:border-gray-700 px-4 lg:px-6 flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-4 lg:hidden">
             <div className="h-9 w-9 relative shrink-0">
               <img src="/logo.png" alt="VegKing Logo" className="w-full h-full object-contain" />
             </div>
-            <span className="font-extrabold text-sm text-gray-900">VegKing</span>
+            <span className="font-extrabold text-sm text-gray-900 dark:text-white">VegKing</span>
           </div>
 
           <div className="hidden md:flex items-center gap-4">
-            <h2 className="font-extrabold text-xl text-gray-900">Welcome to Market</h2>
+            <h2 className="font-extrabold text-xl text-gray-900 dark:text-white">Welcome to Market</h2>
             <button
               type="button"
               onClick={downloadVendorReport}
-              className="text-xs font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100/80 px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+              className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/30 px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
               title="Download Shop Stats CSV"
             >
               <Download className="h-3.5 w-3.5" />
@@ -808,26 +876,26 @@ export default function VendorDashboardPage() {
               <input 
                 type="text" 
                 placeholder="Search..." 
-                className="w-full h-10 bg-[#f4f7f5] rounded-xl pl-10 pr-4 text-xs font-semibold text-gray-700 placeholder-gray-400 border border-transparent focus:border-[#2bb673]/30 outline-none"
+                className="w-full h-10 bg-[#f4f7f5] dark:bg-gray-700 rounded-xl pl-10 pr-4 text-xs font-semibold text-gray-700 dark:text-gray-250 placeholder-gray-400 border border-transparent focus:border-[#2bb673]/30 outline-none"
               />
               <Search className="absolute left-3.5 top-3 h-4 w-4 text-gray-400" />
             </div>
 
             <div className="flex items-center gap-4 text-gray-400">
-              <button type="button" className="p-2 hover:bg-[#f6faf7] hover:text-[#2bb673] rounded-xl transition">
+              <button type="button" className="p-2 hover:bg-[#f6faf7] dark:hover:bg-gray-700/50 hover:text-[#2bb673] rounded-xl transition">
                 <Mail className="h-5 w-5" />
               </button>
               <button 
                 type="button" 
                 onClick={() => changeTab('notifications')}
-                className="p-2 hover:bg-[#f6faf7] hover:text-[#2bb673] rounded-xl transition relative"
+                className="p-2 hover:bg-[#f6faf7] dark:hover:bg-gray-700/50 hover:text-[#2bb673] rounded-xl transition relative"
               >
                 <Bell className="h-5 w-5" />
                 {notifications.length > 0 && <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 bg-red-500 rounded-full ring-2 ring-white" />}
               </button>
             </div>
 
-            <div className="h-8 w-px bg-[#f0f6f2]" />
+            <div className="h-8 w-px bg-[#f0f6f2] dark:bg-gray-750" />
 
             {/* Profile Menu */}
             <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => changeTab('profile')}>
@@ -844,7 +912,7 @@ export default function VendorDashboardPage() {
         </header>
 
         {/* Content Wrapper */}
-        <div className="flex-1 overflow-y-auto px-6 lg:px-10 pt-8 pb-24 lg:pb-8">
+        <div className="flex-1 overflow-y-auto px-4 lg:px-6 pt-5 pb-20 lg:pb-6">
           {message && <div className="mb-6 rounded-xl border border-amber-100 bg-amber-50 p-4 text-xs font-bold text-amber-700">{message}</div>}
 
           {/* HOME TAB (MODERN 3-COLUMN LAYOUT MATCHING IMAGE) */}
@@ -1128,9 +1196,21 @@ export default function VendorDashboardPage() {
                                   Accept
                                 </button>
                               ) : (
-                                <span className="bg-[#e7f7ee] text-[#2bb673] text-[10px] font-black px-3 py-1 rounded-lg shrink-0">
-                                  Accepted
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="bg-[#e7f7ee] text-[#2bb673] text-[10px] font-black px-3 py-1 rounded-lg shrink-0">
+                                    Accepted
+                                  </span>
+                                  {!order.delivery_boy_id && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setAssignRiderModal({ open: true, orderId: order._id, currentRiderId: '' })}
+                                      className="bg-primary hover:bg-primary-hover text-white text-[10px] font-black px-2.5 py-1.5 rounded-lg transition shrink-0 flex items-center gap-1"
+                                    >
+                                      <Bike size={12} />
+                                      Assign Rider
+                                    </button>
+                                  )}
+                                </div>
                               )}
                             </div>
                           );
@@ -1193,33 +1273,33 @@ export default function VendorDashboardPage() {
           )}
 
           {activeTab === 'orders' && (
-            <section className="border border-[#e9f2eb] rounded-3xl bg-white p-5 sm:p-8 animate-fadeIn space-y-6">
+            <section className="border border-[#e9f2eb] dark:border-gray-700 rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-5 animate-fadeIn space-y-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <h1 className="text-2xl font-black text-gray-900">Orders</h1>
-                  <p className="text-sm text-gray-500 mt-1">Total: {orderTotal} orders</p>
+                  <h1 className="text-xl font-black text-gray-900 dark:text-white">Orders</h1>
+                  <p className="text-xs text-gray-500 mt-0.5">Total: {orderTotal} orders</p>
                 </div>
               </div>
 
               {orderError && (
-                <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-                  ⚠️ {orderError} — <button onClick={fetchPaginatedOrders} className="underline">Retry</button>
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs">
+                  ⚠️ {orderError} — <button onClick={fetchPaginatedOrders} className="underline font-bold">Retry</button>
                 </div>
               )}
 
               {/* Filters */}
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2">
                 <input
                   type="text"
                   placeholder="Search order no..."
                   value={orderSearch}
                   onChange={(e) => { setOrderSearch(e.target.value); setOrderPage(1); }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs w-52 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
                 <select
                   value={orderFilterStatus}
                   onChange={(e) => { setOrderFilterStatus(e.target.value); setOrderPage(1); }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 >
                   <option value="">All Status</option>
                   {Object.entries(orderStatusMap).map(([val, s]) => (
@@ -1234,6 +1314,7 @@ export default function VendorDashboardPage() {
                 actions={orderActions}
                 keyExtractor={(row) => row._id}
                 loading={orderLoading}
+                hideToolbar={true}
               />
 
               {/* Pagination */}
@@ -1263,15 +1344,60 @@ export default function VendorDashboardPage() {
                         <option key={val} value={val}>{s.label}</option>
                       ))}
                     </select>
+
+                    {orderStatusModal.current === 'Delivered' && (
+                      <div className="mb-4">
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">Customer Delivery OTP</label>
+                        <input
+                          type="text"
+                          placeholder="Enter 4-digit OTP"
+                          value={orderStatusModal.otp}
+                          onChange={(e) => setOrderStatusModal(m => ({ ...m, otp: e.target.value }))}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                    )}
+
                     <div className="flex gap-3">
                       <button
-                        onClick={() => setOrderStatusModal({ open: false, orderId: null, current: 'Order Placed' })}
+                        onClick={() => setOrderStatusModal({ open: false, orderId: null, current: 'Order Placed', otp: '' })}
                         className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
                       >Cancel</button>
                       <button
                         onClick={() => applyOrderStatus(orderStatusModal.current)}
                         className="flex-1 px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer"
                       >Apply</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Assign Rider Modal */}
+              {assignRiderModal.open && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-80">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Assign Rider</h3>
+                    <select
+                      value={assignRiderModal.currentRiderId}
+                      onChange={(e) => setAssignRiderModal(m => ({ ...m, currentRiderId: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="">Unassigned / Select Rider</option>
+                      {riders.map((r: any) => (
+                        <option key={r._id} value={r._id}>
+                          {r.name} ({r.vehicle_type} - {r.mobile_number})
+                        </option>
+                      ))}
+                    </select>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setAssignRiderModal({ open: false, orderId: null, currentRiderId: '' })}
+                        className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
+                      >Cancel</button>
+                      <button
+                        onClick={() => applyAssignRider(assignRiderModal.currentRiderId)}
+                        className="flex-1 px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer"
+                      >Assign</button>
                     </div>
                   </div>
                 </div>
@@ -1310,6 +1436,25 @@ export default function VendorDashboardPage() {
                           <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Order Info</h4>
                           <p className="text-gray-600 dark:text-gray-300 font-semibold mt-1">Date: {new Date(viewingOrder.createdAt).toLocaleString()}</p>
                           <p className="text-gray-600 dark:text-gray-300 font-semibold">Status: <span className="font-bold text-green-600">{viewingOrder.orderStatus}</span></p>
+                          <p className="text-gray-600 dark:text-gray-300 font-semibold">
+                            Rider: <span className="font-bold text-gray-800 dark:text-gray-200">{viewingOrder.delivery_boy_id?.name || 'Not Assigned'}</span>
+                            {!(viewingOrder.orderStatus === 'Delivered' || viewingOrder.orderStatus === 'Cancelled') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAssignRiderModal({ 
+                                    open: true, 
+                                    orderId: viewingOrder._id, 
+                                    currentRiderId: viewingOrder.delivery_boy_id?._id || viewingOrder.delivery_boy_id || '' 
+                                  });
+                                  setViewingOrder(null);
+                                }}
+                                className="text-xs text-primary font-bold hover:underline cursor-pointer inline-flex items-center gap-0.5 ml-2"
+                              >
+                                (<Bike size={12} className="inline animate-bounce" /> {viewingOrder.delivery_boy_id ? 'Change' : 'Assign'})
+                              </button>
+                            )}
+                          </p>
                           <p className="text-gray-600 dark:text-gray-300 font-semibold">Payment Method: {viewingOrder.payment_method}</p>
                           <p className="text-gray-600 dark:text-gray-300 font-semibold">Payment Status: {viewingOrder.payment_status}</p>
                         </div>

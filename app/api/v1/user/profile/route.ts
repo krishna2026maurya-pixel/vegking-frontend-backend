@@ -10,6 +10,10 @@ async function getProfile(request: NextRequest, userId: string) {
     if (!user) {
       return NextResponse.json({ success: false, error: 'User not found.' }, { status: 404 });
     }
+    if (!user.delivery_otp) {
+      user.delivery_otp = Math.floor(1000 + Math.random() * 9000).toString();
+      await user.save();
+    }
     return NextResponse.json({ success: true, data: user });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });

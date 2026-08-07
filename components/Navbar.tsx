@@ -645,16 +645,17 @@ export default function Navbar() {
 
 
 
-            {/* <Link
-              href={isApprovedVendor ? '/vendor/dashboard' : '/sell'}
-              className={`px-4 py-2 text-xs font-extrabold transition-all duration-300 flex items-center gap-1.5 ${pathname?.startsWith('/vendor')
-                ? 'bg-primary text-white shadow-md shadow-primary/10'
-                : 'text-gray-600 hover:text-primary hover:bg-gray-50'
-                }`}
+            <Link
+              href={isApprovedVendor ? '/vendor/dashboard' : '/partner'}
+              className={`px-4 py-2 text-xs font-extrabold transition-all duration-300 flex items-center gap-1.5 ${
+                pathname === '/partner' || (isApprovedVendor && pathname?.startsWith('/vendor'))
+                  ? 'bg-primary text-white shadow-md shadow-primary/10'
+                  : 'text-gray-600 hover:text-primary hover:bg-gray-50'
+              }`}
             >
               <Store className="w-3.5 h-3.5" strokeWidth={2.2} />
-              {isApprovedVendor ? 'Vendor Dashboard' : 'Sell'}
-            </Link> */}
+              {isApprovedVendor ? 'Vendor Dashboard' : 'Grow With Us'}
+            </Link>
 
             <Link
               href="/contact"
@@ -767,12 +768,12 @@ export default function Navbar() {
                       </Link>
                     )}
                     <Link
-                      href={isApprovedVendor ? '/vendor/dashboard' : '/sell'}
+                      href={isApprovedVendor ? '/vendor/dashboard' : '/partner'}
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center gap-4 px-1 py-3 text-base font-bold text-gray-950 transition hover:text-primary"
                     >
                       <Store className="h-5 w-5 text-gray-900" />
-                      {isApprovedVendor ? 'Vendor Dashboard' : 'Sell with us'}
+                      {isApprovedVendor ? 'Vendor Dashboard' : 'Grow with us'}
                     </Link>
                   </div>
                 </div>
