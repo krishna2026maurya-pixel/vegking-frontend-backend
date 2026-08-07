@@ -23,9 +23,9 @@ const db = mongoose.connection.db;
 // ─────────────────────────────────────────────────────────────────────────────
 // DROP existing collections
 // ─────────────────────────────────────────────────────────────────────────────
-const colls = ['vendors','products','orders','deliveryboys','users','categories','categorytypes','brands','coupons','banners','addresses','orderitems','carts','wishlists'];
+const colls = ['vendors', 'products', 'orders', 'deliveryboys', 'users', 'categories', 'categorytypes', 'brands', 'coupons', 'banners', 'addresses', 'orderitems', 'carts', 'wishlists'];
 for (const c of colls) {
-  try { await db.collection(c).drop(); } catch {}
+  try { await db.collection(c).drop(); } catch { }
 }
 console.log('🗑️  Old data cleared\n');
 
@@ -49,7 +49,7 @@ const vendors = Array.from({ length: 20 }, (_, i) => ({
   full_name: indianNames[i % indianNames.length],
   email: `vendor${i + 1}@vegimart.com`,
   mobile_number: `98${randInt(10000000, 99999999)}`,
-  shop_name: shopNames[i % shopNames.length] + (i >= shopNames.length ? ` ${Math.floor(i/shopNames.length)+1}` : ''),
+  shop_name: shopNames[i % shopNames.length] + (i >= shopNames.length ? ` ${Math.floor(i / shopNames.length) + 1}` : ''),
   city: rand(cities),
   address: `${randInt(1, 999)} Main Road, ${rand(cities)}`,
   is_verified: rand(['1', '1', '1', '0']),
@@ -68,9 +68,9 @@ const vendorIds = Object.values(insertedVendors.insertedIds);
 // ─────────────────────────────────────────────────────────────────────────────
 const categoryTypeList = [
   { name: 'Fresh Vegetables', slug: 'fresh-vegetables', image: 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=400&auto=format&fit=crop&q=80', sort_order: 1 },
-  { name: 'Fresh Fruits',     slug: 'fresh-fruits',     image: 'https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=400&auto=format&fit=crop&q=80', sort_order: 2 },
-  { name: 'Dairy Products',   slug: 'dairy-products',   image: 'https://images.unsplash.com/photo-1596797038530-2c107229654b?w=400&auto=format&fit=crop&q=80', sort_order: 3 },
-  { name: 'Organic & Herbs',  slug: 'organic-herbs',    image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&auto=format&fit=crop&q=80', sort_order: 4 },
+  { name: 'Fresh Fruits', slug: 'fresh-fruits', image: 'https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=400&auto=format&fit=crop&q=80', sort_order: 2 },
+  { name: 'Dairy Products', slug: 'dairy-products', image: 'https://images.unsplash.com/photo-1596797038530-2c107229654b?w=400&auto=format&fit=crop&q=80', sort_order: 3 },
+  { name: 'Organic & Herbs', slug: 'organic-herbs', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&auto=format&fit=crop&q=80', sort_order: 4 },
 ];
 const categoryTypes = categoryTypeList.map(ct => ({ ...ct, is_active: '1', created_at: daysAgo(randInt(30, 300)).toISOString() }));
 const insertedTypes = await db.collection('categorytypes').insertMany(categoryTypes);
@@ -100,7 +100,7 @@ const categoryNames = [
 const categoryImageMap = {
   'Vegetables': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=400&auto=format&fit=crop&q=80',
   'Exotic Vegetables': 'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=400&auto=format&fit=crop&q=80',
-  'Leafy Greens': 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&auto=format&fit=crop&q=80',
+  'Leafy Greens': '',
   'Root Vegetables': 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&auto=format&fit=crop&q=80',
   'Fruits': 'https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=400&auto=format&fit=crop&q=80',
   'Dairy & Eggs': 'https://images.unsplash.com/photo-1596797038530-2c107229654b?w=400&auto=format&fit=crop&q=80',
@@ -250,12 +250,15 @@ const productList = [
 const buildUnsplashUrl = (id) => `https://images.unsplash.com/${id}?w=500&auto=format&fit=crop&q=80`;
 
 const customImages = {
-  'Spinach (Palak)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785933747/vegimart_products/cs06teana2dvii0xfvd1.jpg',
+  'Capsicum (Simla Marcha)': '/images/capsicum.jpeg',
+  'Carrot (Gajar)': '/images/carrot_gajar.jpeg',
+  'Spinach (Palak)': '/images/spinach_palak.jpeg',
   'Cabbage (Kobi)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785933749/vegimart_products/q2znuxsxxirvbzydrp42.jpg',
-  'Red Cabbage': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785933750/vegimart_products/f8gy8abw3dzf3awqqzwy.jpg',
+  'Red Cabbage': '/images/red_cabbage.jpeg',
   'Beetroot (Beet)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785934192/vegimart_products/n0ldedvd6burco9ffnj8.jpg',
-  'Onion (Dungdi)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785934193/vegimart_products/hki8xyupw9osvax77ute.jpg',
-  'Green Cucumber (Kakdi)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785934194/vegimart_products/d0yt5vbfvzssgh9b3c64.jpg',
+  'Onion (Dungdi)': '/images/onion.jpeg',
+  'Garlic (Lasan)': '/images/garlic.jpeg',
+  'Green Cucumber (Kakdi)': '/images/green_cucumber.jpeg',
   'Homemade Paneer': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785934195/vegimart_products/bz5j2zxuitjmmifwshbs.jpg',
   'Desi Cow Ghee': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785934196/vegimart_products/c3cvpl5fmil6prjxkssi.jpg',
   'Moong Dal (Split Green)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785934197/vegimart_products/p3bqomekrrvrtobxbgxi.jpg',
@@ -269,21 +272,24 @@ const customImages = {
   'Galka (Sponge Gourd)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785936309/vegimart/galka_sponge_gourd.jpg',
   'Cherry Tomato': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785936310/vegimart/cherry_tomato.jpg',
   'Bok Choy (Popchau)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785936311/vegimart/bok_choy_popchau.jpg',
-  'Parsley (Parsly)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785936311/vegimart/parsley_parsly.jpg',
-  'Leek': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785936312/vegimart/leek.jpg',
-  'Mushroom': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785936313/vegimart/mushroom.jpg',
+  'Parsley (Parsly)': '/images/parsley.jpeg',
+  'Broccoli': '/images/broccoli.jpeg',
+  'Leek': '/images/leek.jpeg',
+  'Lemon (Limbu)': '/images/lemon.jpeg',
+  'Mushroom': '/images/mushroom.jpeg',
+  'Baby Corn': '/images/baby_corn.jpeg',
   'Lemon Grass': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785936314/vegimart/lemon_grass.jpg',
+  'Ginger (Adu)': '/images/ginger.jpeg',
   'Banana Leaf': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937279/vegimart/banana_leaf.jpg',
   'Hybrid Tomato (Tameta)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937280/vegimart/hybrid_tomato.jpg',
   'Saragava (Drumstick)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937446/vegimart/saragava_drumstick.jpg',
   'Kaddu (Kolku / Pumpkin)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937965/vegimart/kaddu_pumpkin.png',
-  'Cauliflower (Fulaver)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937412/vegimart/cauliflower_fulaver.jpg',
-  'Green Tomato (Leela Tameta)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937412/vegimart/green_tomato.jpg',
-  'Loki (Dudhi / Bottle Gourd)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937413/vegimart/loki_bottle_gourd.jpg',
+  'Cauliflower (Fulaver)': '/images/cauliflower.jpeg',
+  'Green Tomato (Leela Tameta)': '/images/green_tomato.jpeg',
+  'Loki (Dudhi / Bottle Gourd)': '/images/loki.png',
   'Stuffed Vegetables (Bharela Shaak)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937414/vegimart/stuffed_vegetables.jpg',
   'French Beans (Fansi)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937415/vegimart/french_beans.jpg',
-  'Capsicum (Simla Marcha)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937416/vegimart/capsicum_simla_marcha.jpg',
-  'Green Peas (Vatana)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937417/vegimart/green_peas_vatana.jpg',
+  'Green Peas (Vatana)': '/images/green_peas.jpeg',
   'Red / Yellow Capsicum': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937418/vegimart/red_yellow_capsicum.jpg',
 };
 
@@ -394,9 +400,9 @@ const deliveryBoys = Array.from({ length: 10 }, (_, i) => ({
   mobile_number: `96${randInt(10000000, 99999999)}`,
   email: `delivery${i + 1}@vegimart.com`,
   vehicle_type: rand(vehicleTypes),
-  vehicle_number: `MH${randInt(10,99)}-${String.fromCharCode(65+randInt(0,25))}${String.fromCharCode(65+randInt(0,25))}-${randInt(1000,9999)}`,
-  is_verified: rand(['1','1','0']),
-  is_active: rand(['1','1','0']),
+  vehicle_number: `MH${randInt(10, 99)}-${String.fromCharCode(65 + randInt(0, 25))}${String.fromCharCode(65 + randInt(0, 25))}-${randInt(1000, 9999)}`,
+  is_verified: rand(['1', '1', '0']),
+  is_active: rand(['1', '1', '0']),
   wallet_balance: randFloat(0, 2000),
   city: rand(cities),
   created_at: daysAgo(randInt(10, 200)).toISOString(),

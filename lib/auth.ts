@@ -12,7 +12,7 @@ export function signToken(payload: any): string {
   const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url');
   const encodedPayload = Buffer.from(JSON.stringify({
     ...payload,
-    exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60 * 60) // 24 hours
+    exp: Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60) // 1 year
   })).toString('base64url');
 
   const signature = crypto

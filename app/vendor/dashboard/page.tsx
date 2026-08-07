@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Loader2, LogOut, Package, PackagePlus, ReceiptText, Store, User, X, Bike, Bell, Settings, ShieldCheck, CheckCircle2, AlertTriangle, Landmark, Search, Mail, ChevronDown, Plus, Heart, Filter, MessageSquare, HelpCircle, Sparkles, Download } from 'lucide-react';
+import { BarChart3, Loader2, LogOut, Package, PackagePlus, ReceiptText, Store, User, X, Bike, Bell, Settings, ShieldCheck, CheckCircle2, AlertTriangle, Landmark, Search, Mail, ChevronDown, Plus, Heart, Filter, MessageSquare, HelpCircle, Sparkles, Download, Eye, ArrowUpDown, Trash2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import DataTable, { Column, Action } from '@/app/admin/components/DataTable';
 
 const tabs = [
   { id: 'home', label: 'Market', icon: BarChart3 },
@@ -107,6 +108,17 @@ export default function VendorDashboardPage() {
   const [riders, setRiders] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
+  // Paginated orders for the Orders tab (matching Admin dashboard logic)
+  const [paginatedOrders, setPaginatedOrders] = useState<any[]>([]);
+  const [orderPage, setOrderPage] = useState(1);
+  const [orderTotalPages, setOrderTotalPages] = useState(1);
+  const [orderTotal, setOrderTotal] = useState(0);
+  const [orderSearch, setOrderSearch] = useState('');
+  const [orderFilterStatus, setOrderFilterStatus] = useState('');
+  const [orderLoading, setOrderLoading] = useState(true);
+  const [orderError, setOrderError] = useState('');
+  const [orderStatusModal, setOrderStatusModal] = useState<{ open: boolean; orderId: string | null; current: string }>({ open: false, orderId: null, current: 'Order Placed' });
+  const [viewingOrder, setViewingOrder] = useState<any>(null);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [showMobileMore, setShowMobileMore] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
@@ -115,6 +127,8 @@ export default function VendorDashboardPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [riderForm, setRiderForm] = useState({ name: '', email: '', mobile_number: '', password: '', vehicle_type: 'Bike', vehicle_number: '' });
   const [showAddRiderModal, setShowAddRiderModal] = useState(false);
+  const [editingRiderId, setEditingRiderId] = useState<string | null>(null);
+  const [viewingRider, setViewingRider] = useState<any>(null);
   
   const [settingsForm, setSettingsForm] = useState({
     storeOpen: true,
@@ -408,6 +422,139 @@ export default function VendorDashboardPage() {
     }
   };
 
+  const orderStatusMap: Record<string, { label: string; color: string }> = {
+    'Order Placed':     { label: 'Order Placed',     color: 'bg-yellow-100 text-yellow-800' },
+    'Order Confirmed':  { label: 'Order Confirmed',  color: 'bg-blue-100 text-blue-800' },
+    'Packing':          { label: 'Packing',          color: 'bg-purple-100 text-purple-800' },
+    'Out for Delivery': { label: 'Out for Delivery', color: 'bg-indigo-100 text-indigo-800' },
+    'Delivered':        { label: 'Delivered',        color: 'bg-green-100 text-green-800' },
+    'Cancelled':        { label: 'Cancelled',        color: 'bg-red-100 text-red-800' },
+  };
+
+  const orderColumns: Column<any>[] = [
+    { key: 'order_number', label: 'Order No.' },
+    { 
+      key: 'customer_mobile', 
+      label: 'Customer',
+      render: (row) => row.user_id?.name || row.customer_mobile || 'Customer'
+    },
+    {
+      key: 'total_amount',
+      label: 'Amount',
+      render: (row) => <span className="font-semibold">₹{(row.total_amount ?? 0).toFixed(2)}</span>
+    },
+    {
+      key: 'payment_method',
+      label: 'Payment',
+      render: (row) => (
+        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+          row.payment_method === 'COD' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+        }`}>
+          {row.payment_method}
+        </span>
+      )
+    },
+    {
+      key: 'payment_status',
+      label: 'Pay Status',
+      render: (row) => (
+        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+          row.payment_status === 'completed' ? 'bg-green-100 text-green-800' :
+          row.payment_status === 'failed' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+        }`}>{row.payment_status}</span>
+      )
+    },
+    {
+      key: 'orderStatus',
+      label: 'Status',
+      render: (row) => {
+        const s = orderStatusMap[row.orderStatus] ?? { label: row.orderStatus || 'Unknown', color: 'bg-gray-100 text-gray-800' };
+        return <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${s.color}`}>{s.label}</span>;
+      }
+    },
+    { 
+      key: 'createdAt', 
+      label: 'Created At',
+      render: (row) => new Date(row.createdAt || row.created_at).toLocaleString()
+    },
+  ];
+
+  const orderActions: Action<any>[] = [
+    {
+      label: 'View',
+      icon: <Eye size={15} />,
+      onClick: (row) => setViewingOrder(row),
+      color: 'default'
+    },
+    {
+      label: 'Change Status',
+      icon: <ArrowUpDown size={15} />,
+      onClick: (row) => setOrderStatusModal({ open: true, orderId: row._id, current: row.orderStatus || 'Order Placed' }),
+      color: 'success'
+    },
+    {
+      label: 'Delete',
+      icon: <Trash2 size={15} />,
+      onClick: async (row) => {
+        if (!confirm(`Order ${row.order_number} delete करें?`)) return;
+        await fetch(`/api/orders/${row._id}`, { method: 'DELETE' });
+        fetchPaginatedOrders();
+      },
+      color: 'danger'
+    }
+  ];
+
+  const fetchPaginatedOrders = useCallback(async () => {
+    setOrderLoading(true);
+    setOrderError('');
+    try {
+      const params = new URLSearchParams({ page: String(orderPage), limit: '10', search: orderSearch });
+      if (orderFilterStatus !== '') params.set('status', orderFilterStatus);
+      const res = await fetch(`/api/orders?${params}`);
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      const json = await res.json();
+      setPaginatedOrders(json.data || []);
+      setOrderTotalPages(json.meta?.totalPages || 1);
+      setOrderTotal(json.meta?.total || 0);
+    } catch (e: any) {
+      setOrderError(e.message || 'Failed to load orders');
+    } finally {
+      setOrderLoading(false);
+    }
+  }, [orderPage, orderSearch, orderFilterStatus]);
+
+  useEffect(() => {
+    if (activeTab === 'orders') {
+      fetchPaginatedOrders();
+    }
+  }, [activeTab, fetchPaginatedOrders]);
+
+  const applyOrderStatus = async (newStatus: string) => {
+    if (!orderStatusModal.orderId) return;
+    try {
+      const legacyMap: Record<string, number> = { 
+        'Order Placed': 0, 
+        'Order Confirmed': 1, 
+        'Packing': 2, 
+        'Out for Delivery': 3, 
+        'Delivered': 4, 
+        'Cancelled': 5 
+      };
+      const res = await fetch(`/api/orders/${orderStatusModal.orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderStatus: newStatus, status: legacyMap[newStatus] }),
+      });
+      if (!res.ok) throw new Error('Update failed');
+      fetchPaginatedOrders();
+      loadVendorData();
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setOrderStatusModal({ open: false, orderId: null, current: 'Order Placed' });
+    }
+  };
+
   const addRider = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!session?.user?.id) return;
@@ -415,27 +562,55 @@ export default function VendorDashboardPage() {
     setMessage('');
 
     try {
-      const res = await fetch('/api/delivery-boys', {
-        method: 'POST',
+      const payload: any = {
+        name: riderForm.name,
+        email: riderForm.email,
+        mobile_number: riderForm.mobile_number,
+        vehicle_type: riderForm.vehicle_type,
+        vehicle_number: riderForm.vehicle_number,
+        vendor_id: session.user.id,
+      };
+
+      if (riderForm.password.trim()) {
+        payload.password = riderForm.password;
+      }
+
+      const url = editingRiderId ? `/api/delivery-boys/${editingRiderId}` : '/api/delivery-boys';
+      const method = editingRiderId ? 'PATCH' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...riderForm,
-          vendor_id: session.user.id,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || 'Failed to add rider');
+      const isSuccess = editingRiderId ? res.ok : (res.ok && json.success);
+      if (!isSuccess) throw new Error(json.error || 'Failed to save rider');
 
       setRiderForm({ name: '', email: '', mobile_number: '', password: '', vehicle_type: 'Bike', vehicle_number: '' });
+      setEditingRiderId(null);
       setShowAddRiderModal(false);
       await loadVendorData();
-      setMessage('Rider registered successfully.');
+      setMessage(editingRiderId ? 'Rider updated successfully.' : 'Rider registered successfully.');
     } catch (e: any) {
-      setMessage('Unable to add rider: ' + e.message);
+      setMessage('Unable to save rider: ' + e.message);
     } finally {
       setSaving(false);
     }
+  };
+
+  const editRider = (rider: any) => {
+    setEditingRiderId(rider._id);
+    setRiderForm({
+      name: rider.name || '',
+      email: rider.email || '',
+      mobile_number: rider.mobile_number || '',
+      password: '',
+      vehicle_type: rider.vehicle_type || 'Bike',
+      vehicle_number: rider.vehicle_number || '',
+    });
+    setShowAddRiderModal(true);
   };
 
   const deleteRider = async (riderId: string, name: string) => {
@@ -1017,101 +1192,157 @@ export default function VendorDashboardPage() {
           )}
 
           {activeTab === 'orders' && (
-            <section className="border border-[#e9f2eb] rounded-3xl bg-white p-5 sm:p-8 animate-fadeIn">
-              <h1 className="text-2xl font-black text-gray-900">Orders</h1>
-              <div className="mt-5 space-y-6">
-                {loading ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="border border-gray-100 rounded-2xl p-6 space-y-4 animate-pulse">
-                      <div className="flex justify-between items-center pb-3 border-b border-gray-50">
-                        <div className="space-y-2">
-                          <div className="h-4 bg-gray-200 rounded-md w-28" />
-                          <div className="h-3 bg-gray-200 rounded-md w-20" />
-                        </div>
-                        <div className="h-6 w-16 bg-gray-200 rounded-xl" />
+            <section className="border border-[#e9f2eb] rounded-3xl bg-white p-5 sm:p-8 animate-fadeIn space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="text-2xl font-black text-gray-900">Orders</h1>
+                  <p className="text-sm text-gray-500 mt-1">Total: {orderTotal} orders</p>
+                </div>
+              </div>
+
+              {orderError && (
+                <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                  ⚠️ {orderError} — <button onClick={fetchPaginatedOrders} className="underline">Retry</button>
+                </div>
+              )}
+
+              {/* Filters */}
+              <div className="flex flex-wrap gap-3">
+                <input
+                  type="text"
+                  placeholder="Search order no..."
+                  value={orderSearch}
+                  onChange={(e) => { setOrderSearch(e.target.value); setOrderPage(1); }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+                <select
+                  value={orderFilterStatus}
+                  onChange={(e) => { setOrderFilterStatus(e.target.value); setOrderPage(1); }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                >
+                  <option value="">All Status</option>
+                  {Object.entries(orderStatusMap).map(([val, s]) => (
+                    <option key={val} value={val}>{s.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <DataTable
+                data={paginatedOrders}
+                columns={orderColumns}
+                actions={orderActions}
+                keyExtractor={(row) => row._id}
+                loading={orderLoading}
+              />
+
+              {/* Pagination */}
+              {orderTotalPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                  <span className="text-sm text-gray-500">Page {orderPage} of {orderTotalPages}</span>
+                  <div className="flex gap-2">
+                    <button onClick={() => setOrderPage(p => Math.max(1, p - 1))} disabled={orderPage === 1}
+                      className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 cursor-pointer">← Prev</button>
+                    <button onClick={() => setOrderPage(p => Math.min(orderTotalPages, p + 1))} disabled={orderPage === orderTotalPages}
+                      className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 cursor-pointer">Next →</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Change Status Modal */}
+              {orderStatusModal.open && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-80">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Change Order Status</h3>
+                    <select
+                      value={orderStatusModal.current}
+                      onChange={(e) => setOrderStatusModal(m => ({ ...m, current: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    >
+                      {Object.entries(orderStatusMap).map(([val, s]) => (
+                        <option key={val} value={val}>{s.label}</option>
+                      ))}
+                    </select>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setOrderStatusModal({ open: false, orderId: null, current: 'Order Placed' })}
+                        className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
+                      >Cancel</button>
+                      <button
+                        onClick={() => applyOrderStatus(orderStatusModal.current)}
+                        className="flex-1 px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer"
+                      >Apply</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* View Order Details Modal */}
+              {viewingOrder && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6">
+                    <div className="flex justify-between items-center pb-4 border-b border-gray-100 dark:border-gray-700">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Order Details</h3>
+                        <p className="text-xs text-gray-500 font-semibold mt-0.5">#{viewingOrder.order_number || viewingOrder._id}</p>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                          <div className="h-3 bg-gray-200 rounded-md w-16" />
-                          <div className="h-12 bg-gray-200 rounded-xl w-full" />
+                      <button 
+                        onClick={() => setViewingOrder(null)} 
+                        className="text-gray-400 hover:text-gray-650 dark:hover:text-gray-200 cursor-pointer text-xl"
+                      >✕</button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Customer Details</h4>
+                          <p className="font-bold text-gray-800 dark:text-gray-200 mt-1">{viewingOrder.user_id?.name || 'Walk-in / Online Customer'}</p>
+                          {viewingOrder.user_id?.mobile_no && <p className="text-gray-500 font-semibold mt-0.5">Phone: {viewingOrder.user_id.mobile_no}</p>}
+                          {viewingOrder.user_id?.email && <p className="text-gray-500 font-semibold">Email: {viewingOrder.user_id.email}</p>}
                         </div>
-                        <div className="space-y-3">
-                          <div className="h-3 bg-gray-200 rounded-md w-24" />
-                          <div className="h-10 bg-gray-200 rounded-xl w-3/4" />
+                        <div>
+                          <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Delivery Address</h4>
+                          <p className="text-gray-600 dark:text-gray-300 font-semibold mt-1 leading-relaxed">{getDeliveryAddress(viewingOrder)}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Order Info</h4>
+                          <p className="text-gray-600 dark:text-gray-300 font-semibold mt-1">Date: {new Date(viewingOrder.createdAt).toLocaleString()}</p>
+                          <p className="text-gray-600 dark:text-gray-300 font-semibold">Status: <span className="font-bold text-green-600">{viewingOrder.orderStatus}</span></p>
+                          <p className="text-gray-600 dark:text-gray-300 font-semibold">Payment Method: {viewingOrder.payment_method}</p>
+                          <p className="text-gray-600 dark:text-gray-300 font-semibold">Payment Status: {viewingOrder.payment_status}</p>
                         </div>
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <>
-                    {orders.map((order) => {
-                      const customer = order.user_id;
-                      return (
-                        <div key={order._id} className="border border-gray-100 rounded-2xl p-6 space-y-4">
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-[#f6faf7]">
-                            <div>
-                              <p className="text-sm font-black text-gray-950">Order #{order.order_number || order._id.slice(-6).toUpperCase()}</p>
-                              <p className="text-[10px] font-bold text-gray-500 mt-0.5">{new Date(order.createdAt).toLocaleString()}</p>
-                            </div>
-                            <span className="bg-[#e7f7ee] text-[#2bb673] text-xs font-black px-3.5 py-1.5 rounded-xl uppercase tracking-wide">
-                              {order.orderStatus}
-                            </span>
+
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Items Ordered</h4>
+                      <div className="divide-y divide-gray-100 dark:divide-gray-700 border border-gray-100 dark:border-gray-700 rounded-2xl px-4 bg-gray-50/50 dark:bg-gray-900/50">
+                        {(viewingOrder.items || []).map((item: any) => (
+                          <div key={item._id} className="py-3 flex justify-between gap-3 text-sm">
+                            <span className="font-semibold text-gray-700 dark:text-gray-300">{(item.product_name || item.name)} <span className="text-xs text-gray-400 font-bold">x {(item.qty || item.quantity)}</span></span>
+                            <span className="font-black text-gray-950 dark:text-white">₹{(Number(item.price) * Number(item.qty || item.quantity)).toFixed(2)}</span>
                           </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-between items-center px-4 pt-1">
+                        <span className="text-xs font-bold text-gray-500">Total Bill</span>
+                        <span className="text-base font-black text-gray-950 dark:text-white">₹{Number(viewingOrder.total_amount || 0).toFixed(2)}</span>
+                      </div>
+                    </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Left Column: Order Items */}
-                            <div className="space-y-3">
-                              <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Order Items</h4>
-                              <div className="divide-y divide-[#f6faf7] border border-[#f6faf7] rounded-xl px-4 bg-gray-50/50">
-                                {(order.items || []).map((item: any) => (
-                                  <div key={`${order._id}-${item._id}`} className="py-3 flex justify-between gap-3 text-sm">
-                                    <span className="font-semibold text-gray-700">{(item.product_name || item.name)} <span className="text-xs text-gray-400 font-bold">x {(item.qty || item.quantity)}</span></span>
-                                    <span className="font-black text-gray-950">₹{(Number(item.price) * Number(item.qty || item.quantity)).toFixed(2)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="flex justify-between items-center px-4 pt-1">
-                                <span className="text-xs font-bold text-gray-500">Total Bill</span>
-                                <span className="text-base font-black text-gray-950">₹{Number(order.total_amount || 0).toFixed(2)}</span>
-                              </div>
-                            </div>
-
-                            {/* Right Column: Customer & Delivery Info */}
-                            <div className="space-y-4">
-                              {/* Customer Details */}
-                              <div className="space-y-2">
-                                <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Customer Details</h4>
-                                <div className="space-y-1">
-                                  <p className="text-sm font-black text-gray-800">{customer?.name || 'Walk-in / Online Customer'}</p>
-                                  {customer?.mobile_no && (
-                                    <p className="text-xs text-gray-500 font-semibold flex items-center gap-1.5">
-                                      <span className="text-gray-400">Phone:</span> {customer.mobile_no}
-                                    </p>
-                                  )}
-                                  {customer?.email && (
-                                    <p className="text-xs text-gray-500 font-semibold flex items-center gap-1.5">
-                                      <span className="text-gray-400">Email:</span> {customer.email}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Shipping Address */}
-                              <div className="space-y-2 pt-2 border-t border-[#f6faf7]">
-                                <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Delivery Address</h4>
-                                <p className="text-xs text-gray-600 font-bold leading-relaxed">{getDeliveryAddress(order)}</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {orders.length === 0 && <p className="py-10 text-center text-sm font-bold text-gray-500">No vendor orders yet.</p>}
-                  </>
-                )}
-              </div>
+                    <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-700">
+                      <button 
+                        onClick={() => setViewingOrder(null)} 
+                        className="px-6 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-200 transition text-sm font-bold cursor-pointer"
+                      >Close</button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </section>
-          )}
+          )
+        }
 
           {activeTab === 'customers' && (
             <section className="border border-[#e9f2eb] rounded-3xl bg-white p-5 sm:p-8 animate-fadeIn space-y-6">
@@ -1121,7 +1352,7 @@ export default function VendorDashboardPage() {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left min-w-[600px]">
+                <table className="w-full border-collapse text-left min-w-[650px]">
                   <thead>
                     <tr className="border-b border-[#f6faf7] text-xs font-extrabold uppercase tracking-wider text-gray-400">
                       <th className="py-4">Customer</th>
@@ -1129,6 +1360,7 @@ export default function VendorDashboardPage() {
                       <th className="py-4 text-center">Orders</th>
                       <th className="py-4 text-right">Total Spent</th>
                       <th className="py-4 text-right">Last Purchase</th>
+                      <th className="py-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#f6faf7]">
@@ -1145,6 +1377,7 @@ export default function VendorDashboardPage() {
                           <td className="py-4 text-center"><div className="h-4 bg-gray-200 rounded-md w-8 mx-auto" /></td>
                           <td className="py-4 text-right"><div className="h-4 bg-gray-200 rounded-md w-16 ml-auto" /></td>
                           <td className="py-4 text-right"><div className="h-4 bg-gray-200 rounded-md w-20 ml-auto" /></td>
+                          <td className="py-4 text-right"><div className="h-6 bg-gray-200 rounded-md w-16 ml-auto" /></td>
                         </tr>
                       ))
                     ) : (
@@ -1162,6 +1395,19 @@ export default function VendorDashboardPage() {
                           <td className="py-4 text-right text-xs font-semibold text-gray-500">
                             {new Date(cust.lastOrderDate).toLocaleDateString()}
                           </td>
+                          <td className="py-4 text-right">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!confirm(`"${cust.user.name || 'Walk-in'}" customer को delete करें?`)) return;
+                                await fetch(`/api/users/${cust.user._id}`, { method: 'DELETE' });
+                                loadVendorData();
+                              }}
+                              className="bg-red-50 hover:bg-red-100 text-red-600 font-extrabold text-xs px-3.5 py-1.5 rounded-lg transition cursor-pointer"
+                            >
+                              Delete
+                            </button>
+                          </td>
                         </tr>
                       ))
                     )}
@@ -1175,26 +1421,41 @@ export default function VendorDashboardPage() {
           )}
 
           {activeTab === 'riders' && (
-            <section className="border border-[#e9f2eb] rounded-3xl bg-white p-5 sm:p-8 animate-fadeIn">
+            <section className="border border-[#e9f2eb] rounded-3xl bg-white p-5 sm:p-8 animate-fadeIn space-y-6">
               <div className="flex justify-between items-center mb-5">
                 <h1 className="text-2xl font-black text-gray-900">My Riders</h1>
                 <button
                   type="button"
-                  onClick={() => setShowAddRiderModal(!showAddRiderModal)}
-                  className="bg-[#2bb673] px-4 py-2 text-xs font-extrabold text-white rounded-xl hover:bg-green-600 transition"
+                  onClick={() => {
+                    if (showAddRiderModal) {
+                      setEditingRiderId(null);
+                      setRiderForm({ name: '', email: '', mobile_number: '', password: '', vehicle_type: 'Bike', vehicle_number: '' });
+                    }
+                    setShowAddRiderModal(!showAddRiderModal);
+                  }}
+                  className="bg-[#2bb673] px-4 py-2 text-xs font-extrabold text-white rounded-xl hover:bg-green-600 transition cursor-pointer"
                 >
                   {showAddRiderModal ? 'Close Form' : 'Add Rider'}
                 </button>
               </div>
 
               {showAddRiderModal && (
-                <div className="mb-6 p-6 border border-gray-100 rounded-2xl bg-gray-50 relative">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-4">Register New Rider</h3>
+                <div className="mb-6 p-6 border border-gray-100 rounded-2xl bg-gray-50 relative animate-fadeIn">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-4">
+                    {editingRiderId ? 'Edit Rider Details' : 'Register New Rider'}
+                  </h3>
                   <form onSubmit={addRider} className="grid gap-4 sm:grid-cols-2">
                     <input className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Rider Name" value={riderForm.name} onChange={(e) => setRiderForm({ ...riderForm, name: e.target.value })} required />
                     <input type="email" className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Email Address" value={riderForm.email} onChange={(e) => setRiderForm({ ...riderForm, email: e.target.value })} required />
                     <input className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Mobile Number" value={riderForm.mobile_number} onChange={(e) => setRiderForm({ ...riderForm, mobile_number: e.target.value })} maxLength={10} required />
-                    <input type="password" className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Password" value={riderForm.password} onChange={(e) => setRiderForm({ ...riderForm, password: e.target.value })} required />
+                    <input 
+                      type="password" 
+                      className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" 
+                      placeholder={editingRiderId ? "Password (leave blank to keep current)" : "Password"} 
+                      value={riderForm.password} 
+                      onChange={(e) => setRiderForm({ ...riderForm, password: e.target.value })} 
+                      required={!editingRiderId} 
+                    />
                     
                     <select className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" value={riderForm.vehicle_type} onChange={(e) => setRiderForm({ ...riderForm, vehicle_type: e.target.value })} required>
                       <option value="Bike">Bike</option>
@@ -1206,9 +1467,24 @@ export default function VendorDashboardPage() {
                     
                     <input className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Vehicle Number" value={riderForm.vehicle_number} onChange={(e) => setRiderForm({ ...riderForm, vehicle_number: e.target.value })} required />
                     
-                    <button type="submit" disabled={saving} className="flex h-12 items-center justify-center gap-2 bg-[#2bb673] text-sm font-extrabold text-white rounded-xl hover:bg-green-600 transition disabled:opacity-70 sm:col-span-2">
-                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Register Rider'}
-                    </button>
+                    <div className="flex gap-3 sm:col-span-2">
+                      {editingRiderId && (
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            setEditingRiderId(null);
+                            setRiderForm({ name: '', email: '', mobile_number: '', password: '', vehicle_type: 'Bike', vehicle_number: '' });
+                            setShowAddRiderModal(false);
+                          }}
+                          className="flex-1 h-12 items-center justify-center bg-gray-200 hover:bg-gray-300 text-sm font-extrabold text-gray-700 rounded-xl transition cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                      <button type="submit" disabled={saving} className="flex-1 h-12 items-center justify-center gap-2 bg-[#2bb673] text-sm font-extrabold text-white rounded-xl hover:bg-green-600 transition disabled:opacity-70 cursor-pointer">
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingRiderId ? 'Save Changes' : 'Register Rider')}
+                      </button>
+                    </div>
                   </form>
                 </div>
               )}
@@ -1236,7 +1512,9 @@ export default function VendorDashboardPage() {
                             {rider.is_active === '1' ? 'Online' : 'Offline'}
                           </span>
                         </div>
-                        <div className="flex justify-end sm:justify-start">
+                        <div className="flex gap-2 justify-end sm:justify-start">
+                          <button type="button" onClick={() => setViewingRider(rider)} className="bg-gray-50 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-gray-700 hover:bg-gray-100 transition cursor-pointer">View</button>
+                          <button type="button" onClick={() => editRider(rider)} className="bg-gray-50 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-[#2bb673] hover:bg-[#eaf9f1] transition cursor-pointer">Edit</button>
                           <button type="button" onClick={() => deleteRider(rider._id, rider.name)} className="bg-red-50 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-red-600 hover:bg-red-100 transition cursor-pointer">Delete</button>
                         </div>
                       </div>
@@ -1245,6 +1523,66 @@ export default function VendorDashboardPage() {
                   </>
                 )}
               </div>
+
+              {/* View Rider Details Modal */}
+              {viewingRider && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl max-w-md w-full p-6 space-y-6 animate-fadeIn">
+                    <div className="flex justify-between items-center pb-4 border-b border-gray-100 dark:border-gray-700">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Rider Details</h3>
+                        <p className="text-xs text-gray-500 font-semibold mt-0.5">ID: {viewingRider._id}</p>
+                      </div>
+                      <button 
+                        onClick={() => setViewingRider(null)} 
+                        className="text-gray-400 hover:text-gray-650 dark:hover:text-gray-200 cursor-pointer text-xl"
+                      >✕</button>
+                    </div>
+
+                    <div className="space-y-4 text-sm">
+                      <div className="grid grid-cols-3 gap-2">
+                        <span className="text-gray-400 font-bold uppercase text-xs">Name:</span>
+                        <span className="col-span-2 font-bold text-gray-850 dark:text-gray-200">{viewingRider.name}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <span className="text-gray-400 font-bold uppercase text-xs">Email:</span>
+                        <span className="col-span-2 font-semibold text-gray-600 dark:text-gray-300">{viewingRider.email}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <span className="text-gray-400 font-bold uppercase text-xs">Mobile:</span>
+                        <span className="col-span-2 font-semibold text-gray-600 dark:text-gray-300">{viewingRider.mobile_number}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <span className="text-gray-400 font-bold uppercase text-xs">Vehicle Type:</span>
+                        <span className="col-span-2 font-semibold text-gray-600 dark:text-gray-300">{viewingRider.vehicle_type}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <span className="text-gray-400 font-bold uppercase text-xs">Vehicle No:</span>
+                        <span className="col-span-2 font-mono font-bold text-gray-800 dark:text-gray-200">{viewingRider.vehicle_number}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <span className="text-gray-400 font-bold uppercase text-xs">Status:</span>
+                        <span className="col-span-2">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${viewingRider.is_active === '1' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {viewingRider.is_active === '1' ? 'Online' : 'Offline'}
+                          </span>
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <span className="text-gray-400 font-bold uppercase text-xs">Created At:</span>
+                        <span className="col-span-2 text-gray-600 dark:text-gray-300">{new Date(viewingRider.createdAt || viewingRider.created_at).toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-700">
+                      <button 
+                        onClick={() => setViewingRider(null)} 
+                        className="px-6 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-200 transition text-sm font-bold cursor-pointer"
+                      >Close</button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 

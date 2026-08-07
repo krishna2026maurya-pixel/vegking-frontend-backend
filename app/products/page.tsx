@@ -23,7 +23,7 @@ function ProductsContent() {
         const fetchData = async () => {
             try {
                 setError('');
-                let productUrl = '/api/v1/products?page=1&limit=1000';
+                let productUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/v1/products?page=1&limit=1000`;
                 if (searchQuery) {
                     productUrl += `&search=${encodeURIComponent(searchQuery)}`;
                 }

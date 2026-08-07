@@ -71,3 +71,83 @@ If the customer wants to shop by a specific vendor rather than viewing grouped p
 * **Modify** `app/admin/delivery-boys/page.tsx`
   * Fix broken routes targeting `/api/s/` and `/admin/s/`.
   * Display owner vendor's shop name if the rider belongs to a vendor.
+
+---
+
+## 3. API Reference: Vendor Rider Management
+
+Vendors will manage their riders via a new set of API routes prefixed with `/api/vendor/riders`. These routes will use the NextAuth token to ensure a vendor can only access and modify their own riders.
+
+### 3.1 List Vendor Riders
+**Endpoint:** `GET /api/vendor/riders`
+- **Description:** Returns a list of all riders (`DeliveryBoy` records) where `vendor_id` matches the authenticated vendor's ID.
+- **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "_id": "rider_id_1",
+        "name": "John Doe",
+        "phone": "9876543210",
+        "status": "Active",
+        "vendor_id": "vendor_id_123"
+      }
+    ]
+  }
+  ```
+
+### 3.2 Add a New Rider
+**Endpoint:** `POST /api/vendor/riders`
+- **Description:** Creates a new rider and automatically assigns the authenticated vendor's ID to the `vendor_id` field.
+- **Request Body:**
+  ```json
+  {
+    "name": "John Doe",
+    "phone": "9876543210",
+    "password": "securepassword",
+    "vehicle_details": "MH12AB1234"
+  }
+  ```
+- **Response (201 Created):**
+  ```json
+  {
+    "success": true,
+    "message": "Rider added successfully",
+    "data": { "_id": "rider_id_new", "name": "John Doe" }
+  }
+  ```
+
+### 3.3 Get Specific Rider Details
+**Endpoint:** `GET /api/vendor/riders/[id]`
+- **Description:** Fetches details for a specific rider. Must verify that the rider's `vendor_id` matches the authenticated vendor.
+- **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "data": { /* Rider object */ }
+  }
+  ```
+
+### 3.4 Update Rider Status/Details
+**Endpoint:** `PUT /api/vendor/riders/[id]`
+- **Description:** Updates details (like active status, phone, vehicle) for a specific rider belonging to the vendor.
+- **Request Body:** Any updatable fields (e.g., `status`, `name`, `phone`).
+- **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "message": "Rider updated successfully"
+  }
+  ```
+
+### 3.5 Delete Rider
+**Endpoint:** `DELETE /api/vendor/riders/[id]`
+- **Description:** Removes a rider from the system. (Alternatively, sets them to inactive/deleted state).
+- **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "message": "Rider deleted successfully"
+  }
+  ```
