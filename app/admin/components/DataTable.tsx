@@ -16,6 +16,7 @@ export interface Action<T> {
   icon?: React.ReactNode;
   onClick: (row: T) => void;
   color?: 'primary' | 'danger' | 'success' | 'warning' | 'default';
+  disabled?: (row: T) => boolean;
 }
 
 export interface BulkAction {
@@ -167,22 +168,28 @@ export default function DataTable<T>({
                     {actions.length > 0 && (
                       <td className="px-6 py-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
-                          {actions.map((action, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => action.onClick(row)}
-                              className={clsx(
-                                "p-1.5 rounded-lg transition-colors font-medium text-xs flex items-center gap-1",
-                                action.color === 'danger' ? "text-red-600 hover:bg-red-50" :
-                                action.color === 'success' ? "text-green-600 hover:bg-green-50" :
-                                "text-gray-600 hover:bg-gray-100"
-                              )}
-                              title={action.label}
-                            >
-                              {action.icon}
-                              <span className="hidden xl:inline">{action.label}</span>
-                            </button>
-                          ))}
+                          {actions.map((action, idx) => {
+                            const isDisabled = action.disabled ? action.disabled(row) : false;
+                            return (
+                              <button
+                                key={idx}
+                                onClick={() => !isDisabled && action.onClick(row)}
+                                disabled={isDisabled}
+                                className={clsx(
+                                  "p-1.5 rounded-lg transition-colors font-medium text-xs flex items-center gap-1",
+                                  isDisabled ? "opacity-40 cursor-not-allowed text-gray-400 dark:text-gray-600" : (
+                                    action.color === 'danger' ? "text-red-600 hover:bg-red-50" :
+                                    action.color === 'success' ? "text-green-600 hover:bg-green-50" :
+                                    "text-gray-600 hover:bg-gray-100"
+                                  )
+                                )}
+                                title={isDisabled ? `${action.label} (Disabled)` : action.label}
+                              >
+                                {action.icon}
+                                <span className="hidden xl:inline">{action.label}</span>
+                              </button>
+                            );
+                          })}
                         </div>
                       </td>
                     )}

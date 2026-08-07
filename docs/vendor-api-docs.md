@@ -11,6 +11,9 @@
 1. [Vendor Add Products](#1-vendor-add-products)
 2. [Vendor Categories](#2-vendor-categories)
 3. [Vendors](#3-vendors)
+4. [Vendor Orders](#4-vendor-orders)
+5. [Vendor Riders (Delivery Boys)](#5-vendor-riders-delivery-boys)
+6. [Vendor Customers (Users)](#6-vendor-customers-users)
 
 ---
 
@@ -665,6 +668,388 @@ DELETE /api/vendors/64f1a2b3c4d5e6f7a8b9c0f1
 
 ---
 
+## 4. Vendor Orders
+
+Manage and filter orders placed for products belonging to specific vendors.
+
+**Base Endpoint:** `/api/orders`
+
+---
+
+### 4.1 Get All Orders (Filtered by Role)
+
+Retrieve a list of orders. If authenticated as a vendor, only returns orders containing the vendor's products.
+
+**`GET /api/orders`**
+
+#### Query Parameters
+
+| Parameter | Type   | Required | Default | Description                                            |
+|-----------|--------|----------|---------|--------------------------------------------------------|
+| `page`    | number | No       | `1`     | Page number for pagination                             |
+| `limit`   | number | No       | `10`    | Number of results per page                             |
+| `search`  | string | No       | `""`    | Search by `order_number` or `customer_mobile`           |
+| `status`  | string | No       | `""`    | Filter by order status (e.g. `"Order Placed"`, etc)   |
+
+#### Example Request
+
+```http
+GET /api/orders?page=1&limit=10&status=Packing
+```
+
+#### Success Response — `200 OK`
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "64f1a2b3c4d5e6f7a8b9c0a1",
+      "order_number": "ORD-1786015018058",
+      "user_id": {
+        "_id": "64f1a2b3c4d5e6f7a8b9c0b1",
+        "name": "Amit Patel",
+        "mobile_no": "9876543210"
+      },
+      "total_amount": 350.00,
+      "payment_method": "COD",
+      "payment_status": "pending",
+      "orderStatus": "Packing",
+      "shippingAddress": {
+        "street": "12 Ring Road",
+        "city": "Ahmedabad",
+        "pincode": "380015"
+      },
+      "items": [
+        "64f1a2b3c4d5e6f7a8b9c0c1"
+      ],
+      "createdAt": "2026-08-07T10:00:00.000Z"
+    }
+  ],
+  "meta": {
+    "total": 12,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 2
+  }
+}
+```
+
+---
+
+### 4.2 Create an Order
+
+Create a new order.
+
+**`POST /api/orders`**
+
+#### Request Body
+
+| Field             | Type   | Required | Description                                                         |
+|-------------------|--------|----------|---------------------------------------------------------------------|
+| `items`           | array  | **Yes**  | Array of items containing `productId`, `name`, `quantity`, `price` |
+| `totalAmount`     | number | **Yes**  | Total price of the order                                            |
+| `shippingAddress` | object | **Yes**  | Address object with details                                         |
+
+#### Success Response — `201 Created`
+
+```json
+{
+  "success": true,
+  "_id": "64f1a2b3c4d5e6f7a8b9c0a1",
+  "order_number": "ORD-1786015018058",
+  "data": {
+    "_id": "64f1a2b3c4d5e6f7a8b9c0a1",
+    "order_number": "ORD-1786015018058",
+    "total_amount": 350,
+    "payment_method": "COD",
+    "payment_status": "pending",
+    "items": [
+      "64f1a2b3c4d5e6f7a8b9c0c1"
+    ]
+  }
+}
+```
+
+---
+
+### 4.3 Update Order Status
+
+Update the status of an order (e.g. for vendor status updates).
+
+**`PATCH /api/orders/:id`**
+
+#### Request Body
+
+| Field         | Type   | Required | Description                                             |
+|---------------|--------|----------|---------------------------------------------------------|
+| `orderStatus` | string | **Yes**  | New status (e.g., `"Order Confirmed"`, `"Delivered"`)   |
+| `status`      | number | No       | Legacy status integer (0-5)                             |
+
+#### Success Response — `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "64f1a2b3c4d5e6f7a8b9c0a1",
+    "orderStatus": "Packing",
+    "statusHistory": [
+      {
+        "status": "Packing",
+        "updatedAt": "2026-08-07T11:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 4.4 Delete an Order
+
+Remove an order record from the database.
+
+**`DELETE /api/orders/:id`**
+
+#### Success Response — `200 OK`
+
+```json
+{
+  "success": true
+}
+```
+
+---
+
+## 5. Vendor Riders (Delivery Boys)
+
+Manage delivery boy accounts assigned to the vendor.
+
+**Base Endpoint:** `/api/delivery-boys`
+
+---
+
+### 5.1 Get Vendor Riders
+
+Retrieve all delivery boy accounts, with optional search and vendor filtering.
+
+**`GET /api/delivery-boys`**
+
+#### Query Parameters
+
+| Parameter   | Type   | Required | Description                                     |
+|-------------|--------|----------|-------------------------------------------------|
+| `page`      | number | No       | Page number for pagination                      |
+| `limit`     | number | No       | Results per page                                |
+| `search`    | string | No       | Search by `name` or `mobile_number`             |
+| `vendor_id` | string | No       | Filter by assigning vendor ID                   |
+
+#### Success Response — `200 OK`
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "64f1a2b3c4d5e6f7a8b9c0d5",
+      "name": "Rider Kumar",
+      "email": "rider1@vegimart.com",
+      "mobile_number": "9812345678",
+      "vehicle_type": "Bike",
+      "vehicle_number": "GJ-01-AB-1234",
+      "is_active": "1",
+      "is_verified": "1",
+      "vendor_id": "64f1a2b3c4d5e6f7a8b9c0d0",
+      "createdAt": "2026-08-07T05:00:00.000Z"
+    }
+  ],
+  "meta": {
+    "total": 1,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 1
+  }
+}
+```
+
+---
+
+### 5.2 Register a Rider
+
+Create a new delivery boy account.
+
+**`POST /api/delivery-boys`**
+
+#### Request Body
+
+| Field            | Type   | Required | Description                     |
+|------------------|--------|----------|---------------------------------|
+| `name`           | string | **Yes**  | Delivery boy's name             |
+| `email`          | string | **Yes**  | Login email                     |
+| `mobile_number`  | string | **Yes**  | Contact number                  |
+| `password`       | string | **Yes**  | Login password                  |
+| `vehicle_type`   | string | **Yes**  | e.g. `"Bike"`, `"Scooter"`      |
+| `vehicle_number` | string | **Yes**  | License plate number            |
+| `vendor_id`      | string | **Yes**  | Parent vendor owner ID          |
+
+#### Success Response — `201 Created`
+
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "64f1a2b3c4d5e6f7a8b9c0d5",
+    "name": "Rider Kumar",
+    "email": "rider1@vegimart.com",
+    "mobile_number": "9812345678",
+    "is_active": "1",
+    "is_verified": "1"
+  }
+}
+```
+
+---
+
+### 5.3 Update Rider Details
+
+Modify details of a delivery boy (e.g. updating vehicle info or credentials).
+
+**`PATCH /api/delivery-boys/:id`**
+
+#### Request Body (All fields optional)
+
+| Field            | Type   | Description                         |
+|------------------|--------|-------------------------------------|
+| `name`           | string | Rider name                          |
+| `email`          | string | Login email                         |
+| `mobile_number`  | string | Contact number                      |
+| `password`       | string | New password (if updating)          |
+| `vehicle_type`   | string | Vehicle type                        |
+| `vehicle_number` | string | License plate number                |
+
+#### Success Response — `200 OK`
+
+```json
+{
+  "data": {
+    "_id": "64f1a2b3c4d5e6f7a8b9c0d5",
+    "name": "Rider Kumar (Updated)",
+    "vehicle_type": "Scooter"
+  }
+}
+```
+
+---
+
+### 5.4 Delete a Rider
+
+Permanently delete a delivery boy account.
+
+**`DELETE /api/delivery-boys/:id`**
+
+#### Success Response — `200 OK`
+
+```json
+{
+  "success": true
+}
+```
+
+---
+
+## 6. Vendor Customers (Users)
+
+Manage customers (users) registered on the VeggieMart platform.
+
+**Base Endpoint:** `/api/users`
+
+---
+
+### 6.1 Get Customers List
+
+Retrieve a paginated list of all customers.
+
+**`GET /api/users`**
+
+#### Query Parameters
+
+| Parameter | Type   | Required | Description                        |
+|-----------|--------|----------|------------------------------------|
+| `page`    | number | No       | Page number for pagination         |
+| `limit`   | number | No       | Results per page                   |
+| `search`  | string | No       | Search by `name`, `email`, `mobile_no` |
+
+#### Success Response — `200 OK`
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "64f1a2b3c4d5e6f7a8b9c0b1",
+      "name": "Amit Patel",
+      "email": "amit@example.com",
+      "mobile_no": "9876543210",
+      "wallet_balance": 150.00,
+      "is_active": "1",
+      "createdAt": "2026-08-01T12:00:00.000Z"
+    }
+  ],
+  "meta": {
+    "total": 120,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 12
+  }
+}
+```
+
+---
+
+### 6.2 Update Customer
+
+Modify a customer record.
+
+**`PATCH /api/users/:id`**
+
+#### Request Body
+
+| Field       | Type   | Required | Description                              |
+|-------------|--------|----------|------------------------------------------|
+| `is_active` | string | No       | `"0"` = Suspended, `"1"` = Active        |
+| `name`      | string | No       | Update name                              |
+
+#### Success Response — `200 OK`
+
+```json
+{
+  "data": {
+    "_id": "64f1a2b3c4d5e6f7a8b9c0b1",
+    "name": "Amit Patel",
+    "is_active": "0"
+  }
+}
+```
+
+---
+
+### 6.3 Delete Customer
+
+Delete a customer record.
+
+**`DELETE /api/users/:id`**
+
+#### Success Response — `200 OK`
+
+```json
+{
+  "success": true
+}
+```
+
+---
+
 ## Common Error Responses
 
 | Status Code | Meaning               | Example Response                            |
@@ -691,3 +1076,14 @@ DELETE /api/vendors/64f1a2b3c4d5e6f7a8b9c0f1
 | `POST`   | `/api/vendors`                     | Register a new vendor             |
 | `PATCH`  | `/api/vendors/:id`                 | Update a vendor                   |
 | `DELETE` | `/api/vendors/:id`                 | Delete a vendor                   |
+| `GET`    | `/api/orders`                      | List orders (filtered by Vendor)  |
+| `POST`   | `/api/orders`                      | Create a new order                |
+| `PATCH`  | `/api/orders/:id`                  | Update order status               |
+| `DELETE` | `/api/orders/:id`                  | Delete an order                   |
+| `GET`    | `/api/delivery-boys`               | List delivery riders              |
+| `POST`   | `/api/delivery-boys`               | Register a new delivery rider      |
+| `PATCH`  | `/api/delivery-boys/:id`           | Update delivery rider details     |
+| `DELETE` | `/api/delivery-boys/:id`           | Delete a delivery rider           |
+| `GET`    | `/api/users`                       | List all customers (users)        |
+| `PATCH`  | `/api/users/:id`                   | Update customer details           |
+| `DELETE` | `/api/users/:id`                   | Delete a customer account         |

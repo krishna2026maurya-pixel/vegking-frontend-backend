@@ -489,6 +489,7 @@ export default function VendorDashboardPage() {
     {
       label: 'Change Status',
       icon: <ArrowUpDown size={15} />,
+      disabled: (row) => row.orderStatus === 'Delivered' || row.orderStatus === 'Cancelled',
       onClick: (row) => setOrderStatusModal({ open: true, orderId: row._id, current: row.orderStatus || 'Order Placed' }),
       color: 'success'
     },
