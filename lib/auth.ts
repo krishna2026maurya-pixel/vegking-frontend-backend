@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'vegimart-secure-secret-key-2026';
 
@@ -45,9 +47,17 @@ export function verifyToken(token: string): any | null {
   }
 }
 
-export function getUserIdFromRequest(request: NextRequest): string | null {
+export async function getUserIdFromRequest(request: NextRequest): Promise<string | null> {
   const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    try {
+      const session = await getServerSession(authOptions);
+      if (session?.user?.id) {
+        return session.user.id;
+      }
+    } catch (e) {
+      // Ignore NextAuth retrieval errors
+    }
     if (process.env.NODE_ENV === 'development') {
       return '64c123456789012345678901'; // Dummy user ID for local development
     }
@@ -60,7 +70,7 @@ export function getUserIdFromRequest(request: NextRequest): string | null {
 
 export function authMiddleware(handler: (req: NextRequest, userId: string, params?: any) => Promise<NextResponse>) {
   return async (request: NextRequest, context: any) => {
-    const userId = getUserIdFromRequest(request);
+    const userId = await getUserIdFromRequest(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized. Please login again.' }, { status: 401 });
     }

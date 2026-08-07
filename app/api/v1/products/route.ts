@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     let cart_count   = 0;
     let is_in_cart   = false;
 
-    const userId = getUserIdFromRequest(request);
+    const userId = await getUserIdFromRequest(request);
     if (userId) {
       const [wishlistDoc, cartDoc] = await Promise.all([
         Wishlist.findOne({ user_id: userId, product_id: productId }).lean(),
