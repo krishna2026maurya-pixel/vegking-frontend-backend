@@ -23,7 +23,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
           unit: p.quantity_unit,
         }));
         setCart(mappedProducts);
-        setCartTotal(data.data.pricing.payable_amount || 0);
+        setCartTotal(data.data.pricing.subtotal || 0);
       }
     } catch (e) {
       console.error('Failed to fetch cart', e);

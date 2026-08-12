@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Order from '@/lib/models/Order';
 import OrderItem from '@/lib/models/OrderItem';
-import { emitOrderStatusChanged } from '@/lib/socketClient';
+import { sendOrderStatusNotification } from '@/lib/notifications';
 import '@/lib/models/DeliveryBoy';
 import '@/lib/models/User';
 
@@ -62,15 +62,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     Object.assign(order, updateData);
     await order.save();
 
-    // Emit real-time event to socket server
+    // Trigger step-by-step notifications (DB, Email, and Sockets)
     if (body.orderStatus) {
-      emitOrderStatusChanged({
-        order_id: order._id,
-        order_number: order.order_number,
-        orderStatus: order.orderStatus,
-        status: order.status,
-        updatedBy: body.updatedBy || 'admin',
-      });
+      await sendOrderStatusNotification(order, body.orderStatus);
     }
 
     return NextResponse.json({ success: true, data: order });

@@ -70,3 +70,64 @@ Authentication is handled via JWT. Pass the token in the headers as:
   * **Description:** List all products saved to the user's wishlist.
 * **POST `/api/v1/wishlist`**
   * **Description:** Add or remove a product from the wishlist (toggle action).
+
+---
+
+## 7. Notifications & Firebase Integration
+
+### 7.1 Verify OTP / Login
+Verifies the client OTP or Firebase ID token, returns a JWT session token, and updates the device FCM token/details in the database.
+* **Method**: `POST`
+* **URL**: `/api/v1/auth/verify-otp`
+* **Request Body**:
+  ```json
+  {
+    "mobile_no": "9876543210",
+    "otp": "1234",                                   // Mandatory if not using firebaseToken (Demo mode)
+    "firebaseToken": "eyJhbGciOiJSUzI1NiIs...",      // Optional. Firebase Client SDK Auth ID Token (JWT)
+    "fiberbase_token": "fcm_device_token_xyz...",    // Optional. Firebase FCM push token
+    "device": "Samsung Galaxy S24 Ultra",            // Optional. Device model name
+    "device_type": "android"                         // Optional. Platform: android | ios | web
+  }
+  ```
+
+### 7.2 Get In-App Notifications
+Fetches the active notifications log for the logged-in customer (e.g. order confirmation, shipment alerts, or admin announcements).
+* **Method**: `GET`
+* **URL**: `/api/v1/user/notifications`
+* **Headers**: `Authorization: Bearer <USER_JWT_TOKEN>`
+* **Success Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "_id": "660c1ab2cd98ef1234567890",
+        "userId": "660c1ab2cd98ef...",
+        "title": "Order Confirmed",
+        "message": "Your order #1002 has been accepted and confirmed by the vendor.",
+        "type": "approved",
+        "isRead": false,
+        "createdAt": "2026-08-11T07:15:30.000Z"
+      }
+    ]
+  }
+  ```
+
+### 7.3 Admin FCM Broadcast (Send to All)
+Sends a push notification to all active device tokens (Users, Vendors, and Riders) using FCM multicast and creates in-app database notifications.
+* **Method**: `POST`
+* **URL**: `/api/admin/broadcast-notifications`
+* **Headers**: `Authorization: Bearer <ADMIN_JWT_TOKEN>`
+* **Request Body**:
+  ```json
+  {
+    "title": "Mega Offer on VegKing!",
+    "message": "Flat 20% off on all organic fruits today. Check it out!",
+    "type": "broadcast",
+    "data": {
+      "screen": "offers_page",
+      "click_action": "FLUTTER_NOTIFICATION_CLICK"
+    }
+  }
+  ```

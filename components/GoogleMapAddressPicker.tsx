@@ -82,6 +82,11 @@ export default function MapAddressPicker({ onSelect, onClose, defaultAddress }: 
     (async () => {
       const L = (await import('leaflet')).default;
 
+      // Double-check after async import to prevent React 18 StrictMode / hot-reload race conditions
+      if (!mapContainerRef.current || (mapContainerRef.current as any)._leaflet_id || mapRef.current) {
+        return;
+      }
+
       // Fix default marker icon paths broken by webpack
       // @ts-ignore
       delete L.Icon.Default.prototype._getIconUrl;

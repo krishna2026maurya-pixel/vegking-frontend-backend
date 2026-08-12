@@ -333,7 +333,7 @@ export default function Navbar() {
                   </button>
 
                   {showNotifications && (
-                    <div className="absolute right-0 mt-3 w-80 sm:w-96 border border-gray-100 bg-white shadow-2xl ring-1 ring-black/5 z-50 overflow-hidden animate-fadeIn">
+                    <div className="absolute -right-24 sm:right-0 mt-3 w-80 sm:w-96 border border-gray-100 bg-white shadow-2xl ring-1 ring-black/5 z-50 overflow-hidden animate-fadeIn">
                       <div className="px-5 py-3 border-b border-gray-50 flex items-center justify-between bg-gray-50">
                         <div className="font-extrabold text-gray-900 text-xs flex items-center gap-1">
                           Notifications
@@ -647,11 +647,10 @@ export default function Navbar() {
 
             <Link
               href={isApprovedVendor ? '/vendor/dashboard' : '/partner'}
-              className={`px-4 py-2 text-xs font-extrabold transition-all duration-300 flex items-center gap-1.5 ${
-                pathname === '/partner' || (isApprovedVendor && pathname?.startsWith('/vendor'))
+              className={`px-4 py-2 text-xs font-extrabold transition-all duration-300 flex items-center gap-1.5 ${pathname === '/partner' || (isApprovedVendor && pathname?.startsWith('/vendor'))
                   ? 'bg-primary text-white shadow-md shadow-primary/10'
                   : 'text-gray-600 hover:text-primary hover:bg-gray-50'
-              }`}
+                }`}
             >
               <Store className="w-3.5 h-3.5" strokeWidth={2.2} />
               {isApprovedVendor ? 'Vendor Dashboard' : 'Grow With Us'}
@@ -731,7 +730,7 @@ export default function Navbar() {
                       }`}
                   >
                     <Menu className="h-5 w-5 text-gray-900" />
-                    About Organic Vatika
+                    About VegKing
                   </Link>
 
                   <Link

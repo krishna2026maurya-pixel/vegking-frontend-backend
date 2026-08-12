@@ -109,7 +109,7 @@ export default function VendorDetailProductsPage({ params }: { params: Promise<{
         </div>
 
         {products.length > 0 ? (
-          <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4 md:gap-5">
+          <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:justify-start sm:gap-4 md:gap-5">
             {products.map((product) => (
               <ProductCard key={product._id} product={product} />
             ))}

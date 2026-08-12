@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Loader2, Plus, Edit2, Trash2, MapPin, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MapPicker } from '@/components/ui/map-picker';
 
 interface Address {
   _id?: string;
@@ -194,13 +193,7 @@ export function AddressManager() {
             </div>
           </div>
 
-          <div className="mt-6">
-            <label className="mb-2 block text-sm font-bold text-gray-700">Pin Location on Map</label>
-            <MapPicker 
-              position={{ lat: formData.latitude, lng: formData.longitude }}
-              onPositionChange={(pos) => setFormData({ ...formData, latitude: pos.lat, longitude: pos.lng })}
-            />
-          </div>
+
 
           <div className="flex gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)} className="w-full h-11 font-bold">

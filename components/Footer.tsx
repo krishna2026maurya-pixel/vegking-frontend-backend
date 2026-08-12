@@ -10,6 +10,7 @@ const shopLinks = [
   { href: '/contact', label: 'Contact' },
   { href: '/cart', label: 'Cart' },
   { href: '/login', label: 'Orders' },
+  { href: '/vendor/login', label: 'Vendor Login' },
 ];
 
 const helpLinks = [

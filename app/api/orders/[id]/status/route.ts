@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Order, {
   ORDER_STATUSES,
@@ -8,6 +8,7 @@ import Order, {
 } from '@/lib/models/Order';
 import { adminAuthMiddleware } from '@/lib/adminAuth';
 import mongoose from 'mongoose';
+import { sendOrderStatusNotification } from '@/lib/notifications';
 
 /**
  * PATCH /api/orders/:id/status
@@ -134,6 +135,9 @@ async function updateOrderStatus(
     }
 
     await order.save();
+
+    // Trigger step-by-step notifications (DB, Email, and Sockets)
+    await sendOrderStatusNotification(order, newStatus);
 
     const updatedOrder = await Order.findById(id)
       .populate('items')

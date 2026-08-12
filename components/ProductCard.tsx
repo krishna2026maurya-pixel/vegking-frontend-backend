@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import Link from 'next/link';
+import { Heart, Plus } from 'lucide-react';
 
 const fallbackImage = '/images/product-card-default.jpg';
 
@@ -164,221 +165,308 @@ export default function ProductCard({ product }: { product: any }) {
   };
 
   return (
-    <div style={styles.card}>
-      {/* ── discount ribbon ──────────────────────────────────── */}
-      {pct > 0 && (
-        <div style={styles.ribbon}>{pct}% OFF</div>
-      )}
+    <>
+      {/* Mobile Card View (3-column responsive format) */}
+      <div className="relative bg-white border-0 rounded-2xl overflow-hidden p-1.5 flex flex-col w-full h-full sm:hidden transition-all duration-200 shadow-xs">
+        {/* image wrap */}
+        <div className="relative w-full aspect-square bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center">
+          <Link href={`/product/${product._id}`} className="block w-full h-full">
+            <img
+              src={imgSrc}
+              alt={product.name}
+              className="w-full h-full object-cover"
+              onError={() => setImgSrc(fallbackImage)}
+            />
+          </Link>
 
-      {/* ── product image ────────────────────────────────────── */}
-      <Link href={`/product/${product._id}`} style={{ display: 'block', textDecoration: 'none' }}>
-        <div style={styles.imageWrap}>
-          <img
-            src={imgSrc}
-            alt={product.name}
-            style={styles.image}
-            onError={() => setImgSrc(fallbackImage)}
-          />
-        </div>
-      </Link>
+          {/* Trending badge */}
+          {(product.is_bestseller === '1' || product.is_bestseller === true) && (
+            <div className="absolute top-1 left-1 bg-[#00c853] text-white text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md shadow-xs">
+              TRENDING
+            </div>
+          )}
 
-      {/* ── body ─────────────────────────────────────────────── */}
-      <div style={styles.body}>
-        {/* name */}
-        <Link href={`/product/${product._id}`} style={{ textDecoration: 'none', display: 'block' }}>
-          <h3 style={styles.name}>
-            {(product.name || '').length > 30 ? product.name.slice(0, 30) + '...' : product.name}
-          </h3>
-        </Link>
+          {/* Wishlist Heart Button */}
+          <button className="absolute top-1 right-1 text-gray-400 hover:text-red-500 transition-colors p-0.5 bg-white/65 backdrop-blur-xs rounded-full">
+            <Heart className="w-3.5 h-3.5" />
+          </button>
 
-        {/* quantity dropdown row */}
-        <div style={styles.qtyRow}>
-          <select
-            value={qty}
-            onChange={(e) => setQty(e.target.value)}
-            style={styles.qtySelect}
+          {/* Add to Cart Plus Button */}
+          <button
+            onClick={() => {
+              if (inStock) {
+                addToCart({ ...product, qty, price: yourPrice });
+                setCartClicked(true);
+                setTimeout(() => setCartClicked(false), 200);
+              }
+            }}
+            disabled={!inStock}
+            className={`absolute bottom-1 right-1 w-6.5 h-6.5 rounded-full flex items-center justify-center text-white shadow-md transition-all duration-200 ${
+              inStock 
+                ? cartClicked 
+                  ? 'bg-emerald-800 scale-95' 
+                  : 'bg-[#16a34a] hover:bg-[#15803d]'
+                : 'bg-gray-300 cursor-not-allowed'
+            }`}
           >
-            {options.map((o: any) => (
-              <option key={o} value={o}>{o}</option>
-            ))}
-          </select>
-          <span style={inStock ? styles.greenDot : styles.grayDot} />
-        </div>
-        <div style={inStock ? styles.stockIn : styles.stockOut}>
-          {inStock ? `${stockCount} in stock` : 'Out of stock'}
+            <Plus className="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        {/* price row */}
-        <div style={styles.priceRow}>
-          <span style={styles.yourPrice}>₹{yourPrice}</span>
-          {pct > 0 && <span style={styles.yourPriceBadge}>your price</span>}
-        </div>
-        {mrp !== null && (
-          <div style={styles.mrpRow}>
-            <span style={styles.mrpLabel}>M.R.P </span>
-            <span style={styles.mrp}>₹{mrp}</span>
-            <span style={styles.discountNote}> ({pct}% off)</span>
+        {/* Content Section */}
+        <div className="flex flex-col flex-1 mt-1.5 px-0.5 justify-between">
+          <div>
+            {/* Weight/Unit */}
+            <span className="text-gray-400 text-[10px] font-semibold block">
+              {qty}
+            </span>
+
+            {/* Product Name */}
+            <Link href={`/product/${product._id}`} className="block text-gray-900 font-extrabold text-[11px] tracking-tight leading-tight mt-0.5 line-clamp-2 hover:text-emerald-700 min-h-[28px]">
+              {product.name}
+            </Link>
           </div>
-        )}
 
-        {/* savings pill */}
-        {saving > 0 && <div style={styles.savePill}>Save ₹{saving}</div>}
+          <div>
+            {/* Discount label */}
+            {pct > 0 && (
+              <span className="text-[#00c853] text-[10px] font-bold block mt-0.5">
+                {pct}% OFF
+              </span>
+            )}
 
-        {/* delivery area */}
-        <button style={styles.deliveryLink}>Select delivery area</button>
-
-        {/* divider */}
-        <hr style={styles.divider} />
-
-        {/* add to cart button */}
-        <button
-          onClick={() => {
-            addToCart({ ...product, qty, price: yourPrice });
-            setCartClicked(true);
-            setTimeout(() => setCartClicked(false), 200);
-          }}
-          disabled={!inStock}
-          style={{ 
-            ...styles.subBtn, 
-            ...(!inStock ? styles.disabledSubBtn : {}),
-            ...(cartClicked ? { background: '#14532d', color: '#fff' } : {}) 
-          }}
-          onMouseEnter={(e) => {
-            if (cartClicked) return;
-            e.currentTarget.style.background = '#f4fbf7';
-            e.currentTarget.style.color = '#15803d';
-          }}
-          onMouseLeave={(e) => {
-            if (cartClicked) return;
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = '#16a34a';
-          }}
-        >
-          {inStock ? (cartClicked ? 'Added!' : 'Add to Cart') : 'Out of Stock'}
-        </button>
-
-        {/* subscribe & save button */}
-        <button
-          onClick={() => setIsModalOpen(true)}
-          disabled={!inStock}
-          style={{ ...styles.subBtn, ...(!inStock ? styles.disabledSubBtn : {}) }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#f4fbf7';
-            e.currentTarget.style.color = '#15803d';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = '#16a34a';
-          }}
-        >
-          Subscribe & Save
-        </button>
+            {/* Price section */}
+            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              <span className="text-gray-900 text-xs font-black">
+                ₹{yourPrice}
+              </span>
+              {mrp !== null && pct > 0 && (
+                <span className="text-gray-400 text-[9px] line-through">
+                  ₹{mrp}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Subscription Modal */}
-      {isModalOpen && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalContent}>
-            <button onClick={() => setIsModalOpen(false)} style={styles.modalClose}>×</button>
-            <h3 style={styles.modalTitle}>Wholesale Subscription</h3>
-            <p style={styles.modalSubtitle}>Set up recurring fresh deliveries of {product.name}</p>
-            
-            {/* Product preview */}
-            <div style={styles.modalPreview}>
-              <img src={imgSrc} alt={product.name} style={styles.modalPreviewImg} />
-              <div>
-                <div style={styles.modalPreviewName}>{product.name}</div>
-                <div style={styles.modalPreviewSize}>Pack Size: {qty}</div>
-                <div style={styles.modalPreviewPrice}>₹{yourPrice} / pack</div>
-              </div>
-            </div>
+      {/* Desktop Card View */}
+      <div className="hidden sm:flex flex-col" style={{ ...styles.card, display: undefined, flexDirection: undefined }}>
+        {/* ── discount ribbon ──────────────────────────────────── */}
+        {pct > 0 && (
+          <div style={styles.ribbon}>{pct}% OFF</div>
+        )}
 
-            {/* Quantity */}
-            <div style={styles.modalField}>
-              <label style={styles.modalLabel}>Quantity (Packs)</label>
-              <div style={styles.qtyCounter}>
-                <button onClick={() => setSubQty(q => Math.max(1, q - 1))} style={styles.counterBtn}>-</button>
-                <span style={styles.counterValue}>{subQty}</span>
-                <button onClick={() => setSubQty(q => q + 1)} style={styles.counterBtn}>+</button>
-              </div>
-            </div>
-
-            {/* Frequency Cards */}
-            <div style={styles.modalField}>
-              <label style={styles.modalLabel}>Delivery Frequency</label>
-              <div style={styles.freqContainer}>
-                <div 
-                  onClick={() => setSubFreq('weekly')}
-                  style={{
-                    ...styles.freqCard,
-                    ...(subFreq === 'weekly' ? styles.freqCardActive : {})
-                  }}
-                >
-                  <div style={styles.freqTitle}>Weekly</div>
-                  <div style={styles.freqDiscount}>Save 10% Extra</div>
-                </div>
-                <div 
-                  onClick={() => setSubFreq('monthly')}
-                  style={{
-                    ...styles.freqCard,
-                    ...(subFreq === 'monthly' ? styles.freqCardActive : {})
-                  }}
-                >
-                  <div style={styles.freqTitle}>Monthly</div>
-                  <div style={styles.freqDiscount}>Save 15% Extra</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Preferred Delivery Date */}
-            <div style={styles.modalField}>
-              <label style={styles.modalLabel}>Preferred Delivery Day / Date</label>
-              <select
-                value={deliveryDate}
-                onChange={(e) => setDeliveryDate(e.target.value)}
-                style={styles.modalSelect}
-              >
-                {subFreq === 'weekly' ? (
-                  <>
-                    <option value="Monday">Monday</option>
-                    <option value="Wednesday">Wednesday</option>
-                    <option value="Friday">Friday</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="1st of the month">1st of the month</option>
-                    <option value="10th of the month">10th of the month</option>
-                    <option value="20th of the month">20th of the month</option>
-                  </>
-                )}
-              </select>
-            </div>
-
-            {/* Subscription Summary */}
-            <div style={styles.summaryBox}>
-              <div style={styles.summaryRow}>
-                <span>Base Price ({subQty} x ₹{yourPrice}):</span>
-                <span>₹{yourPrice * subQty}</span>
-              </div>
-              <div style={styles.summaryRow}>
-                <span>Subscription Discount ({subFreq === 'weekly' ? '10%' : '15%'}):</span>
-                <span style={{ color: '#16a34a' }}>-₹{Math.round(yourPrice * subQty * (subFreq === 'weekly' ? 0.1 : 0.15))}</span>
-              </div>
-              <hr style={{ border: 'none', borderTop: '1px dashed #e5e7eb', margin: '8px 0' }} />
-              <div style={{ ...styles.summaryRow, fontWeight: '800', fontSize: '15px' }}>
-                <span>Recurring Price:</span>
-                <span style={{ color: '#16a34a' }}>₹{Math.round(yourPrice * subQty * (subFreq === 'weekly' ? 0.9 : 0.85))}</span>
-              </div>
-            </div>
-
-            {/* Confirm button */}
-            <button onClick={handleSubscribe} style={styles.modalSubmitBtn}>
-              Confirm Subscription
-            </button>
+        {/* ── product image ────────────────────────────────────── */}
+        <Link href={`/product/${product._id}`} style={{ display: 'block', textDecoration: 'none' }}>
+          <div style={styles.imageWrap}>
+            <img
+              src={imgSrc}
+              alt={product.name}
+              style={styles.image}
+              onError={() => setImgSrc(fallbackImage)}
+            />
           </div>
+        </Link>
+
+        {/* ── body ─────────────────────────────────────────────── */}
+        <div style={styles.body}>
+          {/* name */}
+          <Link href={`/product/${product._id}`} style={{ textDecoration: 'none', display: 'block' }}>
+            <h3 style={styles.name}>
+              {(product.name || '').length > 30 ? product.name.slice(0, 30) + '...' : product.name}
+            </h3>
+          </Link>
+
+          {/* quantity dropdown row */}
+          <div style={styles.qtyRow}>
+            <select
+              value={qty}
+              onChange={(e) => setQty(e.target.value)}
+              style={styles.qtySelect}
+            >
+              {options.map((o: any) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+            <span style={inStock ? styles.greenDot : styles.grayDot} />
+          </div>
+          <div style={inStock ? styles.stockIn : styles.stockOut}>
+            {inStock ? `${stockCount} in stock` : 'Out of stock'}
+          </div>
+
+          {/* price row */}
+          <div style={styles.priceRow}>
+            <span style={styles.yourPrice}>₹{yourPrice}</span>
+            {pct > 0 && <span style={styles.yourPriceBadge}>your price</span>}
+          </div>
+          {mrp !== null && (
+            <div style={styles.mrpRow}>
+              <span style={styles.mrpLabel}>M.R.P </span>
+              <span style={styles.mrp}>₹{mrp}</span>
+              <span style={styles.discountNote}> ({pct}% off)</span>
+            </div>
+          )}
+
+          {/* savings pill */}
+          {saving > 0 && <div style={styles.savePill}>Save ₹{saving}</div>}
+
+          {/* delivery area */}
+          <button style={styles.deliveryLink}>Select delivery area</button>
+
+          {/* divider */}
+          <hr style={styles.divider} />
+
+          {/* add to cart button */}
+          <button
+            onClick={() => {
+              addToCart({ ...product, qty, price: yourPrice });
+              setCartClicked(true);
+              setTimeout(() => setCartClicked(false), 200);
+            }}
+            disabled={!inStock}
+            style={{ 
+              ...styles.subBtn, 
+              ...(!inStock ? styles.disabledSubBtn : {}),
+              ...(cartClicked ? { background: '#14532d', color: '#fff' } : {}) 
+            }}
+            onMouseEnter={(e) => {
+              if (cartClicked) return;
+              e.currentTarget.style.background = '#f4fbf7';
+              e.currentTarget.style.color = '#15803d';
+            }}
+            onMouseLeave={(e) => {
+              if (cartClicked) return;
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = '#16a34a';
+            }}
+          >
+            {inStock ? (cartClicked ? 'Added!' : 'Add to Cart') : 'Out of Stock'}
+          </button>
+
+          {/* subscribe & save button */}
+          <button
+            onClick={() => setIsModalOpen(true)}
+            disabled={!inStock}
+            style={{ ...styles.subBtn, ...(!inStock ? styles.disabledSubBtn : {}) }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#f4fbf7';
+              e.currentTarget.style.color = '#15803d';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = '#16a34a';
+            }}
+          >
+            Subscribe & Save
+          </button>
         </div>
-      )}
-    </div>
+
+        {/* Subscription Modal */}
+        {isModalOpen && (
+          <div style={styles.modalOverlay}>
+            <div style={styles.modalContent}>
+              <button onClick={() => setIsModalOpen(false)} style={styles.modalClose}>×</button>
+              <h3 style={styles.modalTitle}>Wholesale Subscription</h3>
+              <p style={styles.modalSubtitle}>Set up recurring fresh deliveries of {product.name}</p>
+              
+              {/* Product preview */}
+              <div style={styles.modalPreview}>
+                <img src={imgSrc} alt={product.name} style={styles.modalPreviewImg} />
+                <div>
+                  <div style={styles.modalPreviewName}>{product.name}</div>
+                  <div style={styles.modalPreviewSize}>Pack Size: {qty}</div>
+                  <div style={styles.modalPreviewPrice}>₹{yourPrice} / pack</div>
+                </div>
+              </div>
+
+              {/* Quantity */}
+              <div style={styles.modalField}>
+                <label style={styles.modalLabel}>Quantity (Packs)</label>
+                <div style={styles.qtyCounter}>
+                  <button onClick={() => setSubQty(q => Math.max(1, q - 1))} style={styles.counterBtn}>-</button>
+                  <span style={styles.counterValue}>{subQty}</span>
+                  <button onClick={() => setSubQty(q => q + 1)} style={styles.counterBtn}>+</button>
+                </div>
+              </div>
+
+              {/* Frequency Cards */}
+              <div style={styles.modalField}>
+                <label style={styles.modalLabel}>Delivery Frequency</label>
+                <div style={styles.freqContainer}>
+                  <div 
+                    onClick={() => setSubFreq('weekly')}
+                    style={{
+                      ...styles.freqCard,
+                      ...(subFreq === 'weekly' ? styles.freqCardActive : {})
+                    }}
+                  >
+                    <div style={styles.freqTitle}>Weekly</div>
+                    <div style={styles.freqDiscount}>Save 10% Extra</div>
+                  </div>
+                  <div 
+                    onClick={() => setSubFreq('monthly')}
+                    style={{
+                      ...styles.freqCard,
+                      ...(subFreq === 'monthly' ? styles.freqCardActive : {})
+                    }}
+                  >
+                    <div style={styles.freqTitle}>Monthly</div>
+                    <div style={styles.freqDiscount}>Save 15% Extra</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Preferred Delivery Date */}
+              <div style={styles.modalField}>
+                <label style={styles.modalLabel}>Preferred Delivery Day / Date</label>
+                <select
+                  value={deliveryDate}
+                  onChange={(e) => setDeliveryDate(e.target.value)}
+                  style={styles.modalSelect}
+                >
+                  {subFreq === 'weekly' ? (
+                    <>
+                      <option value="Monday">Monday</option>
+                      <option value="Wednesday">Wednesday</option>
+                      <option value="Friday">Friday</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="1st of the month">1st of the month</option>
+                      <option value="10th of the month">10th of the month</option>
+                      <option value="20th of the month">20th of the month</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              {/* Subscription Summary */}
+              <div style={styles.summaryBox}>
+                <div style={styles.summaryRow}>
+                  <span>Base Price ({subQty} x ₹{yourPrice}):</span>
+                  <span>₹{yourPrice * subQty}</span>
+                </div>
+                <div style={styles.summaryRow}>
+                  <span>Subscription Discount ({subFreq === 'weekly' ? '10%' : '15%'}):</span>
+                  <span style={{ color: '#16a34a' }}>-₹{Math.round(yourPrice * subQty * (subFreq === 'weekly' ? 0.1 : 0.15))}</span>
+                </div>
+                <hr style={{ border: 'none', borderTop: '1px dashed #e5e7eb', margin: '8px 0' }} />
+                <div style={{ ...styles.summaryRow, fontWeight: '800', fontSize: '15px' }}>
+                  <span>Recurring Price:</span>
+                  <span style={{ color: '#16a34a' }}>₹{Math.round(yourPrice * subQty * (subFreq === 'weekly' ? 0.9 : 0.85))}</span>
+                </div>
+              </div>
+
+              {/* Confirm button */}
+              <button onClick={handleSubscribe} style={styles.modalSubmitBtn}>
+                Confirm Subscription
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 

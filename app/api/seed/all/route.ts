@@ -161,6 +161,7 @@ export async function GET() {
       'Capsicum (Simla Marcha)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937416/vegimart/capsicum_simla_marcha.jpg',
       'Green Peas (Vatana)': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937417/vegimart/green_peas_vatana.jpg',
       'Red / Yellow Capsicum': 'https://res.cloudinary.com/df7gwzlj0/image/upload/v1785937418/vegimart/red_yellow_capsicum.jpg',
+      'Anar (Dadam)': '/images/anar_dadam.png',
     };
 
     const toInsert = SEED_PRODUCTS.map((p) => {

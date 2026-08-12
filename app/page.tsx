@@ -109,7 +109,7 @@ export default function Home() {
   return (
     <div className="w-full flex flex-col">
       {/* Hero Section */}
-      <section className="relative flex h-[400px] items-center overflow-hidden bg-background-secondary text-accent-darker sm:h-[480px] lg:h-[550px] w-full">
+      <section className="relative flex min-h-[460px] h-auto py-12 sm:py-0 sm:h-[480px] lg:h-[550px] items-center overflow-hidden bg-background-secondary text-accent-darker w-full">
         {heroImages.map((src, idx) => (
           <div
             key={idx}
@@ -132,21 +132,21 @@ export default function Home() {
             <span className="mb-4 inline-block tracking-widest uppercase text-xs font-bold text-white/90 border-b-2 border-primary-variant pb-1">
               100% Organic Farm Products
             </span>
-            <h1 className="mb-6 text-4xl font-serif leading-tight text-white sm:text-5xl lg:text-6xl">
+            <h1 className="mb-6 text-3xl font-serif leading-tight text-white sm:text-5xl lg:text-6xl">
               Fresh Harvest for a <br />
               <span className="text-[#a4d4b4]">Healthier Life</span>
             </h1>
-            <p className="mb-8 max-w-lg text-sm text-gray-100 sm:text-base leading-relaxed">
+            <p className="mb-6 max-w-lg text-sm text-gray-100 sm:text-base leading-relaxed">
               From naturally grown vegetables to farm-fresh fruits, bring home wholesome nutrition, authentic taste, and the goodness of chemical-free farming.
             </p>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-3 sm:gap-4">
               <Link
                 href="/products"
-                className="rounded-full bg-primary-variant px-8 py-3.5 text-sm font-bold text-white transition-all hover:bg-primary-hover shadow-md"
+                className="rounded-full bg-primary-variant px-6 py-3 sm:px-8 sm:py-3.5 text-xs sm:text-sm font-bold text-white transition-all hover:bg-primary-hover shadow-md"
               >
                 Shop Now
               </Link>
-              <Link href="/subscriptions" className="rounded-full border border-white/40 bg-white/10 backdrop-blur-sm px-8 py-3.5 text-sm font-bold text-white transition-all hover:bg-white/20">
+              <Link href="/subscriptions" className="rounded-full border border-white/40 bg-white/10 backdrop-blur-sm px-6 py-3 sm:px-8 sm:py-3.5 text-xs sm:text-sm font-bold text-white transition-all hover:bg-white/20">
                 Subscribe Now
               </Link>
             </div>
@@ -269,20 +269,19 @@ export default function Home() {
                   </div>
 
                   {loading ? (
-                    <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4 md:gap-5">
+                    <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:justify-start sm:gap-4 md:gap-5">
                       {Array.from({ length: 4 }).map((_, idx) => (
                         <div
                           key={idx}
-                          className="relative bg-white border border-gray-200 rounded-[12px] overflow-hidden flex flex-col w-[100%] max-w-[220px] animate-pulse"
-                          style={{ height: '350px' }}
+                          className="relative bg-white border-0 sm:border border-gray-200 rounded-[12px] overflow-hidden flex flex-col w-[100%] max-w-[220px] animate-pulse h-[170px] sm:h-[350px]"
                         >
-                          <div className="w-full h-44 bg-gray-100 dark:bg-gray-750"></div>
-                          <div className="p-4 flex-1 flex flex-col justify-between">
-                            <div className="space-y-3">
-                              <div className="h-4 bg-gray-100 dark:bg-gray-750 rounded w-3/4"></div>
-                              <div className="h-3 bg-gray-100 dark:bg-gray-750 rounded w-1/2"></div>
+                          <div className="w-full aspect-square bg-gray-100 dark:bg-gray-750"></div>
+                          <div className="p-2 sm:p-4 flex-1 flex flex-col justify-between">
+                            <div className="space-y-2">
+                              <div className="h-3 bg-gray-100 dark:bg-gray-750 rounded w-3/4"></div>
+                              <div className="h-2.5 bg-gray-100 dark:bg-gray-750 rounded w-1/2"></div>
                             </div>
-                            <div className="space-y-2 mt-4">
+                            <div className="hidden sm:block space-y-2 mt-4">
                               <div className="h-8 bg-gray-100 dark:bg-gray-750 rounded-full w-full"></div>
                               <div className="h-8 bg-gray-100 dark:bg-gray-750 rounded-full w-full"></div>
                             </div>
@@ -291,7 +290,7 @@ export default function Home() {
                       ))}
                     </div>
                   ) : categoryProducts.length > 0 ? (
-                    <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4 md:gap-5">
+                    <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:justify-start sm:gap-4 md:gap-5">
                       {categoryProducts.map((product) => (
                         <ProductCard key={product._id} product={product} />
                       ))}

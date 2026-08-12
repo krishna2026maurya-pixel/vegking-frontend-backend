@@ -7,17 +7,29 @@ import User from '@/lib/models/User';
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user || (session.user as any).role !== 'user') {
+    if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await connectDB();
-    const user = await User.findById((session.user as any).id).select('-password');
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    const role = (session.user as any).role;
+    const userId = (session.user as any).id;
 
-    return NextResponse.json({ user });
+    await connectDB();
+
+    if (role === 'vendor') {
+      const Vendor = (await import('@/lib/models/Vendor')).default;
+      const vendor = await Vendor.findById(userId).select('-password');
+      if (!vendor) {
+        return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });
+      }
+      return NextResponse.json({ user: vendor });
+    } else {
+      const user = await User.findById(userId).select('-password');
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+      return NextResponse.json({ user });
+    }
   } catch (error) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
@@ -26,24 +38,48 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user || (session.user as any).role !== 'user') {
+    if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { name, mobile_no, email } = await req.json();
-    
+    const role = (session.user as any).role;
+    const userId = (session.user as any).id;
+
     await connectDB();
-    const user = await User.findByIdAndUpdate(
-      (session.user as any).id,
-      { $set: { name, mobile_no, email } },
-      { new: true }
-    ).select('-password');
 
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    if (role === 'vendor') {
+      const { full_name, name, mobile_number, mobile_no, email, shop_name } = await req.json();
+      const Vendor = (await import('@/lib/models/Vendor')).default;
+      const vendor = await Vendor.findByIdAndUpdate(
+        userId,
+        { 
+          $set: { 
+            full_name: name || full_name, 
+            mobile_number: mobile_no || mobile_number, 
+            email,
+            shop_name
+          } 
+        },
+        { new: true }
+      ).select('-password');
+      if (!vendor) {
+        return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });
+      }
+      return NextResponse.json({ user: vendor });
+    } else {
+      const { name, mobile_no, email } = await req.json();
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { $set: { name, mobile_no, email } },
+        { new: true }
+      ).select('-password');
+
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+
+      return NextResponse.json({ user });
     }
-
-    return NextResponse.json({ user });
   } catch (error) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }

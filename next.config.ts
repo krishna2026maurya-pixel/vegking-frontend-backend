@@ -19,6 +19,9 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'cdn.pixabay.com',               pathname: '/**' },
       { protocol: 'https', hostname: '*.amazonaws.com',               pathname: '/**' },
       { protocol: 'https', hostname: '*.googleusercontent.com',       pathname: '/**' },
+      { protocol: 'https', hostname: 'www.bbassets.com',              pathname: '/**' },
+      { protocol: 'https', hostname: '*.bbassets.com',                 pathname: '/**' },
+      { protocol: 'https', hostname: 'cdn.shopaccino.com',            pathname: '/**' },
     ],
   },
   async headers() {

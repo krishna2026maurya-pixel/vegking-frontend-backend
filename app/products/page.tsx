@@ -191,9 +191,9 @@ function ProductsContent() {
                 )}
 
                 {loading ? (
-                    <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4 md:gap-5">
+                    <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:justify-start sm:gap-4 md:gap-5">
                         {[...Array(8)].map((_, i) => (
-                            <div key={i} className="h-[310px] w-full max-w-[220px] animate-pulse rounded-xl border border-gray-100 bg-white shadow-sm" />
+                            <div key={i} className="h-[170px] sm:h-[310px] w-full max-w-[220px] animate-pulse rounded-xl border-0 sm:border border-gray-100 bg-white shadow-sm" />
                         ))}
                     </div>
                 ) : error ? (
@@ -201,7 +201,7 @@ function ProductsContent() {
                         {error}
                     </div>
                 ) : (
-                    <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4 md:gap-5">
+                    <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:justify-start sm:gap-4 md:gap-5">
                         {filtered.length > 0 ? (
                             filtered.map(product => (
                                 <ProductCard key={product._id} product={product} />

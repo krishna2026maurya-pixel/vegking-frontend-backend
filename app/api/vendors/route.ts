@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Vendor from '@/lib/models/Vendor';
+import { sendVendorWelcomeEmail } from '@/lib/mail';
 
 export async function GET(request: NextRequest) {
   try {
@@ -73,6 +74,17 @@ export async function POST(request: NextRequest) {
     vendorData.password = await bcrypt.hash(vendorData.password, salt);
 
     const vendor = await Vendor.create(vendorData);
+
+    // Send welcome email (non-blocking)
+    try {
+      await sendVendorWelcomeEmail({
+        full_name: vendor.full_name,
+        shop_name: vendor.shop_name,
+        email: vendor.email
+      });
+    } catch (mailError) {
+      console.error('Failed to send vendor welcome email:', mailError);
+    }
     
     // Return vendor without password
     const result = vendor.toObject ? vendor.toObject() : vendor;

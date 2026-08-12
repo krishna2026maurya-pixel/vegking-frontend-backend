@@ -1,4 +1,4 @@
-# Mobile App Authentication Integration Guide
+<!-- # Mobile App Authentication Integration Guide
 ## Integrating Vendor Sign-In (NextAuth Credentials Provider) with a Mobile Client
 
 This guide explains how to authenticate a mobile client (such as a Flutter app) with the Next.js/NextAuth backend.
@@ -192,4 +192,4 @@ Ensure the app resolves the correct session cookie name depending on the backend
 | Backend Host | Cookie Key Name |
 | :--- | :--- |
 | **Localhost (HTTP)** | `next-auth.session-token` |
-| **Production (HTTPS)** | `__Secure-next-auth.session-token` |
+| **Production (HTTPS)** | `__Secure-next-auth.session-token` | -->
