@@ -330,3 +330,60 @@ Set-Cookie: next-auth.session-token=eyJhbGciOiJkaXIiLCJl...; Path=/; HttpOnly; S
   "url": "http://localhost:3000"
 }
 ```
+
+---
+
+## 6. Notifications & Firebase Integration
+
+### 6.1 Get In-App Notifications
+Fetches the active notifications inbox for the logged-in customer (e.g. order confirmation, shipment alerts, or admin announcements).
+* **Method**: `GET`
+* **URL**: `/api/v1/user/notifications`
+* **Headers**: `Authorization: Bearer <USER_JWT_TOKEN>`
+* **Success Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "_id": "660c1ab2cd98ef1234567890",
+        "userId": "660c1ab2cd98ef...",
+        "title": "Order Confirmed",
+        "message": "Your order #1002 has been accepted and confirmed by the vendor.",
+        "type": "approved",
+        "isRead": false,
+        "createdAt": "2026-08-11T07:15:30.000Z"
+      }
+    ]
+  }
+  ```
+
+---
+
+### 6.2 Admin FCM Broadcast
+Sends a push notification to all active device tokens (Users, Vendors, and Riders) using Firebase FCM multicast and creates in-app database notifications.
+* **Method**: `POST`
+* **URL**: `/api/admin/broadcast-notifications`
+* **Headers**: `Authorization: Bearer <ADMIN_JWT_TOKEN>`
+* **Request Body**:
+  ```json
+  {
+    "title": "Mega Offer on VegKing!",
+    "message": "Flat 20% off on all organic fruits today. Check it out!",
+    "type": "broadcast",
+    "data": {
+      "screen": "offers_page",
+      "click_action": "FLUTTER_NOTIFICATION_CLICK"
+    }
+  }
+  ```
+* **Success Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "message": "Successfully broadcasted message to 12 devices.",
+    "successCount": 12,
+    "failureCount": 0
+  }
+  ```
+
