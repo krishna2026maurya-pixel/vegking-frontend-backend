@@ -117,3 +117,84 @@ export async function sendVendorWelcomeEmail(vendor: {
     html,
   });
 }
+
+export async function sendWelcomeEmail(vendorName: string, email: string) {
+  // Validate email address before attempting to send
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailRegex.test(email)) {
+    console.error(`[Email Error] Failed validation. Invalid vendor email address: "${email}"`);
+    throw new Error(`Invalid email address: ${email}`);
+  }
+
+  const subject = "Welcome to Vegimart – Vendor Registration Successful";
+  
+  const text = `Hello ${vendorName},
+
+Welcome to VegKing! 🎉
+
+Your vendor account has been successfully created.
+
+You can now log in to your vendor dashboard and:
+• Add and manage your products
+• Manage customer orders
+• Update order status
+• View your sales and account information
+
+Thank you for joining Vegimart. We look forward to growing together!
+
+Best Regards,
+VegKing Team`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background-color: #fcfdfc;">
+      <div style="text-align: center; border-bottom: 2px solid #10b981; padding-bottom: 10px; margin-bottom: 20px;">
+        <h2 style="color: #065f46; margin: 0;">VegKing Partner Network</h2>
+        <p style="color: #10b981; font-size: 14px; margin: 5px 0 0 0;">Freshness Delivered Daily</p>
+      </div>
+      
+      <p style="font-size: 16px; color: #1f2937;">Hello <strong>${vendorName}</strong>,</p>
+      
+      <p style="font-size: 15px; color: #4b5563; line-height: 1.6;">
+        Welcome to VegKing! 🎉
+      </p>
+      
+      <p style="font-size: 15px; color: #4b5563; line-height: 1.6;">
+        Your vendor account has been successfully created.
+      </p>
+      
+      <div style="background-color: #f4fbf7; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 0 0 10px 0; color: #065f46; font-weight: bold; font-size: 14px;">You can now log in to your vendor dashboard and:</p>
+        <ul style="color: #4b5563; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
+          <li>Add and manage your products</li>
+          <li>Manage customer orders</li>
+          <li>Update order status</li>
+          <li>View your sales and account information</li>
+        </ul>
+      </div>
+
+      <p style="font-size: 15px; color: #4b5563; line-height: 1.6;">
+        Thank you for joining Vegimart. We look forward to growing together!
+      </p>
+      
+      <p style="font-size: 15px; color: #4b5563; line-height: 1.6; margin-top: 25px; margin-bottom: 0;">
+        Best Regards,<br>
+        <strong>VegKing Team</strong>
+      </p>
+    </div>
+  `;
+
+  try {
+    const result = await sendMail({
+      to: email,
+      subject,
+      text,
+      html,
+    });
+    console.log(`[Email Success] Welcome email successfully sent to ${email} (Status/ID: ${result.messageId || result.message})`);
+    return result;
+  } catch (error: any) {
+    console.error(`[Email Failure] Failed to send welcome email to ${email}. Error:`, error);
+    throw error;
+  }
+}
+

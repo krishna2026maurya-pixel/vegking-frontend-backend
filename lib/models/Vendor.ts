@@ -31,6 +31,7 @@ const VendorSchema = new Schema({
   handling_charge: Number,
   gst_certificate: String,
   pan_card: String,
+  welcome_email_sent: { type: Boolean, default: false },
 }, { timestamps: true });
 
 export default models.Vendor || model('Vendor', VendorSchema);
