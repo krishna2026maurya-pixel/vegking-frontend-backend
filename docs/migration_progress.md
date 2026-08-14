@@ -28,4 +28,4 @@
 - **Phase 4**: Continue migrating secondary consumer-facing pages (`/products`, `/cart`, `/checkout`, `/about`).
   - **Checkout Page (`app/checkout/page.tsx`)**: Migrated to Next.js App Router and TypeScript. Replaced vanilla Tailwind classes with `<Button>` from the UI components. Mocked session data for UI development before actual API implementation.
 - Refactor the massive Home page into smaller atomic sub-components (`HeroSection.tsx`, `FeaturedProducts.tsx`, etc.).
-- **Phase 5**: Migrate the `veggiemart/backend` Node.js logic into Next.js App Router API endpoints within `vegimart_general`. This will replace the dummy data with real database connections and genuine authentication.
+- **Phase 5**: Migrate the `vegking/backend` Node.js logic into Next.js App Router API endpoints within `vegking_general`. This will replace the dummy data with real database connections and genuine authentication.

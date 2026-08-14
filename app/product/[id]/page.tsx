@@ -142,9 +142,9 @@ export default function ProductDetailPage() {
         createdAt: new Date().toISOString()
       };
       
-      const existing = JSON.parse(localStorage.getItem('veggiemart_subscriptions') || '[]');
+      const existing = JSON.parse(localStorage.getItem('vegking_subscriptions') || '[]');
       existing.push(newSubscription);
-      localStorage.setItem('veggiemart_subscriptions', JSON.stringify(existing));
+      localStorage.setItem('vegking_subscriptions', JSON.stringify(existing));
       
       alert(`${data.message || `Successfully subscribed to ${product.name}!`} Wallet charged: Rs. ${Number(data.chargedAmount || newSubscription.price).toFixed(2)}.`);
       setIsModalOpen(false);

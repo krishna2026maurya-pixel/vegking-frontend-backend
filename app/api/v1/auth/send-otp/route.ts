@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     // const otp = '1234';
     
     // In production, integrate SMS gateway here (MSG91, Fast2SMS, etc.)
-    // await sendSMS(mobile_no, `Your VegiMart OTP is: ${otp}`);
+    // await sendSMS(mobile_no, `Your VegKing OTP is: ${otp}`);
     
     return NextResponse.json({
       message: 'OTP sent successfully.',

@@ -47,7 +47,7 @@ import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 
 class ApiService {
-  final String baseUrl = 'https://vegimart-backend.vercel.app'; // Or localhost
+  final String baseUrl = 'https://vegking-backend.vercel.app'; // Or localhost
   late Dio dio;
   late CookieJar cookieJar;
 
@@ -121,7 +121,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ManualApiService {
-  final String baseUrl = 'https://vegimart-backend.vercel.app';
+  final String baseUrl = 'https://vegking-backend.vercel.app';
   String? _sessionToken;
 
   // Helper to extract cookies from response headers

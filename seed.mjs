@@ -47,7 +47,7 @@ const daysAgo = (n) => new Date(today - n * 86400000);
 // ─────────────────────────────────────────────────────────────────────────────
 const vendors = Array.from({ length: 20 }, (_, i) => ({
   full_name: indianNames[i % indianNames.length],
-  email: `vendor${i + 1}@vegimart.com`,
+  email: `vendor${i + 1}@vegking.com`,
   mobile_number: `98${randInt(10000000, 99999999)}`,
   shop_name: shopNames[i % shopNames.length] + (i >= shopNames.length ? ` ${Math.floor(i / shopNames.length) + 1}` : ''),
   city: rand(cities),
@@ -322,7 +322,7 @@ console.log(`✅ ${products.length} Products inserted`);
 // ─────────────────────────────────────────────────────────────────────────────
 // 6. USERS (15)
 // ─────────────────────────────────────────────────────────────────────────────
-const JWT_SECRET = 'vegimart-secure-secret-key-2026';
+const JWT_SECRET = 'vegking-secure-secret-key-2026';
 const defaultHashedPassword = crypto.createHmac('sha256', JWT_SECRET).update('123456').digest('hex');
 
 const users = Array.from({ length: 14 }, (_, i) => ({
@@ -341,7 +341,7 @@ users.push({
   name: 'Krishna Kumar',
   mobile_no: '9999999999',
   mobile_number: '9999999999',
-  email: 'krishna@vegimart.com',
+  email: 'krishna@vegking.com',
   city: 'Mumbai',
   wallet_balance: 1000,
   password: defaultHashedPassword,
@@ -393,7 +393,7 @@ console.log(`✅ ${addresses.length} Addresses inserted`);
 const deliveryBoys = Array.from({ length: 10 }, (_, i) => ({
   name: `Delivery ${indianNames[i]}`,
   mobile_number: `96${randInt(10000000, 99999999)}`,
-  email: `delivery${i + 1}@vegimart.com`,
+  email: `delivery${i + 1}@vegking.com`,
   vehicle_type: rand(vehicleTypes),
   vehicle_number: `MH${randInt(10, 99)}-${String.fromCharCode(65 + randInt(0, 25))}${String.fromCharCode(65 + randInt(0, 25))}-${randInt(1000, 9999)}`,
   is_verified: rand(['1', '1', '0']),

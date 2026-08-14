@@ -11,6 +11,6 @@ const MONGODB_URI = envVars.MONGODB_URI;
 
 await mongoose.connect(MONGODB_URI);
 const db = mongoose.connection.db;
-const vendor = await db.collection('vendors').findOne({ email: 'vendor11@vegimart.com' });
+const vendor = await db.collection('vendors').findOne({ email: 'vendor11@vegking.com' });
 console.log('Vendor:', vendor);
 process.exit(0);

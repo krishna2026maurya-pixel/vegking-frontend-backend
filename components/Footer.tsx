@@ -90,7 +90,7 @@ export default function Footer() {
               </p>
               <p className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-green-300 shrink-0" />
-                hello@veggiemart.local
+                hello@vegking.local
               </p>
               <p className="flex items-center gap-3">
                 <MapPin className="h-4 w-4 text-green-300 shrink-0" />

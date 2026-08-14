@@ -189,7 +189,7 @@ export default function AdminClientShell({ children, sessionUser }: AdminClientS
           </div>
           <div className="ml-3 min-w-0">
             <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">{sessionUser?.name || 'Admin User'}</p>
-            <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 truncate mt-0.5">{sessionUser?.email || 'admin@vegimart.com'}</p>
+            <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 truncate mt-0.5">{sessionUser?.email || 'admin@vegking.com'}</p>
           </div>
         </div>
         <button 

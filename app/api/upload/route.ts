@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
       const uploadResult = await new Promise((resolve, reject) => {
         cloudinary.uploader.upload_stream(
-          { folder: 'vegimart_products' },
+          { folder: 'vegking_products' },
           (error, result) => {
             if (error) reject(error);
             else resolve(result);

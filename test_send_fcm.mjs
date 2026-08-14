@@ -60,7 +60,7 @@ if (!fcmToken) {
 const message = {
   token: fcmToken,
   notification: {
-    title: 'VegMart Test Notification',
+    title: 'VegKing Test Notification',
     body: 'If you see this message, FCM is connected and working perfectly! 🎉',
   },
   data: {

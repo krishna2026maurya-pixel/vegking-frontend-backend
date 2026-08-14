@@ -13,7 +13,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const sessionUser = {
     name: session.user.name || 'Admin User',
-    email: session.user.email || 'admin@vegimart.com',
+    email: session.user.email || 'admin@vegking.com',
     image: session.user.image || null,
   };
 

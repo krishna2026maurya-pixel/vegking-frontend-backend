@@ -33,7 +33,7 @@ const STATUS_MESSAGES: Record<string, StatusMessage> = {
   },
   'Delivered': {
     title: 'Order Delivered',
-    message: 'Your order has been delivered successfully. Thank you for shopping with VegMart!',
+    message: 'Your order has been delivered successfully. Thank you for shopping with VegKing!',
     type: 'approved'
   },
   'Cancelled': {
@@ -81,11 +81,11 @@ export async function sendOrderStatusNotification(order: any, newStatus: string)
     }
 
     if (user && user.email) {
-      const subject = `VegMart Order #${order.order_number}: ${statusConfig.title}`;
+      const subject = `VegKing Order #${order.order_number}: ${statusConfig.title}`;
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background-color: #fcfdfc;">
           <div style="text-align: center; border-bottom: 2px solid #16a34a; padding-bottom: 10px; margin-bottom: 20px;">
-            <h2 style="color: #1e3b2b; margin: 0;">VegMart Order Status Update</h2>
+            <h2 style="color: #1e3b2b; margin: 0;">VegKing Order Status Update</h2>
             <p style="color: #16a34a; font-size: 14px; margin: 5px 0 0 0;">Freshness Delivered Daily</p>
           </div>
           <p style="font-size: 16px; color: #1f2937;">Dear <strong>${user.name || 'Customer'}</strong>,</p>
@@ -110,10 +110,10 @@ export async function sendOrderStatusNotification(order: any, newStatus: string)
             </table>
           </div>
           <p style="font-size: 14px; color: #4b5563; line-height: 1.6; margin-top: 25px;">
-            To track your order details, please log in to your account at <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/profile/orders" style="color: #16a34a; text-decoration: none; font-weight: bold;">VegMart Orders</a>.
+            To track your order details, please log in to your account at <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/profile/orders" style="color: #16a34a; text-decoration: none; font-weight: bold;">VegKing Orders</a>.
           </p>
           <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px; font-size: 13px; color: #9ca3af; text-align: center;">
-            <p style="margin: 0;">VegMart Inc. &bull; Fresh & Healthy Partners</p>
+            <p style="margin: 0;">VegKing Inc. &bull; Fresh & Healthy Partners</p>
             <p style="margin: 5px 0 0 0;">This is an automated notification. Please do not reply directly to this message.</p>
           </div>
         </div>

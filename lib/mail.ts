@@ -12,7 +12,7 @@ export async function sendMail({ to, subject, text, html }: SendMailOptions) {
   const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 587;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM || '"VegMart Support" <noreply@vegimart.com>';
+  const from = process.env.SMTP_FROM || '"VegKing Support" <noreply@vegking.com>';
 
   if (!host || !user || !pass) {
     console.log('====== MOCK EMAIL SENT ======');
@@ -57,19 +57,19 @@ export async function sendVendorWelcomeEmail(vendor: {
   shop_name: string;
   email: string;
 }) {
-  const subject = `Welcome to VegMart, ${vendor.full_name}!`;
+  const subject = `Welcome to VegKing, ${vendor.full_name}!`;
   
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background-color: #fcfdfc;">
       <div style="text-align: center; border-bottom: 2px solid #16a34a; padding-bottom: 10px; margin-bottom: 20px;">
-        <h2 style="color: #1e3b2b; margin: 0;">VegMart Partner Network</h2>
+        <h2 style="color: #1e3b2b; margin: 0;">VegKing Partner Network</h2>
         <p style="color: #16a34a; font-size: 14px; margin: 5px 0 0 0;">Freshness Delivered Daily</p>
       </div>
       
       <p style="font-size: 16px; color: #1f2937;">Dear <strong>${vendor.full_name}</strong>,</p>
       
       <p style="font-size: 15px; color: #4b5563; line-height: 1.6;">
-        Welcome to VegMart! We are absolutely thrilled to partner with <strong>${vendor.shop_name}</strong> to bring fresh, premium quality produce to our growing customer network.
+        Welcome to VegKing! We are absolutely thrilled to partner with <strong>${vendor.shop_name}</strong> to bring fresh, premium quality produce to our growing customer network.
       </p>
       
       <div style="background-color: #f4fbf7; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0; border-radius: 4px;">
@@ -98,17 +98,17 @@ export async function sendVendorWelcomeEmail(vendor: {
       </ol>
 
       <p style="font-size: 14px; color: #4b5563; line-height: 1.6; margin-top: 25px;">
-        If you have any questions or need assistance setting up your store profile, please reach out to our dedicated support team at <a href="mailto:support@vegimart.com" style="color: #16a34a; text-decoration: none;">support@vegimart.com</a>.
+        If you have any questions or need assistance setting up your store profile, please reach out to our dedicated support team at <a href="mailto:support@vegking.com" style="color: #16a34a; text-decoration: none;">support@vegking.com</a>.
       </p>
 
       <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px; font-size: 13px; color: #9ca3af; text-align: center;">
-        <p style="margin: 0;">VegMart Inc. &bull; Fresh & Healthy Partners</p>
+        <p style="margin: 0;">VegKing Inc. &bull; Fresh & Healthy Partners</p>
         <p style="margin: 5px 0 0 0;">This is an automated welcome email. Please do not reply directly to this message.</p>
       </div>
     </div>
   `;
 
-  const text = `Dear ${vendor.full_name},\n\nWelcome to VegMart! We are thrilled to partner with ${vendor.shop_name} to bring premium quality produce to our network.\n\nYour login email is: ${vendor.email}\n\nOur admin team is currently reviewing your documents. Once verified, you will be able to log in at ${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/vendor/login and manage your store.\n\nWarm regards,\nVegMart Partner Network Team`;
+  const text = `Dear ${vendor.full_name},\n\nWelcome to VegKing! We are thrilled to partner with ${vendor.shop_name} to bring premium quality produce to our network.\n\nYour login email is: ${vendor.email}\n\nOur admin team is currently reviewing your documents. Once verified, you will be able to log in at ${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/vendor/login and manage your store.\n\nWarm regards,\nVegKing Partner Network Team`;
 
   return sendMail({
     to: vendor.email,

@@ -62,7 +62,7 @@ export const authOptions: AuthOptions = {
         const password = credentials?.password;
 
         if (
-          (email === 'admin@veggiemart.com' || email === 'admin@vegimart.com') && 
+          (email === 'admin@vegking.com' || email === 'admin@vegking.com') && 
           password === 'admin123'
         ) {
           return {

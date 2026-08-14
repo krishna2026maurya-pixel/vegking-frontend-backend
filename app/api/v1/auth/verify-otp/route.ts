@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const token = signToken({ id: user._id, mobile_no: user.mobile_no });
     
     return NextResponse.json({
-      message: isNewUser ? 'Registration successful. Welcome to VegiMart!' : 'Login successful. Welcome back!',
+      message: isNewUser ? 'Registration successful. Welcome to VegKing!' : 'Login successful. Welcome back!',
       is_new_user: isNewUser,
       token,
       user: {

@@ -11,7 +11,7 @@ The Admin Portal allows you to manage categories, category types, products, ride
 * **Login URL**: [http://localhost:3000/admin-login](http://localhost:3000/admin-login)
 * **Dashboard URL**: [http://localhost:3000/admin](http://localhost:3000/admin) (accessible after logging in)
 * **Credentials**:
-  * **Email**: `admin@veggiemart.com` (or `admin@vegimart.com`)
+  * **Email**: `admin@vegking.com` (or `admin@vegking.com`)
   * **Password**: `admin123`
 
 > [!IMPORTANT]
@@ -26,11 +26,11 @@ The Vendor Portal is designed for merchants to edit shop settings, configure del
 * **Register URL**: [http://localhost:3000/vendor/register](http://localhost:3000/vendor/register)
 * **Login URL**: [http://localhost:3000/vendor/login](http://localhost:3000/vendor/login)
 * **Pre-seeded Verified Vendor Credentials**:
-  * **Email**: `vendor1@vegimart.com` (you can use any number up to `vendor20@vegimart.com`)
+  * **Email**: `vendor1@vegking.com` (you can use any number up to `vendor20@vegking.com`)
   * **Password**: `123456`
 * **How to test new Vendor Registration**:
   1. Go to the **Register URL** and fill out the multi-step account registration, business profile, and upload the dummy document credentials.
-  2. Log in to the **Admin Portal** (using `admin@veggiemart.com` / `admin123`).
+  2. Log in to the **Admin Portal** (using `admin@vegking.com` / `admin123`).
   3. Go to the **Vendors** list page and verify/approve your newly registered vendor.
   4. Go back to the **Login URL** and log in using the email and password you registered.
 

@@ -22,6 +22,8 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'www.bbassets.com',              pathname: '/**' },
       { protocol: 'https', hostname: '*.bbassets.com',                 pathname: '/**' },
       { protocol: 'https', hostname: 'cdn.shopaccino.com',            pathname: '/**' },
+      { protocol: 'https', hostname: 'img.magnific.com',              pathname: '/**' },
+      { protocol: 'https', hostname: '*.magnific.com',                pathname: '/**' },
     ],
   },
   async headers() {

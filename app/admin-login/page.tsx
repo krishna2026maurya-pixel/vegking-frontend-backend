@@ -63,7 +63,7 @@ export default function AdminLoginPage() {
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Email Address</label>
             <Input
               type="email"
-              placeholder="admin@veggiemart.com"
+              placeholder="admin@vegking.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               icon={<Mail className="text-gray-400" />}

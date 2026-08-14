@@ -16,7 +16,7 @@ Authenticates a vendor via NextAuth, which sets the session cookie.
 * **Request Body**:
   ```json
   {
-    "email": "vendor1@vegimart.com",
+    "email": "vendor1@vegking.com",
     "password": "123456",
     "csrfToken": "e7fc192736f253a237d1555182e1f21a4f93445152d6e259be53b34be063fc60",
     "json": "true"
@@ -296,7 +296,7 @@ Rider submits the customer's 4-digit verification code to complete delivery.
 
 ## 5. Testing Credentials Sign-in with `curl`
 
-To authenticate `vendor1@vegimart.com` (password `123456`) from a terminal shell, use the following sequence of commands. NextAuth requires capturing cookies and forwarding the CSRF token.
+To authenticate `vendor1@vegking.com` (password `123456`) from a terminal shell, use the following sequence of commands. NextAuth requires capturing cookies and forwarding the CSRF token.
 
 ### Step 1: Request CSRF Token
 Fetch the CSRF token and save the response cookies to `cookies.txt`:
@@ -312,7 +312,7 @@ curl -i -X POST \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
-    "email": "vendor1@vegimart.com",
+    "email": "vendor1@vegking.com",
     "password": "123456",
     "csrfToken": "YOUR_TOKEN_HERE",
     "json": "true"

@@ -1,4 +1,4 @@
-# VeggieMart Vendor API Documentation
+# VegKing Vendor API Documentation
 
 > **Base URL:** `https://your-domain.com/api`  
 > **Content-Type:** `application/json`  
@@ -854,7 +854,7 @@ Retrieve all delivery boy accounts, with optional search and vendor filtering.
     {
       "_id": "64f1a2b3c4d5e6f7a8b9c0d5",
       "name": "Rider Kumar",
-      "email": "rider1@vegimart.com",
+      "email": "rider1@vegking.com",
       "mobile_number": "9812345678",
       "vehicle_type": "Bike",
       "vehicle_number": "GJ-01-AB-1234",
@@ -901,7 +901,7 @@ Create a new delivery boy account.
   "data": {
     "_id": "64f1a2b3c4d5e6f7a8b9c0d5",
     "name": "Rider Kumar",
-    "email": "rider1@vegimart.com",
+    "email": "rider1@vegking.com",
     "mobile_number": "9812345678",
     "is_active": "1",
     "is_verified": "1"
@@ -960,7 +960,7 @@ Permanently delete a delivery boy account.
 
 ## 6. Vendor Customers (Users)
 
-Manage customers (users) registered on the VeggieMart platform.
+Manage customers (users) registered on the VegKing platform.
 
 **Base Endpoint:** `/api/users`
 

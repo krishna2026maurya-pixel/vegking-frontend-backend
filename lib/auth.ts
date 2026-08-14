@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'vegimart-secure-secret-key-2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'vegking-secure-secret-key-2026';
 
 export function hashPassword(password: string): string {
   return crypto.createHmac('sha256', JWT_SECRET).update(password).digest('hex');

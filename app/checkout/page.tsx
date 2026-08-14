@@ -118,7 +118,7 @@ export default function CheckoutPage() {
                     key: paymentData.keyId,
                     amount: paymentData.amount,
                     currency: paymentData.currency,
-                    name: 'VeggieMart',
+                    name: 'VegKing',
                     description: 'Order Payment',
                     order_id: paymentData.razorpayOrderId,
                     handler: async (response: any) => {

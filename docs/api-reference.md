@@ -1,4 +1,4 @@
-# VeggieMart API Reference
+# VegKing API Reference
 
 > **Base URL:** `/api`  
 > **Format:** All requests and responses use `application/json`.  
@@ -407,7 +407,7 @@ Permanently delete a vendor category by its ID.
 
 **Base Path:** `/api/vendors`
 
-Manages vendor accounts on the VeggieMart platform.
+Manages vendor accounts on the VegKing platform.
 
 ---
 
@@ -822,4 +822,4 @@ All endpoints return a consistent error structure:
 
 ---
 
-*Generated on 2026-07-30 · VeggieMart Backend*
+*Generated on 2026-07-30 · VegKing Backend*
