@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { useAuth } from '@/context/AuthContext';
 
 import { MapPin, CreditCard, ShoppingBag, Loader2, CheckCircle2, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,9 +26,7 @@ export default function CheckoutPage() {
     const [showMapPicker, setShowMapPicker] = useState(false);
     const router = useRouter();
 
-    // Mocking session for now until next-auth is fully added
-    const session = { user: { role: 'user', name: 'Test User', email: 'user@gmail.com' } };
-    const status: string = 'authenticated';
+    const { data: session, status } = useAuth();
 
     useEffect(() => {
         if (status === 'loading') return;

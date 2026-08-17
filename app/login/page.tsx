@@ -64,7 +64,10 @@ export default function LoginPage() {
       if (res?.error) {
         setError(res.error);
       } else {
-        router.push('/cart');
+        const callbackUrl = typeof window !== 'undefined'
+          ? (new URLSearchParams(window.location.search).get('callbackUrl') || '/cart')
+          : '/cart';
+        router.push(callbackUrl);
       }
     } catch (err: any) {
       setError('Something went wrong. Please try again.');

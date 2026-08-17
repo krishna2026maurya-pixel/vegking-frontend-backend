@@ -58,7 +58,7 @@ export async function sendVendorWelcomeEmail(vendor: {
   email: string;
 }) {
   const subject = `Welcome to VegKing, ${vendor.full_name}!`;
-  
+
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background-color: #fcfdfc;">
       <div style="text-align: center; border-bottom: 2px solid #16a34a; padding-bottom: 10px; margin-bottom: 20px;">
@@ -126,8 +126,8 @@ export async function sendWelcomeEmail(vendorName: string, email: string) {
     throw new Error(`Invalid email address: ${email}`);
   }
 
-  const subject = "Welcome to Vegimart – Vendor Registration Successful";
-  
+  const subject = "Welcome to VegKing – Vendor Registration Successful";
+
   const text = `Hello ${vendorName},
 
 Welcome to VegKing! 🎉
@@ -140,7 +140,7 @@ You can now log in to your vendor dashboard and:
 • Update order status
 • View your sales and account information
 
-Thank you for joining Vegimart. We look forward to growing together!
+Thank you for joining VegKing. We look forward to growing together!
 
 Best Regards,
 VegKing Team`;
@@ -196,5 +196,63 @@ VegKing Team`;
     console.error(`[Email Failure] Failed to send welcome email to ${email}. Error:`, error);
     throw error;
   }
+}
+
+export async function sendUserWelcomeEmail(user: { name: string; email: string }) {
+  const subject = `Welcome to Organic Vatika, ${user.name}!`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background-color: #fcfdfc;">
+      <div style="text-align: center; border-bottom: 2px solid #16a34a; padding-bottom: 10px; margin-bottom: 20px;">
+        <h2 style="color: #1e3b2b; margin: 0;">Organic Vatika</h2>
+        <p style="color: #16a34a; font-size: 14px; margin: 5px 0 0 0;">Fresh & Healthy Produce Delivered Daily</p>
+      </div>
+      
+      <p style="font-size: 16px; color: #1f2937;">Dear <strong>${user.name}</strong>,</p>
+      
+      <p style="font-size: 15px; color: #4b5563; line-height: 1.6;">
+        Welcome to Organic Vatika! We are thrilled to have you join our community. Our mission is to deliver fresh, premium quality vegetables and fruits straight from the farm to your kitchen.
+      </p>
+      
+      <div style="background-color: #f4fbf7; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <h4 style="margin: 0 0 10px 0; color: #1e3b2b;">Your Account Details:</h4>
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <tr>
+            <td style="padding: 4px 0; color: #6b7280; font-weight: bold; width: 120px;">Name:</td>
+            <td style="padding: 4px 0; color: #1f2937;">${user.name}</td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; color: #6b7280; font-weight: bold;">Registered Email:</td>
+            <td style="padding: 4px 0; color: #1f2937;">${user.email}</td>
+          </tr>
+        </table>
+      </div>
+
+      <h4 style="color: #1e3b2b; margin-top: 25px;">Ready to shop? Here is what you can do next:</h4>
+      <ul style="color: #4b5563; font-size: 14px; line-height: 1.8; padding-left: 20px;">
+        <li><strong>Browse Products</strong>: Explore our wide range of fresh vegetables, exotic greens, and organic fruits.</li>
+        <li><strong>Easy Ordering</strong>: Add items to your cart and checkout quickly.</li>
+        <li><strong>Fast Delivery</strong>: Get your groceries delivered straight to your door.</li>
+      </ul>
+
+      <p style="font-size: 14px; color: #4b5563; line-height: 1.6; margin-top: 25px;">
+        If you have any questions or need assistance, feel free to contact our support team at <a href="mailto:support@organicvatika.com" style="color: #16a34a; text-decoration: none;">support@organicvatika.com</a>.
+      </p>
+
+      <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px; font-size: 13px; color: #9ca3af; text-align: center;">
+        <p style="margin: 0;">Organic Vatika &bull; Freshness you can trust</p>
+        <p style="margin: 5px 0 0 0;">This is an automated welcome email. Please do not reply directly to this message.</p>
+      </div>
+    </div>
+  `;
+
+  const text = `Dear ${user.name},\n\nWelcome to VegKing!\n\nYour account has been successfully created with the email: ${user.email}.\n\nStart shopping for fresh and healthy produce today at VegKing.\n\nWarm regards,\nVegKing Team`;
+
+  return sendMail({
+    to: user.email,
+    subject,
+    text,
+    html,
+  });
 }
 

@@ -27,7 +27,7 @@ The Vendor Portal is designed for merchants to edit shop settings, configure del
 * **Login URL**: [http://localhost:3000/vendor/login](http://localhost:3000/vendor/login)
 * **Pre-seeded Verified Vendor Credentials**:
   * **Email**: `vendor1@vegking.com` (you can use any number up to `vendor20@vegking.com`)
-  * **Password**: `123456`
+  * **Password**: `password123`
 * **How to test new Vendor Registration**:
   1. Go to the **Register URL** and fill out the multi-step account registration, business profile, and upload the dummy document credentials.
   2. Log in to the **Admin Portal** (using `admin@vegking.com` / `admin123`).

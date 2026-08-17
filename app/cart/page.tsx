@@ -4,9 +4,11 @@ import { useCart } from '@/context/CartContext';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function CartPage() {
   const { cart, removeFromCart, updateQuantity, cartTotal } = useCart();
+  const { status } = useAuth();
 
   if (cart.length === 0) {
     return (
@@ -119,7 +121,7 @@ export default function CartPage() {
           </div>
 
           <Link
-            href="/checkout"
+            href={status === 'unauthenticated' ? '/login?callbackUrl=/checkout' : '/checkout'}
             className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-green-100 flex items-center justify-center gap-2 group"
           >
             Checkout

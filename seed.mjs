@@ -4,6 +4,7 @@
 import mongoose from 'mongoose';
 import { readFileSync } from 'fs';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 // Load .env.local manually
 const envContent = readFileSync('.env.local', 'utf8');
@@ -45,9 +46,12 @@ const daysAgo = (n) => new Date(today - n * 86400000);
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. VENDORS (20)
 // ─────────────────────────────────────────────────────────────────────────────
+const vendorPasswordHash = await bcrypt.hash('password123', 10);
+
 const vendors = Array.from({ length: 20 }, (_, i) => ({
   full_name: indianNames[i % indianNames.length],
   email: `vendor${i + 1}@vegking.com`,
+  password: vendorPasswordHash,
   mobile_number: `98${randInt(10000000, 99999999)}`,
   shop_name: shopNames[i % shopNames.length] + (i >= shopNames.length ? ` ${Math.floor(i / shopNames.length) + 1}` : ''),
   city: rand(cities),
@@ -68,8 +72,8 @@ const vendorIds = Object.values(insertedVendors.insertedIds);
 // ─────────────────────────────────────────────────────────────────────────────
 const categoryTypeList = [
   { name: 'Fresh Vegetables', slug: 'fresh-vegetables', image: 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=400&auto=format&fit=crop&q=80', sort_order: 1 },
-  { name: 'Fresh Fruits', slug: 'fresh-fruits', image: 'https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=400&auto=format&fit=crop&q=80', sort_order: 2 },
-  { name: 'Dairy Products', slug: 'dairy-products', image: 'https://images.unsplash.com/photo-1596797038530-2c107229654b?w=400&auto=format&fit=crop&q=80', sort_order: 3 },
+  { name: 'Fresh Fruits', slug: 'fresh-fruits', image: '/images/categories/fruits.jpg', sort_order: 2 },
+  { name: 'Dairy Products', slug: 'dairy-products', image: '/images/categories/dairy.jpg', sort_order: 3 },
   { name: 'Organic & Herbs', slug: 'organic-herbs', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&auto=format&fit=crop&q=80', sort_order: 4 },
 ];
 const categoryTypes = categoryTypeList.map(ct => ({ ...ct, is_active: '1', created_at: daysAgo(randInt(30, 300)).toISOString() }));
@@ -102,11 +106,11 @@ const categoryImageMap = {
   'Exotic Vegetables': 'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=400&auto=format&fit=crop&q=80',
   'Leafy Greens': 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&auto=format&fit=crop&q=80',
   'Root Vegetables': 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&auto=format&fit=crop&q=80',
-  'Fruits': 'https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=400&auto=format&fit=crop&q=80',
-  'Dairy & Eggs': 'https://images.unsplash.com/photo-1596797038530-2c107229654b?w=400&auto=format&fit=crop&q=80',
-  'Herbs & Spices': 'https://images.unsplash.com/photo-1596003906949-67221c37965c?w=400&auto=format&fit=crop&q=80',
+  'Fruits': '/images/categories/fruits.jpg',
+  'Dairy & Eggs': '/images/categories/dairy.jpg',
+  'Herbs & Spices': '/images/categories/herbs.jpg',
   'Organic Daals': 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&auto=format&fit=crop&q=80',
-  'Seeds': 'https://images.unsplash.com/photo-1502741126161-b048400d085d?w=400&auto=format&fit=crop&q=80'
+  'Seeds': '/images/categories/seeds.jpg'
 };
 
 const categoryToTypeMap = {
@@ -394,6 +398,7 @@ const deliveryBoys = Array.from({ length: 10 }, (_, i) => ({
   name: `Delivery ${indianNames[i]}`,
   mobile_number: `96${randInt(10000000, 99999999)}`,
   email: `delivery${i + 1}@vegking.com`,
+  password: 'password123',
   vehicle_type: rand(vehicleTypes),
   vehicle_number: `MH${randInt(10, 99)}-${String.fromCharCode(65 + randInt(0, 25))}${String.fromCharCode(65 + randInt(0, 25))}-${randInt(1000, 9999)}`,
   is_verified: rand(['1', '1', '0']),

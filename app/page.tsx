@@ -25,11 +25,11 @@ const categoryImageMap: Record<string, string> = {
   'Exotic Vegetables': 'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=400&auto=format&fit=crop&q=80',
   'Leafy Greens': 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&auto=format&fit=crop&q=80',
   'Root Vegetables': 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&auto=format&fit=crop&q=80',
-  'Fruits': 'https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=400&auto=format&fit=crop&q=80',
-  'Dairy & Eggs': 'https://images.unsplash.com/photo-1596797038530-2c107229654b?w=400&auto=format&fit=crop&q=80',
-  'Herbs & Spices': 'https://images.unsplash.com/photo-1596003906949-67221c37965c?w=400&auto=format&fit=crop&q=80',
+  'Fruits': '/images/categories/fruits.jpg',
+  'Dairy & Eggs': '/images/categories/dairy.jpg',
+  'Herbs & Spices': '/images/categories/herbs.jpg',
   'Organic Daals': 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&auto=format&fit=crop&q=80',
-  'Seeds': 'https://images.unsplash.com/photo-1502741126161-b048400d085d?w=400&auto=format&fit=crop&q=80'
+  'Seeds': '/images/categories/seeds.jpg'
 };
 
 // Dummy fallback categories and products if API fails
