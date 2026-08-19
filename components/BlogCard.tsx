@@ -3,7 +3,7 @@ import Link from 'next/link';
 export default function BlogCard({ blog }: { blog: any }) {
   return (
     <Link href={`/blog/${blog.id}`} className="block group">
-      <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm transition-all group-hover:shadow-md">
+      <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm transition-all group-hover:shadow-md fade-in">
         <div className="aspect-[16/10] overflow-hidden">
           <img src={blog.image} alt={blog.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         </div>

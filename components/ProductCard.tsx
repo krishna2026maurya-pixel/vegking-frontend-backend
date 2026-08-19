@@ -167,7 +167,7 @@ export default function ProductCard({ product }: { product: any }) {
   return (
     <>
       {/* Mobile Card View (3-column responsive format) */}
-      <div className="relative bg-white border-0 rounded-2xl overflow-hidden p-1.5 flex flex-col w-full h-full sm:hidden transition-all duration-200 shadow-xs">
+      <div className="relative bg-white border-0 rounded-2xl overflow-hidden p-1.5 flex flex-col w-full h-full sm:hidden transition-all duration-200 shadow-xs fade-in">
         {/* image wrap */}
         <div className="relative w-full aspect-square bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center">
           <Link href={`/product/${product._id}`} className="block w-full h-full">
@@ -251,7 +251,7 @@ export default function ProductCard({ product }: { product: any }) {
       </div>
 
       {/* Desktop Card View */}
-      <div className="hidden sm:flex flex-col" style={{ ...styles.card, display: undefined, flexDirection: undefined }}>
+      <div className="hidden sm:flex flex-col fade-in" style={{ ...styles.card, display: undefined, flexDirection: undefined }}>
         {/* ── discount ribbon ──────────────────────────────────── */}
         {pct > 0 && (
           <div style={styles.ribbon}>{pct}% OFF</div>

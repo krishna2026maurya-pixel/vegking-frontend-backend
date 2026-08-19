@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, Fragment } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
 import { Search } from 'lucide-react';
@@ -192,8 +192,55 @@ function ProductsContent() {
 
                 {loading ? (
                     <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:justify-start sm:gap-4 md:gap-5">
-                        {[...Array(8)].map((_, i) => (
-                            <div key={i} className="h-[170px] sm:h-[310px] w-full max-w-[220px] animate-pulse rounded-xl border-0 sm:border border-gray-100 bg-white shadow-sm" />
+                        {Array.from({ length: 12 }).map((_, idx) => (
+                            <Fragment key={idx}>
+                                {/* Mobile Skeleton */}
+                                <div className="relative bg-white border-0 rounded-2xl overflow-hidden p-1.5 flex flex-col w-full h-[180px] sm:hidden animate-pulse shadow-xs">
+                                    <div className="w-full aspect-square bg-gray-100 rounded-xl"></div>
+                                    <div className="flex flex-col flex-1 mt-1.5 px-0.5 justify-between">
+                                        <div className="space-y-1 mt-0.5">
+                                            <div className="h-2 bg-gray-100 rounded w-1/3"></div>
+                                            <div className="h-3 bg-gray-100 rounded w-full"></div>
+                                        </div>
+                                        <div className="space-y-1 mt-2">
+                                            <div className="h-2.5 bg-gray-100 rounded w-1/4"></div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="h-3.5 bg-gray-100 rounded w-1/2"></div>
+                                                <div className="h-2.5 bg-gray-100 rounded w-1/3"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Desktop Skeleton */}
+                                <div className="hidden sm:flex flex-col relative bg-white border border-gray-200 rounded-[8px] overflow-hidden w-full sm:w-[220px] animate-pulse">
+                                    <div className="w-full h-[150px] bg-gray-100"></div>
+                                    <div className="flex flex-col p-[8px_12px_0] gap-[5px]">
+                                        <div className="h-4 bg-gray-100 rounded w-3/4 mt-1"></div>
+                                        <div className="flex items-center gap-2 mt-[2px]">
+                                            <div className="h-[26px] bg-gray-100 rounded flex-1"></div>
+                                            <div className="h-[12px] w-[12px] bg-gray-100 rounded-full shrink-0"></div>
+                                        </div>
+                                        <div className="h-3 bg-gray-100 rounded w-1/2 mt-1"></div>
+                                        
+                                        <div className="flex items-center gap-[6px] mt-[2px]">
+                                            <div className="h-[20px] bg-gray-100 rounded w-[45%]"></div>
+                                            <div className="h-[14px] bg-gray-100 rounded w-[30%]"></div>
+                                        </div>
+                                        
+                                        <div className="h-[14px] bg-gray-100 rounded w-[70%]"></div>
+                                        
+                                        <div className="h-[19px] bg-gray-100 rounded-[20px] w-[60px] border border-gray-50 mt-[1px]"></div>
+                                        
+                                        <div className="h-[14px] bg-gray-100 rounded w-[50%] mt-[1px]"></div>
+                                        
+                                        <div className="border-t border-gray-50 mt-[4px]"></div>
+                                        
+                                        <div className="h-[37px] bg-gray-100 w-[calc(100%+24px)] -ml-[12px]"></div>
+                                        <div className="h-[36px] bg-gray-100 w-[calc(100%+24px)] -ml-[12px] border-t border-white"></div>
+                                    </div>
+                                </div>
+                            </Fragment>
                         ))}
                     </div>
                 ) : error ? (

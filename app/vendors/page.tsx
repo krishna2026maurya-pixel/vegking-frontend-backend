@@ -64,8 +64,12 @@ export default function VendorsPage() {
               className="group flex flex-col justify-between border border-gray-100 rounded-3xl bg-white p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:border-green-200"
             >
               <div className="space-y-4">
-                <div className="flex h-14 w-14 items-center justify-center bg-green-50 text-green-700 rounded-2xl group-hover:bg-green-600 group-hover:text-white transition-colors duration-300">
-                  <Store className="h-6 w-6" />
+                <div className="flex h-14 w-14 items-center justify-center bg-green-50 text-green-700 rounded-2xl group-hover:bg-green-600 group-hover:text-white transition-colors duration-300 overflow-hidden">
+                  {vendor.shop_image ? (
+                    <img src={vendor.shop_image} alt={vendor.shop_name} className="h-full w-full object-cover" />
+                  ) : (
+                    <Store className="h-6 w-6" />
+                  )}
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-gray-900 group-hover:text-green-700 transition-colors">

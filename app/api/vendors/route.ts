@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     const [vendors, total] = await Promise.all([
       Vendor.find(query)
-        .select('full_name email mobile_number shop_name city is_verified is_bestseller wallet_balance created_at')
+        .select('full_name email mobile_number shop_name city is_verified is_bestseller wallet_balance created_at shop_image')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
       mobile_number: body.phone || body.mobile_number || '',
       password: body.password,
       shop_name: body.businessName || body.shop_name || '',
+      shop_image: body.shopImage || body.shop_image || '',
       address: body.address || '',
       gst_number: body.gstNumber || body.gst_number || '',
       pan_number: body.panNumber || body.pan_number || '',

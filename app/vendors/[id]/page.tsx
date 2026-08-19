@@ -69,8 +69,12 @@ export default function VendorDetailProductsPage({ params }: { params: Promise<{
         {/* Vendor Header Profile Card */}
         <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm flex flex-col md:flex-row md:items-center gap-6 justify-between">
           <div className="flex items-center gap-5">
-            <div className="h-16 w-16 bg-green-50 text-green-700 rounded-3xl flex items-center justify-center shrink-0">
-              <Store className="h-8 w-8" />
+            <div className="h-16 w-16 bg-green-50 text-green-700 rounded-3xl flex items-center justify-center shrink-0 overflow-hidden">
+              {vendor.shop_image ? (
+                <img src={vendor.shop_image} alt={vendor.shop_name} className="h-full w-full object-cover" />
+              ) : (
+                <Store className="h-8 w-8" />
+              )}
             </div>
             <div>
               <h1 className="text-3xl font-serif text-[#1e3b2b] font-bold">{vendor.shop_name}</h1>

@@ -249,6 +249,7 @@ export default function VendorDashboardPage() {
         phone: profileData.mobile_number || '',
         gstNumber: profileData.gst_number || '',
         address: profileData.address || '',
+        shopImage: profileData.shop_image || '',
         gstVerified: !!profileData.gst_number,
         panDetails: 'ABCDE1234F',
         fssaiLicense: '23321008000142',
@@ -694,6 +695,31 @@ export default function VendorDashboardPage() {
     }
   };
 
+  const handleProfileImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSaving(true);
+    try {
+      const data = new FormData();
+      data.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: data });
+      const json = await res.json();
+      if (res.ok && json.success && json.urls?.[0]) {
+        setProfile({ ...profile, shopImage: json.urls[0] });
+      } else {
+        const reader = new FileReader();
+        reader.onloadend = () => setProfile({ ...profile, shopImage: reader.result as string });
+        reader.readAsDataURL(file);
+      }
+    } catch (err) {
+      const reader = new FileReader();
+      reader.onloadend = () => setProfile({ ...profile, shopImage: reader.result as string });
+      reader.readAsDataURL(file);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const saveProfile = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!session?.user?.id) return;
@@ -710,6 +736,7 @@ export default function VendorDashboardPage() {
           mobile_number: profile.phone,
           gst_number: profile.gstNumber,
           address: profile.address,
+          shop_image: profile.shopImage,
         }),
       });
 
@@ -1806,6 +1833,20 @@ export default function VendorDashboardPage() {
                 <div className="space-y-1 sm:col-span-2">
                   <label className="text-xs font-bold text-gray-500">Warehouse Address</label>
                   <textarea className="min-h-24 border border-gray-200 rounded-xl bg-gray-50 p-4 text-sm font-semibold outline-none focus:border-[#2bb673] w-full" value={profile.address || ''} onChange={(e) => setProfile({ ...profile, address: e.target.value })} />
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-xs font-bold text-gray-500">Shop Image</label>
+                  <div className="flex items-center gap-4">
+                    {profile.shopImage && (
+                      <div className="h-16 w-16 relative rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                        <img src={profile.shopImage} alt="Shop" className="absolute inset-0 w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <label className="flex h-12 items-center justify-center border border-gray-200 border-dashed rounded-xl bg-gray-50 px-4 text-sm font-semibold cursor-pointer hover:bg-gray-100 transition text-gray-500 flex-1">
+                      <input type="file" accept="image/*" className="hidden" onChange={handleProfileImageUpload} disabled={saving} />
+                      {profile.shopImage ? 'Change Image' : 'Upload Shop Image'}
+                    </label>
+                  </div>
                 </div>
                 
                 <button type="submit" disabled={saving} className="flex h-12 items-center rounded-xl justify-center gap-2 bg-[#2bb673] text-sm font-extrabold text-white disabled:opacity-70 sm:col-span-2 hover:bg-green-600 transition">

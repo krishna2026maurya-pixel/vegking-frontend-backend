@@ -23,7 +23,7 @@ const helpLinks = [
 export default function Footer() {
   const pathname = usePathname();
 
-  if (pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname === '/login' || pathname === '/signup') {
+  if (pathname?.startsWith('/admin') || pathname === '/login' || pathname === '/signup') {
     return null;
   }
 

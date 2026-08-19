@@ -177,7 +177,7 @@ export default function CheckoutPage() {
                 <div className="p-8 bg-white rounded-3xl shadow-xl shadow-primary/10 text-center border border-gray-100 animate-in zoom-in duration-500">
                     <CheckCircle2 className="mx-auto mb-4 text-green-600 w-16 h-16" />
                     <h2 className="text-2xl font-black mb-2 text-gray-950">Order Placed Successfully!</h2>
-                    {orderId && <p className="mb-4 text-sm font-medium text-gray-500">Your order ID: <span className="font-bold text-gray-900">{orderId}</span></p>}
+                    {orderId && <p className="mb-4 text-sm font-medium text-gray-500">Your order ID: <span className="font-bold text-gray-900">{orderId.toUpperCase()}</span></p>}
                     <Button
                         onClick={() => router.push('/profile/orders')}
                         className="mt-4"

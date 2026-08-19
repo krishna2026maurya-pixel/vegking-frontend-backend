@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     await order.save();
 
     return NextResponse.json(
-      { success: true, _id: order._id.toString(), order_number, data: order },
+      { success: true, _id: order._id.toString().toUpperCase(), order_number, data: order },
       { status: 201 }
     );
   } catch (error: any) {

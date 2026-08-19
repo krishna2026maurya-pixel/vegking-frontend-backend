@@ -34,7 +34,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-gray-50">
         <Providers>
           <Navbar />
-          <main className="w-full flex-1 flex flex-col">
+          <main className="w-full flex-1 flex flex-col fade-in">
             {children}
           </main>
           <Footer />

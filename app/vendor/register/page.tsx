@@ -22,6 +22,7 @@ const initialForm = {
   panCard: '',
   aadharFront: '',
   aadharBack: '',
+  shopImage: '',
   password: '',
   confirmPassword: '',
 };
@@ -454,6 +455,7 @@ export default function VendorRegisterPage() {
                   <FileUploadField label="GST Certificate" field="gstCertificate" />
                   <FileUploadField label="Aadhar Card (Front)" field="aadharFront" />
                   <FileUploadField label="Aadhar Card (Back)" field="aadharBack" />
+                  <FileUploadField label="Shop Image" field="shopImage" />
                 </div>
               </div>
             )}

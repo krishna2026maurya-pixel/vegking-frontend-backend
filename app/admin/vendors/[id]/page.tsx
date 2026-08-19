@@ -30,6 +30,7 @@ interface Vendor {
   wallet_balance: number;
   is_verified: string;
   is_bestseller: string;
+  shop_image?: string;
 }
 
 export default function VendorDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -143,7 +144,13 @@ export default function VendorDetailsPage({ params }: { params: Promise<{ id: st
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4">
           <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-            <Store className="text-green-600" size={20} />
+            <div className="h-10 w-10 shrink-0 rounded-full overflow-hidden flex items-center justify-center bg-green-50 text-green-600">
+              {vendor.shop_image ? (
+                <img src={vendor.shop_image} alt={vendor.shop_name} className="h-full w-full object-cover" />
+              ) : (
+                <Store size={20} />
+              )}
+            </div>
             <div>
               <p className="text-xs text-gray-500 uppercase font-semibold">Shop Name</p>
               <p className="text-sm font-medium">{vendor.shop_name}</p>
