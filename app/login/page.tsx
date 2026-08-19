@@ -178,7 +178,7 @@ export default function LoginPage() {
               ) : (
                 <form onSubmit={handleLogin} className="mt-4 space-y-3">
                   <div className="text-xs font-medium text-green-600 bg-green-50 p-2 border border-green-100 rounded-md">
-                    OTP sent successfully (Dummy: 1234)
+                    OTP sent successfully
                   </div>
                   <Input
                     type="text"
