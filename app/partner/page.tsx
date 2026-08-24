@@ -3,16 +3,16 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { 
-  ArrowRight, 
-  CheckCircle2, 
-  TrendingUp, 
-  ShieldCheck, 
-  Users, 
-  DollarSign, 
-  Store, 
-  ChevronDown, 
-  ChevronUp, 
+import {
+  ArrowRight,
+  CheckCircle2,
+  TrendingUp,
+  ShieldCheck,
+  Users,
+  DollarSign,
+  Store,
+  ChevronDown,
+  ChevronUp,
   Award,
   Sparkles,
   Percent,
@@ -38,7 +38,7 @@ export default function PartnerPage() {
   // Profit Calculator State
   const [sales, setSales] = useState<number>(150000);
   const [category, setCategory] = useState<keyof typeof CATEGORY_DATA>("vegetables");
-  
+
   // Accordion State
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
@@ -90,12 +90,12 @@ export default function PartnerPage() {
               <Sparkles className="h-3.5 w-3.5" />
               Harvest Alliance Program
             </div>
-            
+
             <h1 className="text-4xl sm:text-6xl font-black text-white leading-[1.1] tracking-tight">
               Sow the Seeds of <br />
               <span className="text-[#a3e635]">Your Digital Growth</span>
             </h1>
-            
+
             <p className="mt-6 text-lg sm:text-xl font-medium text-white/90 leading-relaxed max-w-2xl">
               Connect your farm, dairy, or shop directly to thousands of local families. Bypass middlemen, maximize your margins, and deliver freshness.
             </p>
@@ -119,21 +119,21 @@ export default function PartnerPage() {
 
             {/* Quick stats badges */}
             <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-white/10 pt-10">
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 p-4 rounded-xl">
-                <span className="block text-2xl font-black text-[#a3e635]">15k+</span>
-                <span className="text-xs text-white/70 font-semibold uppercase tracking-wider">Active Customers</span>
+              <div className="bg-white/5 backdrop-blur-lg border border-white/10 p-4 rounded-xl">
+                <span className="block text-2xl font-black text-green-800">15k+</span>
+                <span className="text-xs text-white/100 font-semibold uppercase tracking-wider">Active Customers</span>
+              </div>
+              <div className="bg-white/5 backdrop-blur-lg border border-white/10 p-4 rounded-xl">
+                <span className="block text-2xl font-black text-green-800">30%+</span>
+                <span className="text-xs text-white/100 font-semibold uppercase tracking-wider">Higher Margins</span>
               </div>
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 p-4 rounded-xl">
-                <span className="block text-2xl font-black text-[#a3e635]">30%+</span>
-                <span className="text-xs text-white/70 font-semibold uppercase tracking-wider">Higher Margins</span>
+                <span className="block text-2xl font-black text-green-800">24-Hour</span>
+                <span className="text-xs text-white/100 font-semibold uppercase tracking-wider">Onboarding</span>
               </div>
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 p-4 rounded-xl">
-                <span className="block text-2xl font-black text-[#a3e635]">24-Hour</span>
-                <span className="text-xs text-white/70 font-semibold uppercase tracking-wider">Onboarding</span>
-              </div>
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 p-4 rounded-xl">
-                <span className="block text-2xl font-black text-[#a3e635]">Weekly</span>
-                <span className="text-xs text-white/70 font-semibold uppercase tracking-wider">Direct Payouts</span>
+                <span className="block text-2xl font-black text-green-800">Weekly</span>
+                <span className="text-xs text-white/100 font-semibold uppercase tracking-wider">Direct Payouts</span>
               </div>
             </div>
           </div>
@@ -154,7 +154,7 @@ export default function PartnerPage() {
 
         <div className="grid gap-8 md:grid-cols-3">
           {/* Card 1 */}
-          <div className="bg-white border border-gray-100 p-8 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 relative group">
+          <div className="bg-white border border-gray-100 p-8 rounded-2xl relative group">
             <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-[#16a34a] mb-6">
               <DollarSign className="w-6 h-6" />
             </div>
@@ -165,7 +165,7 @@ export default function PartnerPage() {
           </div>
 
           {/* Card 2 */}
-          <div className="bg-white border border-gray-100 p-8 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 relative group">
+          <div className="bg-white border border-gray-100 p-8 rounded-2xl relative group">
             <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-[#16a34a] mb-6">
               <Users className="w-6 h-6" />
             </div>
@@ -176,7 +176,7 @@ export default function PartnerPage() {
           </div>
 
           {/* Card 3 */}
-          <div className="bg-white border border-gray-100 p-8 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 relative group">
+          <div className="bg-white border border-gray-100 p-8 rounded-2xl relative group">
             <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-[#16a34a] mb-6">
               <ShieldCheck className="w-6 h-6" />
             </div>
@@ -192,7 +192,7 @@ export default function PartnerPage() {
       <section className="bg-gradient-to-br from-[#073c2a] to-[#1e3b2b] text-white py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-16 lg:grid-cols-2 items-center">
-            
+
             <div>
               <div className="inline-flex items-center gap-2 border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-[#a3e635] rounded-lg mb-6">
                 <Calculator className="h-3.5 w-3.5" />
@@ -217,11 +217,10 @@ export default function PartnerPage() {
                       <button
                         key={key}
                         onClick={() => setCategory(key as keyof typeof CATEGORY_DATA)}
-                        className={`px-4 py-3 text-left border rounded-xl font-bold text-xs transition-all duration-300 flex items-center justify-between ${
-                          category === key 
-                            ? "bg-[#16a34a] border-[#16a34a] text-white" 
-                            : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
-                        }`}
+                        className={`px-4 py-3 text-left border rounded-xl font-bold text-xs transition-all duration-300 flex items-center justify-between ${category === key
+                          ? "bg-[#16a34a] border-[#16a34a] text-white"
+                          : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
+                          }`}
                       >
                         {value.name}
                         {category === key && <CheckCircle2 className="h-4 w-4 text-white shrink-0" />}
@@ -263,7 +262,7 @@ export default function PartnerPage() {
               <h3 className="text-sm font-black uppercase tracking-wider text-white/50 mb-6">
                 Monthly Profit Breakdown
               </h3>
-              
+
               <div className="space-y-6">
                 {/* Traditional Wholesalers */}
                 <div className="flex justify-between items-center border-b border-white/10 pb-4">
@@ -350,7 +349,7 @@ export default function PartnerPage() {
             },
           ].map((item, index) => (
             <div key={index} className="bg-white border border-gray-100 p-6 rounded-2xl relative">
-              <span className="block text-4xl font-black text-green-100 absolute top-4 right-6">
+              <span className="block text-4xl font-black bg-gradient-to-br from-green-100 to-green-800 bg-clip-text text-transparent absolute top-4 right-6">
                 {item.step}
               </span>
               <h3 className="mt-6 text-lg font-black text-gray-950">{item.title}</h3>

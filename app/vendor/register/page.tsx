@@ -14,6 +14,8 @@ const initialForm = {
   businessName: '',
   email: '',
   phone: '',
+  city: '',
+  state: '',
   address: '',
   gstNumber: '',
   panNumber: '',
@@ -379,6 +381,21 @@ export default function VendorRegisterPage() {
                       value={formData.phone}
                       onChange={(e) => update('phone', e.target.value)}
                       placeholder="e.g. 9876543210"
+                      className="h-full min-w-0 flex-1 bg-transparent text-xs font-semibold outline-none text-gray-800"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">City / Location</label>
+                  <div className="flex h-10 items-center gap-2.5 border border-gray-200 rounded-xl bg-gray-50 px-3.5 focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all">
+                    <MapPin className="h-4 w-4 text-gray-400 shrink-0" />
+                    <input
+                      type="text"
+                      value={formData.city}
+                      onChange={(e) => update('city', e.target.value)}
+                      placeholder="e.g. Hyderabad, Jaipur, Pune"
                       className="h-full min-w-0 flex-1 bg-transparent text-xs font-semibold outline-none text-gray-800"
                       required
                     />

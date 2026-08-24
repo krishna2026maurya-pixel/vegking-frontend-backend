@@ -3,45 +3,46 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import Link from 'next/link';
-import { Heart, Plus } from 'lucide-react';
+import { Heart, Clock, Plus, Minus, Repeat, ArrowLeft, Check } from 'lucide-react';
 
 const fallbackImage = '/images/product-card-default.jpg';
 
 /* ── quantity options per vegetables type ─────────────────────── */
 const quantityOptions = {
-  cabbage:     ['400-500 g', '800 g-1 kg'],
-  tomato:      ['500 g', '1 kg', '2 kg'],
-  spinach:     ['1 Bunch', '2 Bunch'],
-  carrot:      ['500 g', '1 kg'],
-  eggplant:    ['500 g', '1 kg'],
-  pepper:      ['250 g', '500 g'],
-  broccoli:    ['1 Piece', '2 Piece'],
-  onion:       ['500 g', '1 kg', '2 kg'],
-  potato:      ['500 g', '1 kg', '2 kg'],
+  cabbage: ['400-500 g', '800 g-1 kg'],
+  tomato: ['500 g', '1 kg', '2 kg'],
+  spinach: ['1 Bunch', '2 Bunch'],
+  carrot: ['500 g', '1 kg'],
+  eggplant: ['500 g', '1 kg'],
+  pepper: ['250 g', '500 g'],
+  broccoli: ['1 Piece', '2 Piece'],
+  onion: ['500 g', '1 kg', '2 kg'],
+  potato: ['500 g', '1 kg', '2 kg'],
   cauliflower: ['1 Piece', '2 Piece'],
-  arhar:       ['500 g', '1 kg', '2 kg'],
-  chilli:      ['100 g', '250 g'],
-  ginger:      ['100 g', '250 g'],
+  arhar: ['500 g', '1 kg', '2 kg'],
+  chilli: ['100 g', '250 g'],
+  ginger: ['100 g', '250 g'],
 };
 
 const defaultOptions = ['250 g', '500 g', '1 kg'];
 
 /* ── helpers ─────────────────────────────────────────────────── */
 function getVegetableType(name: any) {
+  if (!name) return null;
   const v = name.toLowerCase();
-  if (v.includes('tomato'))                             return 'tomato';
-  if (v.includes('cabbage'))                            return 'cabbage';
-  if (v.includes('spinach'))                            return 'spinach';
-  if (v.includes('carrot'))                             return 'carrot';
+  if (v.includes('tomato')) return 'tomato';
+  if (v.includes('cabbage')) return 'cabbage';
+  if (v.includes('spinach')) return 'spinach';
+  if (v.includes('carrot')) return 'carrot';
   if (v.includes('eggplant') || v.includes('brinjal')) return 'eggplant';
-  if (v.includes('pepper')   || v.includes('capsicum'))return 'pepper';
-  if (v.includes('broccoli'))                           return 'broccoli';
-  if (v.includes('onion'))                              return 'onion';
-  if (v.includes('potato'))                             return 'potato';
-  if (v.includes('cauliflower'))                        return 'cauliflower';
-  if (v.includes('arhar') || v.includes('toor dal'))    return 'arhar';
-  if (v.includes('chilli')   || v.includes('chili'))   return 'chilli';
-  if (v.includes('ginger'))                             return 'ginger';
+  if (v.includes('pepper') || v.includes('capsicum')) return 'pepper';
+  if (v.includes('broccoli')) return 'broccoli';
+  if (v.includes('onion')) return 'onion';
+  if (v.includes('potato')) return 'potato';
+  if (v.includes('cauliflower')) return 'cauliflower';
+  if (v.includes('arhar') || v.includes('toor dal')) return 'arhar';
+  if (v.includes('chilli') || v.includes('chili')) return 'chilli';
+  if (v.includes('ginger')) return 'ginger';
   return null;
 }
 
@@ -53,7 +54,6 @@ function getQuantityOptions(name: any) {
 function parseQuantityRatio(qtyStr: any, baseQtyStr: any) {
   if (!qtyStr || !baseQtyStr) return 1;
   const parseToGrams = (s: any) => {
-    // For ranges like "400-500 g", grab the first number
     const match = s.match(/(\d+)\s*(kg|g|piece|bunch)/i);
     if (!match) return null;
     let val = parseFloat(match[1]);
@@ -71,53 +71,61 @@ function parseQuantityRatio(qtyStr: any, baseQtyStr: any) {
 
 /* Derive MRP from the stored selling price + discount saved on the product */
 function calcPrices(price: any, discountPct: any) {
-  const pct      = Number(discountPct) || 0;
-  const yourPrice = Number(price);
+  const pct = Number(discountPct) || 0;
+  const yourPrice = Number(price) || 0;
   if (pct <= 0) return { yourPrice, mrp: null, saving: 0, pct: 0 };
-  const mrp    = Math.round(yourPrice / (1 - pct / 100));
+  const mrp = Math.round(yourPrice / (1 - pct / 100));
   const saving = mrp - yourPrice;
   return { yourPrice, mrp, saving, pct };
 }
 
 /* ── component ───────────────────────────────────────────────── */
 export default function ProductCard({ product }: { product: any }) {
-  const { addToCart } = useCart();
-  const [imgSrc, setImgSrc]   = useState(product.image || fallbackImage);
-  
-  const hasWeightOptions = product.weightOptions && product.weightOptions.length > 0;
+  const { cart, addToCart, updateQuantity } = useCart();
+  const [imgSrc, setImgSrc] = useState(product?.image || fallbackImage);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+
+  const hasWeightOptions = product?.weightOptions && product.weightOptions.length > 0;
   const options = hasWeightOptions
     ? product.weightOptions.map((opt: any) => opt.weight)
-    : getQuantityOptions(product.name || '');
+    : getQuantityOptions(product?.name || '');
 
-  const [qty, setQty]         = useState(options[0] || '1 kg');
-  
+  const [qty, setQty] = useState(options[0] || '1 unit');
+
   const selectedOption = hasWeightOptions ? product.weightOptions.find((opt: any) => opt.weight === qty) : null;
   const multiplier = !hasWeightOptions ? parseQuantityRatio(qty, options[0]) : 1;
-  const currentBasePrice = selectedOption ? selectedOption.price : Math.round(product.price * multiplier);
+  const currentBasePrice = selectedOption ? selectedOption.price : Math.round((product?.price || 0) * multiplier);
 
-  const { yourPrice, mrp, saving, pct } = calcPrices(currentBasePrice, product.discount);
-  const stockCount = Number(product.stock ?? product.stock_status ?? 10);
+  const { yourPrice, mrp, pct } = calcPrices(currentBasePrice, product?.discount);
+  const stockCount = Number(product?.stock ?? product?.stock_status ?? 10);
   const inStock = stockCount > 0;
 
-  // Subscription states
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [subFreq, setSubFreq] = useState('weekly');
+  // Cart quantity for this item
+  const cartItem = cart?.find((c: any) => (c.cartId || c._id) === product?._id);
+  const cartQty = cartItem ? (cartItem.cartQuantity || cartItem.quantity || 0) : 0;
+
+  // In-Card Subscription states (Desktop view)
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [subFreq, setSubFreq] = useState<'weekly' | 'monthly'>('weekly');
   const [subQty, setSubQty] = useState(1);
   const [deliveryDate, setDeliveryDate] = useState('Monday');
-  
-  // Add to cart click state
-  const [cartClicked, setCartClicked] = useState(false);
+  const [isSubmittingSub, setIsSubmittingSub] = useState(false);
 
   useEffect(() => {
     setDeliveryDate(subFreq === 'weekly' ? 'Monday' : '1st of the month');
   }, [subFreq]);
 
   useEffect(() => {
-    setImgSrc(product.image || fallbackImage);
-  }, [product.image]);
+    setImgSrc(product?.image || fallbackImage);
+  }, [product?.image]);
+
+  const recurringPrice = Math.round(
+    yourPrice * subQty * (subFreq === 'weekly' ? 0.9 : 0.85)
+  );
 
   const handleSubscribe = async () => {
     try {
+      setIsSubmittingSub(true);
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/subscription/create`, {
         method: 'POST',
         credentials: 'include',
@@ -149,81 +157,127 @@ export default function ProductCard({ product }: { product: any }) {
         quantity: subQty,
         frequency: subFreq,
         deliveryDate: deliveryDate,
-        price: data.chargedAmount ?? Math.round(yourPrice * subQty * (subFreq === 'weekly' ? 0.9 : 0.85)),
+        price: data.chargedAmount ?? recurringPrice,
         createdAt: new Date().toISOString()
       };
-      
+
       const existing = JSON.parse(localStorage.getItem('vegking_subscriptions') || '[]');
       existing.push(newSubscription);
       localStorage.setItem('vegking_subscriptions', JSON.stringify(existing));
-      
+
       alert(`${data.message || `Successfully subscribed to ${product.name}!`} Wallet charged: Rs. ${Number(data.chargedAmount || newSubscription.price).toFixed(2)}.`);
-      setIsModalOpen(false);
+      setIsSubscribing(false);
     } catch (err: any) {
       alert(err.message === 'Insufficient Wallet Balance' ? 'Insufficient Wallet Balance' : `Subscription failed: ${err.message}`);
+    } finally {
+      setIsSubmittingSub(false);
     }
   };
 
+  const isTrending = product?.is_bestseller === '1' || product?.is_bestseller === true;
+
   return (
     <>
-      {/* Mobile Card View (3-column responsive format) */}
-      <div className="relative bg-white border-0 rounded-2xl overflow-hidden p-1.5 flex flex-col w-full h-full sm:hidden transition-all duration-200 shadow-xs fade-in">
-        {/* image wrap */}
-        <div className="relative w-full aspect-square bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center">
-          <Link href={`/product/${product._id}`} className="block w-full h-full">
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* ── 1. MOBILE VIEW (3-Column Clean Card matching Screenshot) ─ */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      <div className="sm:hidden relative bg-white rounded-2xl p-1.5 flex flex-col justify-between w-full h-full shadow-xs fade-in border border-gray-100/60">
+        {/* Product Image Square */}
+        <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center">
+          <Link href={`/product/${product?._id}`} className="block w-full h-full">
             <img
               src={imgSrc}
-              alt={product.name}
+              alt={product?.name || 'Product'}
               className="w-full h-full object-cover"
               onError={() => setImgSrc(fallbackImage)}
             />
           </Link>
 
-          {/* Trending badge */}
-          {(product.is_bestseller === '1' || product.is_bestseller === true) && (
+          {/* Trending Tag */}
+          {isTrending && (
             <div className="absolute top-1 left-1 bg-[#00c853] text-white text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md shadow-xs">
               TRENDING
             </div>
           )}
 
-          {/* Wishlist Heart Button */}
-          <button className="absolute top-1 right-1 text-gray-400 hover:text-red-500 transition-colors p-0.5 bg-white/65 backdrop-blur-xs rounded-full">
-            <Heart className="w-3.5 h-3.5" />
+          {/* Top Right Wishlist Button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsWishlisted(!isWishlisted);
+            }}
+            className="absolute top-1 right-1 text-gray-400 hover:text-red-500 p-1 bg-white/75 backdrop-blur-xs rounded-full shadow-2xs cursor-pointer"
+          >
+            <Heart
+              className={`w-3 h-3 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-400'
+                }`}
+            />
           </button>
 
-          {/* Add to Cart Plus Button */}
-          <button
-            onClick={() => {
-              if (inStock) {
-                addToCart({ ...product, qty, price: yourPrice });
-                setCartClicked(true);
-                setTimeout(() => setCartClicked(false), 200);
-              }
-            }}
-            disabled={!inStock}
-            className={`absolute bottom-1 right-1 w-6.5 h-6.5 rounded-full flex items-center justify-center text-white shadow-md transition-all duration-200 ${
-              inStock 
-                ? cartClicked 
-                  ? 'bg-emerald-800 scale-95' 
-                  : 'bg-[#16a34a] hover:bg-[#15803d]'
-                : 'bg-gray-300 cursor-not-allowed'
-            }`}
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
+          {/* Bottom Right Circular Green Plus / Stepper Button */}
+          <div className="absolute bottom-1 right-1 z-10">
+            {cartQty > 0 ? (
+              <div className="bg-[#16a34a] text-white flex items-center justify-between rounded-full px-1.5 py-0.5 gap-1 shadow-md h-6">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    updateQuantity(product?._id, cartQty - 1);
+                  }}
+                  className="font-black text-xs p-0.5 active:scale-75 cursor-pointer"
+                >
+                  <Minus className="w-2.5 h-2.5" strokeWidth={3} />
+                </button>
+                <span className="font-extrabold text-[10px] select-none px-0.5">{cartQty}</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    updateQuantity(product?._id, cartQty + 1);
+                  }}
+                  className="font-black text-xs p-0.5 active:scale-75 cursor-pointer"
+                >
+                  <Plus className="w-2.5 h-2.5" strokeWidth={3} />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (inStock) {
+                    addToCart({ ...product, qty, price: yourPrice });
+                  }
+                }}
+                disabled={!inStock}
+                className="w-6.5 h-6.5 rounded-full bg-[#16a34a] hover:bg-[#15803d] text-white flex items-center justify-center shadow-md active:scale-90 transition-transform cursor-pointer disabled:bg-gray-300"
+                title="Add to cart"
+              >
+                <Plus className="w-3.5 h-3.5" strokeWidth={2.8} />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Content Section */}
-        <div className="flex flex-col flex-1 mt-1.5 px-0.5 justify-between">
+        {/* Content Section below image */}
+        <div className="flex flex-col flex-1 mt-1 px-0.5 justify-between">
           <div>
             {/* Weight/Unit */}
-            <span className="text-gray-400 text-[10px] font-semibold block">
+            <span className="text-gray-400 text-[10px] font-semibold block truncate">
               {qty}
             </span>
 
             {/* Product Name */}
-            <Link href={`/product/${product._id}`} className="block text-gray-900 font-extrabold text-[11px] tracking-tight leading-tight mt-0.5 line-clamp-2 hover:text-emerald-700 min-h-[28px]">
-              {product.name}
+            <Link
+              href={`/product/${product?._id}`}
+              className="block text-gray-900 font-extrabold text-[11px] tracking-tight leading-tight mt-0.5 line-clamp-2 hover:text-green-700 min-h-[26px]"
+            >
+              {product?.name}
             </Link>
           </div>
 
@@ -235,8 +289,8 @@ export default function ProductCard({ product }: { product: any }) {
               </span>
             )}
 
-            {/* Price section */}
-            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+            {/* Price Row */}
+            <div className="flex items-center gap-1 mt-0.5 flex-wrap">
               <span className="text-gray-900 text-xs font-black">
                 ₹{yourPrice}
               </span>
@@ -250,621 +304,325 @@ export default function ProductCard({ product }: { product: any }) {
         </div>
       </div>
 
-      {/* Desktop Card View */}
-      <div className="hidden sm:flex flex-col fade-in" style={{ ...styles.card, display: undefined, flexDirection: undefined }}>
-        {/* ── discount ribbon ──────────────────────────────────── */}
-        {pct > 0 && (
-          <div style={styles.ribbon}>{pct}% OFF</div>
-        )}
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* ── 2. DESKTOP VIEW (Rich Quick-Commerce Card) ─────────────── */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      <div className="hidden sm:flex group relative bg-white border border-gray-200/90 rounded-2xl px-4 py-3.5 flex-col justify-between hover:shadow-md hover:border-gray-300 transition-all duration-200 w-full h-full min-h-[380px] overflow-hidden">
+        {isSubscribing ? (
+          /* In-Card Subscription View */
+          <div className="flex flex-col justify-between h-full space-y-2.5 animate-fadeIn">
+            <div>
+              <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                <button
+                  type="button"
+                  onClick={() => setIsSubscribing(false)}
+                  className="flex items-center gap-1 text-gray-500 hover:text-gray-900 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back</span>
+                </button>
+                <span className="text-[11px] font-black text-green-700 uppercase tracking-wider bg-green-50 px-2 py-0.5 rounded-full">
+                  Subscription
+                </span>
+              </div>
 
-        {/* ── product image ────────────────────────────────────── */}
-        <Link href={`/product/${product._id}`} style={{ display: 'block', textDecoration: 'none' }}>
-          <div style={styles.imageWrap}>
-            <img
-              src={imgSrc}
-              alt={product.name}
-              style={styles.image}
-              onError={() => setImgSrc(fallbackImage)}
-            />
-          </div>
-        </Link>
-
-        {/* ── body ─────────────────────────────────────────────── */}
-        <div style={styles.body}>
-          {/* name */}
-          <Link href={`/product/${product._id}`} style={{ textDecoration: 'none', display: 'block' }}>
-            <h3 style={styles.name}>
-              {(product.name || '').length > 30 ? product.name.slice(0, 30) + '...' : product.name}
-            </h3>
-          </Link>
-
-          {/* quantity dropdown row */}
-          <div style={styles.qtyRow}>
-            <select
-              value={qty}
-              onChange={(e) => setQty(e.target.value)}
-              style={styles.qtySelect}
-            >
-              {options.map((o: any) => (
-                <option key={o} value={o}>{o}</option>
-              ))}
-            </select>
-            <span style={inStock ? styles.greenDot : styles.grayDot} />
-          </div>
-          <div style={inStock ? styles.stockIn : styles.stockOut}>
-            {inStock ? `${stockCount} in stock` : 'Out of stock'}
-          </div>
-
-          {/* price row */}
-          <div style={styles.priceRow}>
-            <span style={styles.yourPrice}>₹{yourPrice}</span>
-            {pct > 0 && <span style={styles.yourPriceBadge}>your price</span>}
-          </div>
-          {mrp !== null && (
-            <div style={styles.mrpRow}>
-              <span style={styles.mrpLabel}>M.R.P </span>
-              <span style={styles.mrp}>₹{mrp}</span>
-              <span style={styles.discountNote}> ({pct}% off)</span>
+              <h4 className="text-xs font-black text-gray-900 mt-2 line-clamp-1">
+                {product?.name}
+              </h4>
+              <p className="text-[10px] text-gray-500">Pack: {qty}</p>
             </div>
-          )}
 
-          {/* savings pill */}
-          {saving > 0 && <div style={styles.savePill}>Save ₹{saving}</div>}
-
-          {/* delivery area */}
-          <button style={styles.deliveryLink}>Select delivery area</button>
-
-          {/* divider */}
-          <hr style={styles.divider} />
-
-          {/* add to cart button */}
-          <button
-            onClick={() => {
-              addToCart({ ...product, qty, price: yourPrice });
-              setCartClicked(true);
-              setTimeout(() => setCartClicked(false), 200);
-            }}
-            disabled={!inStock}
-            style={{ 
-              ...styles.subBtn, 
-              ...(!inStock ? styles.disabledSubBtn : {}),
-              ...(cartClicked ? { background: '#14532d', color: '#fff' } : {}) 
-            }}
-            onMouseEnter={(e) => {
-              if (cartClicked) return;
-              e.currentTarget.style.background = '#f4fbf7';
-              e.currentTarget.style.color = '#15803d';
-            }}
-            onMouseLeave={(e) => {
-              if (cartClicked) return;
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = '#16a34a';
-            }}
-          >
-            {inStock ? (cartClicked ? 'Added!' : 'Add to Cart') : 'Out of Stock'}
-          </button>
-
-          {/* subscribe & save button */}
-          <button
-            onClick={() => setIsModalOpen(true)}
-            disabled={!inStock}
-            style={{ ...styles.subBtn, ...(!inStock ? styles.disabledSubBtn : {}) }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#f4fbf7';
-              e.currentTarget.style.color = '#15803d';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = '#16a34a';
-            }}
-          >
-            Subscribe & Save
-          </button>
-        </div>
-
-        {/* Subscription Modal */}
-        {isModalOpen && (
-          <div style={styles.modalOverlay}>
-            <div style={styles.modalContent}>
-              <button onClick={() => setIsModalOpen(false)} style={styles.modalClose}>×</button>
-              <h3 style={styles.modalTitle}>Wholesale Subscription</h3>
-              <p style={styles.modalSubtitle}>Set up recurring fresh deliveries of {product.name}</p>
-              
-              {/* Product preview */}
-              <div style={styles.modalPreview}>
-                <img src={imgSrc} alt={product.name} style={styles.modalPreviewImg} />
-                <div>
-                  <div style={styles.modalPreviewName}>{product.name}</div>
-                  <div style={styles.modalPreviewSize}>Pack Size: {qty}</div>
-                  <div style={styles.modalPreviewPrice}>₹{yourPrice} / pack</div>
-                </div>
-              </div>
-
-              {/* Quantity */}
-              <div style={styles.modalField}>
-                <label style={styles.modalLabel}>Quantity (Packs)</label>
-                <div style={styles.qtyCounter}>
-                  <button onClick={() => setSubQty(q => Math.max(1, q - 1))} style={styles.counterBtn}>-</button>
-                  <span style={styles.counterValue}>{subQty}</span>
-                  <button onClick={() => setSubQty(q => q + 1)} style={styles.counterBtn}>+</button>
-                </div>
-              </div>
-
-              {/* Frequency Cards */}
-              <div style={styles.modalField}>
-                <label style={styles.modalLabel}>Delivery Frequency</label>
-                <div style={styles.freqContainer}>
-                  <div 
+            <div className="space-y-2.5 flex-1">
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
+                  Frequency
+                </label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
                     onClick={() => setSubFreq('weekly')}
-                    style={{
-                      ...styles.freqCard,
-                      ...(subFreq === 'weekly' ? styles.freqCardActive : {})
-                    }}
+                    className={`p-1.5 rounded-xl border text-center cursor-pointer transition-all ${subFreq === 'weekly'
+                        ? 'border-green-600 bg-green-50 text-green-800 font-bold shadow-2xs'
+                        : 'border-gray-200 text-gray-600 font-medium hover:bg-gray-50'
+                      }`}
                   >
-                    <div style={styles.freqTitle}>Weekly</div>
-                    <div style={styles.freqDiscount}>Save 10% Extra</div>
-                  </div>
-                  <div 
+                    <div className="text-xs">Weekly</div>
+                    <div className="text-[9px] text-green-600 font-semibold">Save 10%</div>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setSubFreq('monthly')}
-                    style={{
-                      ...styles.freqCard,
-                      ...(subFreq === 'monthly' ? styles.freqCardActive : {})
-                    }}
+                    className={`p-1.5 rounded-xl border text-center cursor-pointer transition-all ${subFreq === 'monthly'
+                        ? 'border-green-600 bg-green-50 text-green-800 font-bold shadow-2xs'
+                        : 'border-gray-200 text-gray-600 font-medium hover:bg-gray-50'
+                      }`}
                   >
-                    <div style={styles.freqTitle}>Monthly</div>
-                    <div style={styles.freqDiscount}>Save 15% Extra</div>
-                  </div>
+                    <div className="text-xs">Monthly</div>
+                    <div className="text-[9px] text-green-600 font-semibold">Save 15%</div>
+                  </button>
                 </div>
               </div>
 
-              {/* Preferred Delivery Date */}
-              <div style={styles.modalField}>
-                <label style={styles.modalLabel}>Preferred Delivery Day / Date</label>
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
+                  Delivery Day
+                </label>
                 <select
                   value={deliveryDate}
                   onChange={(e) => setDeliveryDate(e.target.value)}
-                  style={styles.modalSelect}
+                  className="w-full text-xs font-semibold border border-gray-200 rounded-lg p-1.5 bg-gray-50 text-gray-800 outline-none cursor-pointer"
                 >
                   {subFreq === 'weekly' ? (
                     <>
-                      <option value="Monday">Monday</option>
-                      <option value="Wednesday">Wednesday</option>
-                      <option value="Friday">Friday</option>
+                      <option value="Monday">Every Monday</option>
+                      <option value="Wednesday">Every Wednesday</option>
+                      <option value="Friday">Every Friday</option>
                     </>
                   ) : (
                     <>
-                      <option value="1st of the month">1st of the month</option>
-                      <option value="10th of the month">10th of the month</option>
-                      <option value="20th of the month">20th of the month</option>
+                      <option value="1st of the month">1st of month</option>
+                      <option value="10th of the month">10th of month</option>
+                      <option value="20th of the month">20th of month</option>
                     </>
                   )}
                 </select>
               </div>
 
-              {/* Subscription Summary */}
-              <div style={styles.summaryBox}>
-                <div style={styles.summaryRow}>
-                  <span>Base Price ({subQty} x ₹{yourPrice}):</span>
-                  <span>₹{yourPrice * subQty}</span>
+              <div className="flex items-center justify-between bg-gray-50 p-2 rounded-xl border border-gray-100">
+                <div>
+                  <span className="text-[10px] font-bold text-gray-500 block">Packs</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setSubQty((q) => Math.max(1, q - 1))}
+                      className="w-5 h-5 rounded bg-white font-bold text-xs shadow-2xs border border-gray-200 flex items-center justify-center cursor-pointer"
+                    >
+                      -
+                    </button>
+                    <span className="text-xs font-black text-gray-900 px-1">{subQty}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSubQty((q) => q + 1)}
+                      className="w-5 h-5 rounded bg-white font-bold text-xs shadow-2xs border border-gray-200 flex items-center justify-center cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
-                <div style={styles.summaryRow}>
-                  <span>Subscription Discount ({subFreq === 'weekly' ? '10%' : '15%'}):</span>
-                  <span style={{ color: '#16a34a' }}>-₹{Math.round(yourPrice * subQty * (subFreq === 'weekly' ? 0.1 : 0.15))}</span>
-                </div>
-                <hr style={{ border: 'none', borderTop: '1px dashed #e5e7eb', margin: '8px 0' }} />
-                <div style={{ ...styles.summaryRow, fontWeight: '800', fontSize: '15px' }}>
-                  <span>Recurring Price:</span>
-                  <span style={{ color: '#16a34a' }}>₹{Math.round(yourPrice * subQty * (subFreq === 'weekly' ? 0.9 : 0.85))}</span>
+
+                <div className="text-right">
+                  <span className="text-[10px] text-gray-400 line-through block">
+                    ₹{yourPrice * subQty}
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-green-700">
+                    ₹{recurringPrice}
+                  </span>
                 </div>
               </div>
+            </div>
 
-              {/* Confirm button */}
-              <button onClick={handleSubscribe} style={styles.modalSubmitBtn}>
-                Confirm Subscription
+            <div className="space-y-1 pt-1 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={handleSubscribe}
+                disabled={isSubmittingSub}
+                className="w-full py-2 bg-green-600 hover:bg-green-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1 disabled:bg-gray-300"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>{isSubmittingSub ? 'Subscribing...' : 'Confirm Subscription'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsSubscribing(false)}
+                className="w-full py-1 text-[11px] font-bold text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
+              >
+                Cancel
               </button>
             </div>
           </div>
+        ) : (
+          /* Standard Desktop Card View */
+          <>
+            {/* Top Left Discount Tag */}
+            {pct > 0 && (
+              <div className="absolute top-2 left-2 z-10 bg-[#256fee] text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded shadow-xs tracking-wider">
+                {pct}% OFF
+              </div>
+            )}
+
+            {/* Top Right Wishlist */}
+            <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsWishlisted(!isWishlisted);
+                }}
+                className="text-gray-400 hover:text-red-500 p-1 bg-white/90 backdrop-blur-xs rounded-full shadow-2xs transition-colors cursor-pointer"
+              >
+                <Heart
+                  className={`w-3.5 h-3.5 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-400'
+                    }`}
+                />
+              </button>
+            </div>
+
+            {/* Product Image */}
+            <div>
+              <Link
+                href={`/product/${product?._id}`}
+                className="relative w-full h-44 rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center block"
+              >
+                <img
+                  src={imgSrc}
+                  alt={product?.name || 'Product'}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  onError={() => setImgSrc(fallbackImage)}
+                />
+              </Link>
+
+              {/* Delivery Time Pill */}
+              <div className="mt-1.5 flex items-center gap-1 bg-gray-100/90 text-gray-600 text-[11px] font-bold px-1.5 py-0.5 rounded w-fit">
+                <Clock className="w-3 h-3 text-gray-500" strokeWidth={2.5} />
+                <span>8 MINS</span>
+              </div>
+
+              {/* Product Title */}
+              <Link href={`/product/${product?._id}`} className="mt-1 block">
+                <h3 className="text-sm font-bold text-gray-900 line-clamp-2 leading-tight hover:text-green-700 transition-colors min-h-[36px]">
+                  {product?.name}
+                </h3>
+              </Link>
+
+              {/* Pack Size / Weight Dropdown */}
+              <div className="mt-0.5">
+                {options.length > 1 ? (
+                  <select
+                    value={qty}
+                    onChange={(e) => setQty(e.target.value)}
+                    className="text-xs text-gray-500 bg-transparent border-none outline-none font-medium cursor-pointer p-0 hover:text-gray-800"
+                  >
+                    {options.map((o: any) => (
+                      <option key={o} value={o}>
+                        {o}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-xs text-gray-500 font-medium block truncate">
+                    {qty}
+                  </span>
+                )}
+              </div>
+
+              {/* Seller / Store Name */}
+              {(product?.vendor_shop_name || product?.vendor_name) && (
+                <div className="mt-1 text-[11px] text-gray-500 font-medium truncate flex items-center gap-1">
+                  <span className="text-gray-400">By:</span>
+                  <span className="font-semibold text-gray-700 truncate">{product.vendor_shop_name || product.vendor_name}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="mt-2 pt-2 border-t border-gray-100 flex flex-col gap-2">
+              <div className="flex items-baseline justify-between">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-base font-black text-gray-900">
+                    ₹{yourPrice}
+                  </span>
+                  {mrp !== null && pct > 0 && (
+                    <span className="text-xs text-gray-400 line-through">
+                      ₹{mrp}
+                    </span>
+                  )}
+                </div>
+                {pct > 0 && (
+                  <span className="text-[10px] font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded">
+                    {pct}% OFF
+                  </span>
+                )}
+              </div>
+
+              {/* Full Add to Cart Button */}
+              {cartQty > 0 ? (
+                <div className="w-full bg-[#0c831f] text-white flex items-center justify-between rounded-xl px-3 py-2 shadow-xs h-9">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      updateQuantity(product?._id, cartQty - 1);
+                    }}
+                    className="font-black text-base hover:scale-110 active:scale-90 transition-transform p-0.5 cursor-pointer"
+                    title="Decrease quantity"
+                  >
+                    <Minus className="w-3.5 h-3.5" strokeWidth={3} />
+                  </button>
+                  <span className="font-extrabold text-sm select-none">
+                    {cartQty} in cart
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      updateQuantity(product?._id, cartQty + 1);
+                    }}
+                    className="font-black text-base hover:scale-110 active:scale-90 transition-transform p-0.5 cursor-pointer"
+                    title="Increase quantity"
+                  >
+                    <Plus className="w-3.5 h-3.5" strokeWidth={3} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (inStock) {
+                      addToCart({ ...product, qty, price: yourPrice });
+                    }
+                  }}
+                  disabled={!inStock}
+                  className={`w-full h-9 rounded-xl font-extrabold text-sm tracking-wide transition-all duration-150 active:scale-98 cursor-pointer shadow-xs flex items-center justify-center gap-1.5 ${inStock
+                      ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-600/20'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed border-none'
+                    }`}
+                >
+                  {inStock ? (
+                    <>
+                      <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+                      <span>Add to Cart</span>
+                    </>
+                  ) : (
+                    'Out of Stock'
+                  )}
+                </button>
+              )}
+
+              {/* Full Subscribe & Save Button (Styled like Add to Cart, no arrow icon) */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsSubscribing(true);
+                }}
+                disabled={!inStock}
+                className={`w-full h-9 rounded-xl font-extrabold text-sm tracking-wide transition-all duration-150 active:scale-98 cursor-pointer shadow-xs flex items-center justify-center border ${inStock
+                    ? 'border-green-600 bg-green-50/70 hover:bg-green-600 text-green-700 hover:text-white shadow-green-600/10'
+                    : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
+              >
+                <span>Subscribe & Save</span>
+              </button>
+            </div>
+          </>
         )}
       </div>
     </>
   );
 }
-
-/* ── styles (inline to be self-contained) ────────────────────── */
-const styles: any = {
-  card: {
-    position:      'relative',
-    background:    '#fff',
-    border:        '1px solid #e5e7eb',
-    borderRadius:  '8px',
-    overflow:      'hidden',
-    display:       'flex',
-    flexDirection: 'column',
-    width:         '100%',
-    maxWidth:      '220px',
-    fontFamily:    "'Poppins', 'Segoe UI', sans-serif",
-    boxShadow:     'none',
-    transition:    'transform .2s ease',
-  },
-
-  /* red ribbon */
-  ribbon: {
-    position:   'absolute',
-    top:        '10px',
-    left:       '-2px',
-    background: '#e53e3e',
-    color:      '#fff',
-    fontSize:   '11px',
-    fontWeight: '700',
-    padding:    '3px 8px 3px 6px',
-    borderRadius: '0 3px 3px 0',
-    letterSpacing: '.4px',
-    zIndex:     10,
-  },
-
-  /* image */
-  imageWrap: {
-    display:         'flex',
-    alignItems:      'center',
-    justifyContent:  'center',
-    background:      '#fff',
-    padding:         '0',
-    height:          '150px',
-    width:           '100%',
-    overflow:        'hidden',
-  },
-  image: {
-    width:      '100%',
-    height:     '100%',
-    objectFit:  'cover',
-  },
-
-  /* body */
-  body: {
-    display:       'flex',
-    flexDirection: 'column',
-    padding:       '8px 12px 0',
-    gap:           '5px',
-  },
-
-  name: {
-    fontSize:   '13px',
-    fontWeight: '700',
-    color:      '#1a1a1a',
-    margin:     '0',
-    lineHeight: '1.3',
-  },
-
-  /* quantity row */
-  qtyRow: {
-    display:     'flex',
-    alignItems:  'center',
-    gap:         '8px',
-    marginTop:   '2px',
-  },
-  qtySelect: {
-    flex:          1,
-    padding:       '4px 7px',
-    fontSize:      '12px',
-    border:        '1px solid #d1d5db',
-    borderRadius:  '4px',
-    background:    '#fff',
-    color:         '#374151',
-    cursor:        'pointer',
-    outline:       'none',
-    appearance:    'auto',
-  },
-  greenDot: {
-    width:        '12px',
-    height:       '12px',
-    borderRadius: '50%',
-    background:   '#22c55e',
-    flexShrink:   0,
-    border:       '2px solid #16a34a',
-  },
-  grayDot: {
-    width:        '12px',
-    height:       '12px',
-    borderRadius: '50%',
-    background:   '#d1d5db',
-    flexShrink:   0,
-    border:       '2px solid #9ca3af',
-  },
-  stockIn: {
-    fontSize: '11px',
-    fontWeight: '700',
-    color: '#15803d',
-  },
-  stockOut: {
-    fontSize: '11px',
-    fontWeight: '700',
-    color: '#b91c1c',
-  },
-
-  /* price */
-  priceRow: {
-    display:    'flex',
-    alignItems: 'center',
-    gap:        '6px',
-    marginTop:  '2px',
-  },
-  yourPrice: {
-    fontSize:   '16px',
-    fontWeight: '800',
-    color:      '#111827',
-  },
-  yourPriceBadge: {
-    background:   '#16a34a',
-    color:        '#fff',
-    fontSize:     '10px',
-    fontWeight:   '700',
-    padding:      '2px 6px',
-    borderRadius: '3px',
-    letterSpacing: '.3px',
-  },
-
-  mrpRow: {
-    fontSize: '12px',
-    color:    '#6b7280',
-  },
-  mrpLabel: {
-    color: '#6b7280',
-  },
-  mrp: {
-    textDecoration: 'line-through',
-    color:          '#9ca3af',
-  },
-  discountNote: {
-    color: '#6b7280',
-  },
-
-  /* savings pill */
-  savePill: {
-    display:      'inline-block',
-    background:   '#f3f4f6',
-    color:        '#374151',
-    fontSize:     '11px',
-    fontWeight:   '600',
-    padding:      '3px 10px',
-    borderRadius: '20px',
-    alignSelf:    'flex-start',
-    border:       '1px solid #e5e7eb',
-  },
-
-  /* delivery link */
-  deliveryLink: {
-    background:  'none',
-    border:      'none',
-    padding:     '0',
-    fontSize:    '12px',
-    color:       '#6b7280',
-    cursor:      'pointer',
-    textAlign:   'left',
-    textDecoration: 'none',
-    fontFamily:  'inherit',
-  },
-
-  divider: {
-    border:     'none',
-    borderTop:  '1px solid #f3f4f6',
-    margin:     '4px 0 0',
-  },
-
-  /* add to cart */
-  cartBtn: {
-    width:        'calc(100% + 24px)',
-    marginLeft:   '-12px',
-    padding:      '11px 0',
-    background:   '#16a34a',
-    color:        '#ffffff',
-    border:       'none',
-    fontSize:     '13px',
-    fontWeight:   '700',
-    cursor:       'pointer',
-    letterSpacing: '.3px',
-    transition:   'background .15s ease',
-  },
-  subBtn: {
-    width:        'calc(100% + 24px)',
-    marginLeft:   '-12px',
-    padding:      '10px 0',
-    background:   'transparent',
-    color:        '#16a34a',
-    border:       'none',
-    borderTop:    '1px solid #f3f4f6',
-    fontSize:     '12px',
-    fontWeight:   '700',
-    cursor:       'pointer',
-    letterSpacing: '.3px',
-    transition:   'all .15s ease',
-  },
-  disabledBtn: {
-    background: '#9ca3af',
-    cursor: 'not-allowed',
-  },
-  disabledSubBtn: {
-    color: '#9ca3af',
-    cursor: 'not-allowed',
-    background: '#f9fafb',
-  },
-  
-  /* Modal Styles */
-  modalOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    backdropFilter: 'blur(4px)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: '24px',
-    padding: '24px',
-    width: '90%',
-    maxWidth: '400px',
-    boxShadow: 'none',
-    border: '1px solid #e5e7eb',
-    position: 'relative',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-    fontFamily: "'Poppins', 'Segoe UI', sans-serif",
-  },
-  modalClose: {
-    position: 'absolute',
-    top: '16px',
-    right: '16px',
-    background: 'none',
-    border: 'none',
-    fontSize: '24px',
-    color: '#9ca3af',
-    cursor: 'pointer',
-  },
-  modalTitle: {
-    fontSize: '20px',
-    fontWeight: '800',
-    color: '#111827',
-    margin: 0,
-  },
-  modalSubtitle: {
-    fontSize: '13px',
-    color: '#6b7280',
-    margin: '-8px 0 0',
-  },
-  modalPreview: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    backgroundColor: '#f9fafb',
-    borderRadius: '12px',
-    padding: '12px',
-    border: '1px solid #f3f4f6',
-  },
-  modalPreviewImg: {
-    width: '60px',
-    height: '60px',
-    objectFit: 'contain',
-  },
-  modalPreviewName: {
-    fontSize: '14px',
-    fontWeight: '700',
-    color: '#111827',
-    margin: 0,
-  },
-  modalPreviewSize: {
-    fontSize: '12px',
-    color: '#6b7280',
-  },
-  modalPreviewPrice: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#374151',
-  },
-  modalField: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-  },
-  modalLabel: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#374151',
-  },
-  modalSelect: {
-    width: '100%',
-    padding: '10px 12px',
-    fontSize: '14px',
-    border: '1px solid #d1d5db',
-    borderRadius: '12px',
-    background: '#fff',
-    color: '#374151',
-    cursor: 'pointer',
-    outline: 'none',
-    appearance: 'auto',
-  },
-  qtyCounter: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    backgroundColor: '#f3f4f6',
-    borderRadius: '12px',
-    padding: '4px',
-    alignSelf: 'flex-start',
-  },
-  counterBtn: {
-    width: '32px',
-    height: '32px',
-    borderRadius: '8px',
-    boxShadow: 'none',
-    border: '1px solid #e5e7eb',
-  },
-  counterValue: {
-    fontSize: '15px',
-    fontWeight: '700',
-    color: '#111827',
-    minWidth: '20px',
-    textAlign: 'center',
-  },
-  freqContainer: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '12px',
-  },
-  freqCard: {
-    borderWidth: '2px',
-    borderStyle: 'solid',
-    borderColor: '#e5e7eb',
-    borderRadius: '12px',
-    padding: '12px',
-    cursor: 'pointer',
-    textAlign: 'center',
-    transition: 'all 0.15s ease',
-  },
-  freqCardActive: {
-    borderColor: '#16a34a',
-    backgroundColor: '#f4fbf7',
-  },
-  freqTitle: {
-    fontSize: '14px',
-    fontWeight: '700',
-    color: '#111827',
-  },
-  freqDiscount: {
-    fontSize: '11px',
-    fontWeight: '600',
-    color: '#16a34a',
-    marginTop: '2px',
-  },
-  summaryBox: {
-    backgroundColor: '#f9fafb',
-    borderRadius: '12px',
-    padding: '12px',
-    border: '1px solid #f3f4f6',
-  },
-  summaryRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    fontSize: '12px',
-    color: '#4b5563',
-    lineHeight: '1.6',
-  },
-  modalSubmitBtn: {
-    width: '100%',
-    padding: '14px 0',
-    backgroundColor: '#16a34a',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '14px',
-    fontSize: '14px',
-    fontWeight: '700',
-    cursor: 'pointer',
-    transition: 'background-color 0.15s ease',
-    boxShadow: '0 4px 6px -1px rgba(22, 163, 74, 0.2)',
-  },
-};

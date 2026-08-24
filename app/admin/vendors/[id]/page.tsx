@@ -26,7 +26,10 @@ interface Vendor {
   mobile_number: string;
   shop_name: string;
   city: string;
+  state?: string;
   address: string;
+  pincode?: string;
+  gps_location?: string;
   wallet_balance: number;
   is_verified: string;
   is_bestseller: string;
@@ -177,7 +180,7 @@ export default function VendorDetailsPage({ params }: { params: Promise<{ id: st
             <MapPin className="text-green-600" size={20} />
             <div>
               <p className="text-xs text-gray-500 uppercase font-semibold">Location</p>
-              <p className="text-sm font-medium">{vendor.city}, {vendor.address || 'N/A'}</p>
+              <p className="text-sm font-medium">{Array.from(new Set([vendor.address, vendor.city, vendor.state].filter(Boolean))).join(', ') || vendor.gps_location || 'N/A'}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">

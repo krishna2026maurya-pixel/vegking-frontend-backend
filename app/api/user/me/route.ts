@@ -48,16 +48,21 @@ export async function PATCH(req: NextRequest) {
     await connectDB();
 
     if (role === 'vendor') {
-      const { full_name, name, mobile_number, mobile_no, email, shop_name } = await req.json();
+      const { full_name, name, mobile_number, mobile_no, email, shop_name, address, city, state, gps_location, landmark } = await req.json();
       const Vendor = (await import('@/lib/models/Vendor')).default;
       const vendor = await Vendor.findByIdAndUpdate(
         userId,
         { 
           $set: { 
-            full_name: name || full_name, 
-            mobile_number: mobile_no || mobile_number, 
-            email,
-            shop_name
+            ...(name || full_name ? { full_name: name || full_name } : {}),
+            ...(mobile_no || mobile_number ? { mobile_number: mobile_no || mobile_number } : {}),
+            ...(email ? { email } : {}),
+            ...(shop_name ? { shop_name } : {}),
+            ...(address !== undefined && { address }),
+            ...(city !== undefined && { city }),
+            ...(state !== undefined && { state }),
+            ...(landmark !== undefined && { landmark }),
+            ...(gps_location !== undefined && { gps_location }),
           } 
         },
         { new: true }

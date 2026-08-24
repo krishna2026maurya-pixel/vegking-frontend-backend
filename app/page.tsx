@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import BlogCard from '@/components/BlogCard';
 import ProductCard from '@/components/ProductCard';
+import ProductCarousel from '@/components/ProductCarousel';
 import { useCart } from '@/context/CartContext';
 import { Leaf, ShieldCheck, Truck, Droplets, UserCheck, Star, Quote, Clock, MapPin, CalendarRange, CheckCircle2, ArrowRight, PackageSearch } from 'lucide-react';
 import { blogs } from '@/lib/blogs';
@@ -248,59 +249,19 @@ export default function Home() {
 
           <div className="space-y-12">
             {CATEGORY_ORDER.map((categoryName) => {
-              const categoryProducts = products
-                .filter(
-                  (product) =>
-                    product.category?.toLowerCase() === categoryName.toLowerCase()
-                );
+              const categoryProducts = products.filter(
+                (product) =>
+                  product.category?.toLowerCase() === categoryName.toLowerCase()
+              );
 
               return (
-                <div key={categoryName} className="space-y-4 border-b border-gray-100 pb-8 last:border-0">
-                  <div className="flex justify-between items-end px-2">
-                    <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#1e3b2b]">
-                      {categoryName}
-                    </h3>
-                    <Link
-                      href={`/products?category=${encodeURIComponent(categoryName)}`}
-                      className="text-xs sm:text-sm font-bold text-primary hover:text-primary-hover flex items-center gap-1"
-                    >
-                      View All <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-
-                  {loading ? (
-                    <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:justify-start sm:gap-4 md:gap-5">
-                      {Array.from({ length: 4 }).map((_, idx) => (
-                        <div
-                          key={idx}
-                          className="relative bg-white border-0 sm:border border-gray-200 rounded-[12px] overflow-hidden flex flex-col w-[100%] max-w-[220px] animate-pulse h-[170px] sm:h-[350px]"
-                        >
-                          <div className="w-full aspect-square bg-gray-100 dark:bg-gray-750"></div>
-                          <div className="p-2 sm:p-4 flex-1 flex flex-col justify-between">
-                            <div className="space-y-2">
-                              <div className="h-3 bg-gray-100 dark:bg-gray-750 rounded w-3/4"></div>
-                              <div className="h-2.5 bg-gray-100 dark:bg-gray-750 rounded w-1/2"></div>
-                            </div>
-                            <div className="hidden sm:block space-y-2 mt-4">
-                              <div className="h-8 bg-gray-100 dark:bg-gray-750 rounded-full w-full"></div>
-                              <div className="h-8 bg-gray-100 dark:bg-gray-750 rounded-full w-full"></div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : categoryProducts.length > 0 ? (
-                    <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:justify-start sm:gap-4 md:gap-5">
-                      {categoryProducts.map((product) => (
-                        <ProductCard key={product._id} product={product} />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-gray-200 bg-white py-12 text-center text-sm font-medium text-gray-500 shadow-sm">
-                      no item we have
-                    </div>
-                  )}
-                </div>
+                <ProductCarousel
+                  key={categoryName}
+                  title={categoryName}
+                  seeAllHref={`/products?category=${encodeURIComponent(categoryName)}`}
+                  products={categoryProducts}
+                  loading={loading}
+                />
               );
             })}
           </div>

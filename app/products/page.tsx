@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense, Fragment } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
 import { Search } from 'lucide-react';
@@ -8,7 +8,7 @@ import { Search } from 'lucide-react';
 function ProductsContent() {
     const searchParams = useSearchParams();
 
-    // Read will category from URL, default to 'All'
+    // Read category from URL, default to 'All'
     const selectedCategory = searchParams.get('category') || 'All';
     const categoryId = searchParams.get('category_id');
     const searchQuery = searchParams.get('q')?.trim() || '';
@@ -62,14 +62,14 @@ function ProductsContent() {
                 const productsArray = Array.isArray(productsData)
                     ? productsData
                     : Array.isArray(productsData.data)
-                    ? productsData.data
-                    : [];
+                        ? productsData.data
+                        : [];
 
                 const categoriesArray = Array.isArray(categoriesData)
                     ? categoriesData
                     : Array.isArray(categoriesData.data)
-                    ? categoriesData.data
-                    : [];
+                        ? categoriesData.data
+                        : [];
 
                 if (exploreRes?.success && exploreRes?.data?.subcategories) {
                     setSubcategories(exploreRes.data.subcategories);
@@ -149,7 +149,7 @@ function ProductsContent() {
 
     return (
         <div className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8 py-10">
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-8 sm:px-6 lg:px-8">
                 <div className="mb-2 border-b border-gray-100 pb-5">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                         <div>
@@ -172,7 +172,7 @@ function ProductsContent() {
 
                 {subcategories.length > 0 && (
                     <div className="flex flex-wrap gap-2 pb-2">
-                        <button 
+                        <button
                             onClick={() => setSelectedSubcategoryId(null)}
                             className={`px-5 py-2 rounded-full text-sm font-semibold transition-colors ${!selectedSubcategoryId ? 'bg-primary text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                         >
@@ -191,56 +191,22 @@ function ProductsContent() {
                 )}
 
                 {loading ? (
-                    <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:justify-start sm:gap-4 md:gap-5">
+                    <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-4.5">
                         {Array.from({ length: 12 }).map((_, idx) => (
-                            <Fragment key={idx}>
-                                {/* Mobile Skeleton */}
-                                <div className="relative bg-white border-0 rounded-2xl overflow-hidden p-1.5 flex flex-col w-full h-[180px] sm:hidden animate-pulse shadow-xs">
-                                    <div className="w-full aspect-square bg-gray-100 rounded-xl"></div>
-                                    <div className="flex flex-col flex-1 mt-1.5 px-0.5 justify-between">
-                                        <div className="space-y-1 mt-0.5">
-                                            <div className="h-2 bg-gray-100 rounded w-1/3"></div>
-                                            <div className="h-3 bg-gray-100 rounded w-full"></div>
-                                        </div>
-                                        <div className="space-y-1 mt-2">
-                                            <div className="h-2.5 bg-gray-100 rounded w-1/4"></div>
-                                            <div className="flex items-center gap-1.5">
-                                                <div className="h-3.5 bg-gray-100 rounded w-1/2"></div>
-                                                <div className="h-2.5 bg-gray-100 rounded w-1/3"></div>
-                                            </div>
-                                        </div>
-                                    </div>
+                            <div
+                                key={idx}
+                                className="w-full h-[175px] sm:h-[370px] bg-white border border-gray-100 rounded-2xl p-1.5 sm:px-4 sm:py-3.5 animate-pulse flex flex-col justify-between"
+                            >
+                                <div>
+                                    <div className="w-full aspect-square sm:h-44 bg-gray-100 rounded-xl mb-1.5 sm:mb-3"></div>
+                                    <div className="w-12 sm:w-16 h-2 sm:h-3 bg-gray-100 rounded mb-1 sm:mb-2"></div>
+                                    <div className="w-full h-3 sm:h-4 bg-gray-100 rounded mb-1"></div>
                                 </div>
-
-                                {/* Desktop Skeleton */}
-                                <div className="hidden sm:flex flex-col relative bg-white border border-gray-200 rounded-[8px] overflow-hidden w-full sm:w-[220px] animate-pulse">
-                                    <div className="w-full h-[150px] bg-gray-100"></div>
-                                    <div className="flex flex-col p-[8px_12px_0] gap-[5px]">
-                                        <div className="h-4 bg-gray-100 rounded w-3/4 mt-1"></div>
-                                        <div className="flex items-center gap-2 mt-[2px]">
-                                            <div className="h-[26px] bg-gray-100 rounded flex-1"></div>
-                                            <div className="h-[12px] w-[12px] bg-gray-100 rounded-full shrink-0"></div>
-                                        </div>
-                                        <div className="h-3 bg-gray-100 rounded w-1/2 mt-1"></div>
-                                        
-                                        <div className="flex items-center gap-[6px] mt-[2px]">
-                                            <div className="h-[20px] bg-gray-100 rounded w-[45%]"></div>
-                                            <div className="h-[14px] bg-gray-100 rounded w-[30%]"></div>
-                                        </div>
-                                        
-                                        <div className="h-[14px] bg-gray-100 rounded w-[70%]"></div>
-                                        
-                                        <div className="h-[19px] bg-gray-100 rounded-[20px] w-[60px] border border-gray-50 mt-[1px]"></div>
-                                        
-                                        <div className="h-[14px] bg-gray-100 rounded w-[50%] mt-[1px]"></div>
-                                        
-                                        <div className="border-t border-gray-50 mt-[4px]"></div>
-                                        
-                                        <div className="h-[37px] bg-gray-100 w-[calc(100%+24px)] -ml-[12px]"></div>
-                                        <div className="h-[36px] bg-gray-100 w-[calc(100%+24px)] -ml-[12px] border-t border-white"></div>
-                                    </div>
+                                <div className="pt-1 sm:pt-2 border-t border-gray-50 flex items-center justify-between">
+                                    <div className="w-10 sm:w-16 h-3 sm:h-4 bg-gray-100 rounded"></div>
+                                    <div className="hidden sm:block w-full h-8 bg-gray-100 rounded-xl mt-1"></div>
                                 </div>
-                            </Fragment>
+                            </div>
                         ))}
                     </div>
                 ) : error ? (
@@ -248,7 +214,7 @@ function ProductsContent() {
                         {error}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:justify-start sm:gap-4 md:gap-5">
+                    <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-4.5">
                         {filtered.length > 0 ? (
                             filtered.map(product => (
                                 <ProductCard key={product._id} product={product} />

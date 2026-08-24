@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
-import { ArrowLeft, ShoppingCart, CalendarRange, Star, Truck, ShieldCheck, Clock } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, CalendarRange, Star, Truck, ShieldCheck, Clock, Store } from 'lucide-react';
 
 const fallbackImage = '/images/product-card-default.jpg';
 
@@ -37,7 +37,11 @@ export default function ProductDetailPage() {
         const json = await res.json();
         if (json.error) throw new Error(json.error);
         const item = json.data;
-        
+
+        const vId = typeof item.vendor_id === 'object' && item.vendor_id !== null ? item.vendor_id._id : item.vendor_id;
+        const vShopName = item.vendor_shop_name || (typeof item.vendor_id === 'object' && item.vendor_id !== null ? item.vendor_id.shop_name : '') || '';
+        const vShopImage = (typeof item.vendor_id === 'object' && item.vendor_id !== null ? item.vendor_id.shop_image : '') || '';
+
         // Normalize fields
         const normalized = {
           _id: item._id,
@@ -49,6 +53,10 @@ export default function ProductDetailPage() {
           description: item.product_description || item.description || 'Fresh farm produce sourced directly from local growers.',
           stock: item.stock_status === 1 || item.stock_status === '1' ? 99 : 0,
           quantity: item.quantity || '1 kg',
+          category: item.category || 'Fresh Produce',
+          vendor_id: vId,
+          vendor_shop_name: vShopName,
+          vendor_shop_image: vShopImage,
         };
 
         setProduct(normalized);
@@ -59,8 +67,8 @@ export default function ProductDetailPage() {
         const sellersRes = await fetch(`/api/products?search=${encodeURIComponent(normalized.name)}&limit=100`);
         const sellersJson = await sellersRes.json();
         const otherSellers = (sellersJson.data || [])
-          .filter((p: any) => 
-            p.name.toLowerCase() === normalized.name.toLowerCase() && 
+          .filter((p: any) =>
+            p.name.toLowerCase() === normalized.name.toLowerCase() &&
             p._id !== normalized._id
           )
           .map((p: any) => ({
@@ -141,11 +149,11 @@ export default function ProductDetailPage() {
         price: data.chargedAmount ?? Math.round(yourPrice * subQty * (subFreq === 'weekly' ? 0.9 : 0.85)),
         createdAt: new Date().toISOString()
       };
-      
+
       const existing = JSON.parse(localStorage.getItem('vegking_subscriptions') || '[]');
       existing.push(newSubscription);
       localStorage.setItem('vegking_subscriptions', JSON.stringify(existing));
-      
+
       alert(`${data.message || `Successfully subscribed to ${product.name}!`} Wallet charged: Rs. ${Number(data.chargedAmount || newSubscription.price).toFixed(2)}.`);
       setIsModalOpen(false);
     } catch (err: any) {
@@ -197,6 +205,46 @@ export default function ProductDetailPage() {
           </div>
 
           <div className="border-y border-gray-100 py-4 flex flex-col gap-3">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-bold text-gray-700 w-24">Sold by:</span>
+              {product.vendor_shop_name ? (
+                product.vendor_id ? (
+                  <Link
+                    href={`/vendors/${product.vendor_id}`}
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-green-700 hover:text-green-800 hover:underline bg-green-50 hover:bg-green-100/70 px-3 py-1.5 rounded-xl transition border border-green-100 shadow-2xs"
+                  >
+                    {product.vendor_shop_image ? (
+                      <img
+                        src={product.vendor_shop_image}
+                        alt={product.vendor_shop_name}
+                        className="w-6 h-6 rounded-full object-cover border border-green-200"
+                      />
+                    ) : (
+                      <Store className="w-4 h-4 text-green-600" />
+                    )}
+                    <span>{product.vendor_shop_name}</span>
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-gray-800 bg-gray-100 px-3 py-1.5 rounded-xl border border-gray-200">
+                    {product.vendor_shop_image ? (
+                      <img
+                        src={product.vendor_shop_image}
+                        alt={product.vendor_shop_name}
+                        className="w-6 h-6 rounded-full object-cover"
+                      />
+                    ) : (
+                      <Store className="w-4 h-4 text-green-600" />
+                    )}
+                    <span>{product.vendor_shop_name}</span>
+                  </span>
+                )
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-800 bg-gray-100 px-3 py-1.5 rounded-xl">
+                  <ShieldCheck className="w-4 h-4 text-green-600" />
+                  <span>VegKing Direct / In-House</span>
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-4">
               <span className="text-sm font-bold text-gray-700 w-24">Pack Size:</span>
               <span className="text-sm font-semibold text-gray-900 bg-gray-100 px-3 py-1 rounded-md">{qty}</span>
@@ -309,7 +357,7 @@ export default function ProductDetailPage() {
             <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 text-2xl text-gray-400 hover:text-gray-600">×</button>
             <h3 className="text-xl font-bold text-gray-900 leading-tight">Wholesale Subscription</h3>
             <p className="text-xs text-gray-500 leading-relaxed -mt-2">Set up recurring fresh deliveries of {product.name}</p>
-            
+
             {/* Product preview */}
             <div className="flex items-center gap-3 bg-gray-50 border border-gray-100 rounded-xl p-3">
               <img src={imgSrc} alt={product.name} className="w-12 h-12 object-contain" />
@@ -334,14 +382,14 @@ export default function ProductDetailPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-gray-700">Delivery Frequency</label>
               <div className="grid grid-cols-2 gap-3">
-                <div 
+                <div
                   onClick={() => setSubFreq('weekly')}
                   className={`border-2 rounded-xl p-3 cursor-pointer text-center transition-all ${subFreq === 'weekly' ? 'border-primary bg-green-50/50' : 'border-gray-200 bg-white'}`}
                 >
                   <div className="text-xs font-bold text-gray-900">Weekly</div>
                   <div className="text-[10px] font-semibold text-green-600 mt-0.5">Save 10% Extra</div>
                 </div>
-                <div 
+                <div
                   onClick={() => setSubFreq('monthly')}
                   className={`border-2 rounded-xl p-3 cursor-pointer text-center transition-all ${subFreq === 'monthly' ? 'border-primary bg-green-50/50' : 'border-gray-200 bg-white'}`}
                 >

@@ -48,15 +48,21 @@ async function updateProfile(request: NextRequest, userId: string) {
     
     if (!user) {
       const Vendor = (await import('@/lib/models/Vendor')).default;
+      const { address, city, state, gps_location, landmark } = body;
       const vendor = await Vendor.findByIdAndUpdate(
         userId,
         { 
           $set: { 
-            full_name: name || full_name, 
-            mobile_number: mobile_no || mobile_number, 
-            email, 
-            shop_image: profile_image,
-            shop_name,
+            ...(name || full_name ? { full_name: name || full_name } : {}),
+            ...(mobile_no || mobile_number ? { mobile_number: mobile_no || mobile_number } : {}),
+            ...(email ? { email } : {}),
+            ...(profile_image ? { shop_image: profile_image } : {}),
+            ...(shop_name ? { shop_name } : {}),
+            ...(address !== undefined && { address }),
+            ...(city !== undefined && { city }),
+            ...(state !== undefined && { state }),
+            ...(landmark !== undefined && { landmark }),
+            ...(gps_location !== undefined && { gps_location }),
             ...(fiberbase_token !== undefined && { fiberbase_token })
           } 
         },

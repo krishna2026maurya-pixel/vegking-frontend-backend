@@ -53,14 +53,14 @@ const ShimmerCategoryCard = () => (
 
 const ShimmerListRow = () => (
   <div className="p-4 border border-gray-100 bg-white rounded-xl flex items-center justify-between gap-4 animate-pulse">
-     <div className="flex items-center gap-4 w-full">
-       <div className="h-14 w-14 bg-gray-200 rounded-lg shrink-0 animate-pulse" />
-       <div className="space-y-2 w-full">
-         <div className="h-4 bg-gray-200 rounded-md w-1/3 animate-pulse" />
-         <div className="h-3 bg-gray-200 rounded-md w-1/2 animate-pulse" />
-       </div>
-     </div>
-     <div className="h-8 w-16 bg-gray-200 rounded-lg shrink-0 animate-pulse" />
+    <div className="flex items-center gap-4 w-full">
+      <div className="h-14 w-14 bg-gray-200 rounded-lg shrink-0 animate-pulse" />
+      <div className="space-y-2 w-full">
+        <div className="h-4 bg-gray-200 rounded-md w-1/3 animate-pulse" />
+        <div className="h-3 bg-gray-200 rounded-md w-1/2 animate-pulse" />
+      </div>
+    </div>
+    <div className="h-8 w-16 bg-gray-200 rounded-lg shrink-0 animate-pulse" />
   </div>
 );
 
@@ -130,7 +130,7 @@ export default function VendorDashboardPage() {
   const [showAddRiderModal, setShowAddRiderModal] = useState(false);
   const [editingRiderId, setEditingRiderId] = useState<string | null>(null);
   const [viewingRider, setViewingRider] = useState<any>(null);
-  
+
   const [settingsForm, setSettingsForm] = useState({
     storeOpen: true,
     minOrderFree: '300',
@@ -144,7 +144,7 @@ export default function VendorDashboardPage() {
 
   const [matchingGlobalProducts, setMatchingGlobalProducts] = useState<any[]>([]);
   const [searchingGlobal, setSearchingGlobal] = useState(false);
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -207,7 +207,7 @@ export default function VendorDashboardPage() {
     setLoading(true);
     try {
       const vendorId = session.user.id;
-      
+
       const [productsRes, categoriesRes, profileRes, ordersRes, ridersRes] = await Promise.all([
         fetch(`/api/products?vendor_id=${vendorId}&limit=100`, { cache: 'no-store' }),
         fetch('/api/categories?limit=100', { cache: 'no-store' }),
@@ -226,7 +226,7 @@ export default function VendorDashboardPage() {
 
       const loadedCategories = categoriesJson.data || [];
       setCategories(loadedCategories);
-      
+
       const loadedProducts = (productsJson.data || []).map((p: any) => ({
         _id: p._id,
         name: p.product_name || p.name || '',
@@ -266,7 +266,7 @@ export default function VendorDashboardPage() {
 
       setOrders(ordersJson.data || []);
       setRiders(ridersJson.data || []);
-      
+
       setProductForm((current) => ({ ...current, categorySlug: current.categorySlug || loadedCategories[0]?.slug || '' }));
     } catch (e: any) {
       setMessage('Unable to load vendor data.');
@@ -298,7 +298,7 @@ export default function VendorDashboardPage() {
       const res = await fetch(`/api/products?search=${encodeURIComponent(name)}&limit=5`);
       const json = await res.json();
       const items = json.data || [];
-      setMatchingGlobalProducts(items.filter((item: any) => 
+      setMatchingGlobalProducts(items.filter((item: any) =>
         (item.name || item.product_name || '').toLowerCase().includes(name.toLowerCase())
       ));
     } catch (err) {
@@ -425,18 +425,18 @@ export default function VendorDashboardPage() {
   };
 
   const orderStatusMap: Record<string, { label: string; color: string }> = {
-    'Order Placed':     { label: 'Order Placed',     color: 'bg-yellow-100 dark:bg-yellow-950/30 text-yellow-800 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-900/20 text-xs font-semibold' },
-    'Order Confirmed':  { label: 'Order Confirmed',  color: 'bg-blue-100 dark:bg-blue-950/30 text-blue-800 dark:text-blue-400 border border-blue-200 dark:border-blue-900/20 text-xs font-semibold' },
-    'Packing':          { label: 'Packing',          color: 'bg-purple-100 dark:bg-purple-950/30 text-purple-800 dark:text-purple-450 border border-purple-200 dark:border-purple-900/20 text-xs font-semibold' },
+    'Order Placed': { label: 'Order Placed', color: 'bg-yellow-100 dark:bg-yellow-950/30 text-yellow-800 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-900/20 text-xs font-semibold' },
+    'Order Confirmed': { label: 'Order Confirmed', color: 'bg-blue-100 dark:bg-blue-950/30 text-blue-800 dark:text-blue-400 border border-blue-200 dark:border-blue-900/20 text-xs font-semibold' },
+    'Packing': { label: 'Packing', color: 'bg-purple-100 dark:bg-purple-950/30 text-purple-800 dark:text-purple-450 border border-purple-200 dark:border-purple-900/20 text-xs font-semibold' },
     'Out for Delivery': { label: 'Out for Delivery', color: 'bg-indigo-100 dark:bg-indigo-950/30 text-indigo-800 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/20 text-xs font-semibold' },
-    'Delivered':        { label: 'Delivered',        color: 'bg-green-100 dark:bg-green-950/30 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-900/20 text-xs font-semibold' },
-    'Cancelled':        { label: 'Cancelled',        color: 'bg-red-100 dark:bg-red-950/30 text-red-800 dark:text-red-400 border border-red-200 dark:border-red-900/20 text-xs font-semibold' },
+    'Delivered': { label: 'Delivered', color: 'bg-green-100 dark:bg-green-950/30 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-900/20 text-xs font-semibold' },
+    'Cancelled': { label: 'Cancelled', color: 'bg-red-100 dark:bg-red-950/30 text-red-800 dark:text-red-400 border border-red-200 dark:border-red-900/20 text-xs font-semibold' },
   };
 
   const orderColumns: Column<any>[] = [
     { key: 'order_number', label: 'Order No.' },
-    { 
-      key: 'customer_mobile', 
+    {
+      key: 'customer_mobile',
       label: 'Customer',
       render: (row) => row.user_id?.name || row.customer_mobile || 'Customer'
     },
@@ -449,9 +449,8 @@ export default function VendorDashboardPage() {
       key: 'payment_method',
       label: 'Payment',
       render: (row) => (
-        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-          row.payment_method === 'COD' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-        }`}>
+        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${row.payment_method === 'COD' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+          }`}>
           {row.payment_method}
         </span>
       )
@@ -460,10 +459,9 @@ export default function VendorDashboardPage() {
       key: 'payment_status',
       label: 'Pay Status',
       render: (row) => (
-        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-          row.payment_status === 'completed' ? 'bg-green-100 text-green-800' :
-          row.payment_status === 'failed' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
-        }`}>{row.payment_status}</span>
+        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${row.payment_status === 'completed' ? 'bg-green-100 text-green-800' :
+            row.payment_status === 'failed' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+          }`}>{row.payment_status}</span>
       )
     },
     {
@@ -496,8 +494,8 @@ export default function VendorDashboardPage() {
         );
       }
     },
-    { 
-      key: 'createdAt', 
+    {
+      key: 'createdAt',
       label: 'Created At',
       render: (row) => {
         const d = new Date(row.createdAt || row.created_at);
@@ -578,19 +576,19 @@ export default function VendorDashboardPage() {
       return;
     }
     try {
-      const legacyMap: Record<string, number> = { 
-        'Order Placed': 0, 
-        'Order Confirmed': 1, 
-        'Packing': 2, 
-        'Out for Delivery': 3, 
-        'Delivered': 4, 
-        'Cancelled': 5 
+      const legacyMap: Record<string, number> = {
+        'Order Placed': 0,
+        'Order Confirmed': 1,
+        'Packing': 2,
+        'Out for Delivery': 3,
+        'Delivered': 4,
+        'Cancelled': 5
       };
       const res = await fetch(`/api/orders/${orderStatusModal.orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          orderStatus: newStatus, 
+        body: JSON.stringify({
+          orderStatus: newStatus,
           status: legacyMap[newStatus],
           otp: orderStatusModal.otp
         }),
@@ -781,14 +779,14 @@ export default function VendorDashboardPage() {
   };
 
   const downloadVendorReport = () => {
-    const csvContent = "data:text/csv;charset=utf-8," 
+    const csvContent = "data:text/csv;charset=utf-8,"
       + [
-          "Metric,Value",
-          `Total Products,${products.length}`,
-          `Total Orders,${orders.length}`,
-          `Total Customers,${vendorCustomers.length}`,
-          `Total Revenue,Rs ${stats.revenue.toFixed(2)}`
-        ].join("\n");
+        "Metric,Value",
+        `Total Products,${products.length}`,
+        `Total Orders,${orders.length}`,
+        `Total Customers,${vendorCustomers.length}`,
+        `Total Revenue,Rs ${stats.revenue.toFixed(2)}`
+      ].join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -822,11 +820,10 @@ export default function VendorDashboardPage() {
                   key={tab.id}
                   type="button"
                   onClick={() => changeTab(tab.id)}
-                  className={`flex w-full items-center gap-3.5 px-4 py-3.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
-                    isActive 
-                      ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] text-emerald-700 shadow-xs scale-[1.01]' 
+                  className={`flex w-full items-center gap-3.5 px-4 py-3.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${isActive
+                      ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] text-emerald-700 shadow-xs scale-[1.01]'
                       : 'text-gray-500 hover:text-emerald-700 hover:bg-[#f6faf7] hover:scale-[1.01]'
-                  }`}
+                    }`}
                 >
                   <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-600' : 'text-gray-400'}`} />
                   {tab.label}
@@ -849,11 +846,10 @@ export default function VendorDashboardPage() {
                   key={tab.id}
                   type="button"
                   onClick={() => changeTab(tab.id)}
-                  className={`flex w-full items-center gap-3.5 px-4 py-3.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
-                    isActive 
-                      ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] text-emerald-700 shadow-xs scale-[1.01]' 
+                  className={`flex w-full items-center gap-3.5 px-4 py-3.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${isActive
+                      ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] text-emerald-700 shadow-xs scale-[1.01]'
                       : 'text-gray-500 hover:text-emerald-700 hover:bg-[#f6faf7] hover:scale-[1.01]'
-                  }`}
+                    }`}
                 >
                   <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-600' : 'text-gray-400'}`} />
                   {tab.label}
@@ -863,9 +859,9 @@ export default function VendorDashboardPage() {
           </nav>
         </div>
 
-        <button 
-          type="button" 
-          onClick={() => { signOut(); router.push('/vendor/login'); }} 
+        <button
+          type="button"
+          onClick={() => { signOut(); router.push('/vendor/login'); }}
           className="flex w-full items-center gap-3.5 px-4 py-3.5 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition"
         >
           <LogOut className="h-5 w-5 text-red-400" />
@@ -900,9 +896,9 @@ export default function VendorDashboardPage() {
           {/* Right Controls */}
           <div className="flex items-center gap-6">
             <div className="relative hidden sm:block w-72">
-              <input 
-                type="text" 
-                placeholder="Search..." 
+              <input
+                type="text"
+                placeholder="Search..."
                 className="w-full h-10 bg-[#f4f7f5] dark:bg-gray-700 rounded-xl pl-10 pr-4 text-xs font-semibold text-gray-700 dark:text-gray-250 placeholder-gray-400 border border-transparent focus:border-[#2bb673]/30 outline-none"
               />
               <Search className="absolute left-3.5 top-3 h-4 w-4 text-gray-400" />
@@ -912,8 +908,8 @@ export default function VendorDashboardPage() {
               <button type="button" className="p-2 hover:bg-[#f6faf7] dark:hover:bg-gray-700/50 hover:text-[#2bb673] rounded-xl transition">
                 <Mail className="h-5 w-5" />
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => changeTab('notifications')}
                 className="p-2 hover:bg-[#f6faf7] dark:hover:bg-gray-700/50 hover:text-[#2bb673] rounded-xl transition relative"
               >
@@ -925,13 +921,17 @@ export default function VendorDashboardPage() {
             <div className="h-8 w-px bg-[#f0f6f2] dark:bg-gray-750" />
 
             {/* Profile Menu */}
-            <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => changeTab('profile')}>
-              <div className="relative h-9 w-9 rounded-full overflow-hidden bg-green-50 border border-green-200">
-                <Image src="/images/product-card-default.jpg" alt="Profile" fill className="object-cover" />
+            <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => changeTab('profile')} title="View Store Profile">
+              <div className="relative h-9 w-9 rounded-full overflow-hidden bg-green-50 border border-green-200 shrink-0 flex items-center justify-center">
+                {profile?.shopImage ? (
+                  <img src={profile.shopImage} alt={profile.name || 'Store Profile'} className="w-full h-full object-cover" />
+                ) : (
+                  <Store className="w-4 h-4 text-green-600" />
+                )}
               </div>
               <div className="hidden sm:block text-left">
                 <p className="text-xs font-black text-gray-900 group-hover:text-[#2bb673] transition">{profile?.name || 'Seller'}</p>
-                <p className="text-[10px] font-bold text-gray-400">Merchant</p>
+                <p className="text-[10px] font-bold text-gray-400">{profile?.businessName || 'Merchant'}</p>
               </div>
               <ChevronDown className="h-4 w-4 text-gray-400" />
             </div>
@@ -945,17 +945,17 @@ export default function VendorDashboardPage() {
           {/* HOME TAB (MODERN 3-COLUMN LAYOUT MATCHING IMAGE) */}
           {activeTab === 'home' && (
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start animate-fadeIn">
-              
+
               {/* Column 1 & 2: Main Area */}
               <div className="xl:col-span-2 space-y-8">
-                
+
                 {/* Discount Special Banner */}
                 <div className="bg-gradient-to-r from-[#2bb673] via-[#24a365] to-[#10b981] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden flex flex-col sm:flex-row justify-between sm:items-center gap-6 border border-emerald-500/10 shadow-lg shadow-emerald-700/5">
                   <div className="relative z-10 space-y-2.5 max-w-md">
                     <h2 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">Get special discounts up to 45%</h2>
                     <p className="text-xs text-emerald-50/90 font-semibold leading-relaxed">Enjoy listing your fresh vegetables, grains, and greens at competitive prices.</p>
                   </div>
-                  <button 
+                  <button
                     type="button"
                     onClick={openAddProduct}
                     className="relative z-10 bg-white text-[#1e613f] hover:text-[#10b981] text-xs font-black px-6 py-3.5 rounded-2xl hover:bg-emerald-50 transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-950/10 shrink-0 cursor-pointer"
@@ -1020,8 +1020,8 @@ export default function VendorDashboardPage() {
                             <div key={p._id} className="border border-gray-100 bg-white rounded-2xl p-3 flex flex-col justify-between hover:shadow-lg hover:shadow-gray-200/40 hover:-translate-y-1 group transition-all duration-300">
                               <div className="relative h-28 w-full bg-[#f4f7f5] rounded-xl overflow-hidden mb-3">
                                 <img src={getSafeProductImage(p.image)} alt={p.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                <button 
-                                  type="button" 
+                                <button
+                                  type="button"
                                   onClick={() => toggleFavorite(p._id)}
                                   className="absolute top-2 right-2 h-7 w-7 bg-white/90 backdrop-blur-xs rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 transition-all cursor-pointer"
                                 >
@@ -1036,7 +1036,7 @@ export default function VendorDashboardPage() {
 
                               <div className="flex justify-between items-center mt-3 pt-2 border-t border-[#f6faf7]">
                                 <span className="text-sm font-black text-gray-950">₹{Number(p.price).toFixed(2)}<span className="text-[10px] text-gray-400 font-bold">/kg</span></span>
-                                <button 
+                                <button
                                   type="button"
                                   onClick={() => editProduct(p)}
                                   className="h-7 w-7 bg-gradient-to-br from-[#2bb673] to-[#10b981] text-white rounded-lg flex items-center justify-center hover:bg-green-600 transition-all hover:scale-105 cursor-pointer shadow-xs"
@@ -1075,8 +1075,8 @@ export default function VendorDashboardPage() {
                             <div key={p._id} className="border border-gray-100 bg-white rounded-2xl p-3 flex flex-col justify-between hover:shadow-lg hover:shadow-gray-200/40 hover:-translate-y-1 group transition-all duration-300">
                               <div className="relative h-28 w-full bg-[#f4f7f5] rounded-xl overflow-hidden mb-3">
                                 <img src={getSafeProductImage(p.image)} alt={p.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                <button 
-                                  type="button" 
+                                <button
+                                  type="button"
                                   onClick={() => toggleFavorite(p._id)}
                                   className="absolute top-2 right-2 h-7 w-7 bg-white/90 backdrop-blur-xs rounded-full flex items-center justify-center shadow-sm text-gray-400 hover:text-red-500 transition-all cursor-pointer"
                                 >
@@ -1091,8 +1091,8 @@ export default function VendorDashboardPage() {
 
                               <div className="flex justify-between items-center mt-3 pt-2 border-t border-[#f6faf7]">
                                 <span className="text-sm font-black text-gray-950">₹{Number(p.price).toFixed(2)}<span className="text-[10px] text-gray-400 font-bold">/kg</span></span>
-                                <button 
-                                  type="button" 
+                                <button
+                                  type="button"
                                   onClick={() => editProduct(p)}
                                   className="h-7 w-7 bg-gradient-to-br from-[#2bb673] to-[#10b981] text-white rounded-lg flex items-center justify-center hover:bg-green-600 transition-all hover:scale-105 cursor-pointer shadow-xs"
                                 >
@@ -1116,11 +1116,11 @@ export default function VendorDashboardPage() {
 
               {/* Column 3: Right Sidebar */}
               <div className="space-y-8">
-                
+
                 {/* Income Stat Panel */}
                 <div className="border border-gray-100 bg-white rounded-3xl p-6 space-y-6 shadow-xs">
                   <h3 className="font-extrabold text-base text-gray-900">Income</h3>
-                  
+
                   <div className="grid grid-cols-3 gap-4">
                     {loading ? (
                       Array.from({ length: 3 }).map((_, i) => (
@@ -1141,8 +1141,8 @@ export default function VendorDashboardPage() {
                           <div className="relative h-14 w-14 flex items-center justify-center">
                             <svg className="absolute transform -rotate-90 h-full w-full">
                               <circle cx="28" cy="28" r="22" stroke="#f4fbf7" strokeWidth="3.5" fill="transparent" />
-                              <circle cx="28" cy="28" r="22" stroke="#10b981" strokeWidth="3.5" strokeLinecap="round" fill="transparent" 
-                                strokeDasharray={138} 
+                              <circle cx="28" cy="28" r="22" stroke="#10b981" strokeWidth="3.5" strokeLinecap="round" fill="transparent"
+                                strokeDasharray={138}
                                 strokeDashoffset={138 - (138 * inc.pct) / 100}
                                 className="filter drop-shadow-[0_2px_4px_rgba(16,185,129,0.25)]"
                               />
@@ -1191,7 +1191,7 @@ export default function VendorDashboardPage() {
                 {/* Latest Orders Accept Table panel */}
                 <div className="border border-[#e9f2eb] bg-white rounded-3xl p-6 space-y-5">
                   <h3 className="font-extrabold text-base text-gray-900">Latest order</h3>
-                  
+
                   <div className="divide-y divide-[#f6faf7]">
                     {loading ? (
                       Array.from({ length: 3 }).map((_, i) => (
@@ -1439,12 +1439,12 @@ export default function VendorDashboardPage() {
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white">Order Details</h3>
                         <p className="text-xs text-gray-500 font-semibold mt-0.5">#{viewingOrder.order_number || viewingOrder._id}</p>
                       </div>
-                      <button 
-                        onClick={() => setViewingOrder(null)} 
+                      <button
+                        onClick={() => setViewingOrder(null)}
                         className="text-gray-400 hover:text-gray-650 dark:hover:text-gray-200 cursor-pointer text-xl"
                       >✕</button>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
                       <div className="space-y-4">
                         <div>
@@ -1469,10 +1469,10 @@ export default function VendorDashboardPage() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setAssignRiderModal({ 
-                                    open: true, 
-                                    orderId: viewingOrder._id, 
-                                    currentRiderId: viewingOrder.delivery_boy_id?._id || viewingOrder.delivery_boy_id || '' 
+                                  setAssignRiderModal({
+                                    open: true,
+                                    orderId: viewingOrder._id,
+                                    currentRiderId: viewingOrder.delivery_boy_id?._id || viewingOrder.delivery_boy_id || ''
                                   });
                                   setViewingOrder(null);
                                 }}
@@ -1505,8 +1505,8 @@ export default function VendorDashboardPage() {
                     </div>
 
                     <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-700">
-                      <button 
-                        onClick={() => setViewingOrder(null)} 
+                      <button
+                        onClick={() => setViewingOrder(null)}
                         className="px-6 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-200 transition text-sm font-bold cursor-pointer"
                       >Close</button>
                     </div>
@@ -1515,7 +1515,7 @@ export default function VendorDashboardPage() {
               )}
             </section>
           )
-        }
+          }
 
           {activeTab === 'customers' && (
             <section className="border border-[#e9f2eb] rounded-3xl bg-white p-5 sm:p-8 animate-fadeIn space-y-6">
@@ -1621,15 +1621,15 @@ export default function VendorDashboardPage() {
                     <input className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Rider Name" value={riderForm.name} onChange={(e) => setRiderForm({ ...riderForm, name: e.target.value })} required />
                     <input type="email" className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Email Address" value={riderForm.email} onChange={(e) => setRiderForm({ ...riderForm, email: e.target.value })} required />
                     <input className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Mobile Number" value={riderForm.mobile_number} onChange={(e) => setRiderForm({ ...riderForm, mobile_number: e.target.value })} maxLength={10} required />
-                    <input 
-                      type="password" 
-                      className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" 
-                      placeholder={editingRiderId ? "Password (leave blank to keep current)" : "Password"} 
-                      value={riderForm.password} 
-                      onChange={(e) => setRiderForm({ ...riderForm, password: e.target.value })} 
-                      required={!editingRiderId} 
+                    <input
+                      type="password"
+                      className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]"
+                      placeholder={editingRiderId ? "Password (leave blank to keep current)" : "Password"}
+                      value={riderForm.password}
+                      onChange={(e) => setRiderForm({ ...riderForm, password: e.target.value })}
+                      required={!editingRiderId}
                     />
-                    
+
                     <select className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" value={riderForm.vehicle_type} onChange={(e) => setRiderForm({ ...riderForm, vehicle_type: e.target.value })} required>
                       <option value="Bike">Bike</option>
                       <option value="Scooter">Scooter</option>
@@ -1637,13 +1637,13 @@ export default function VendorDashboardPage() {
                       <option value="Van">Van</option>
                       <option value="Auto">Auto</option>
                     </select>
-                    
+
                     <input className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Vehicle Number" value={riderForm.vehicle_number} onChange={(e) => setRiderForm({ ...riderForm, vehicle_number: e.target.value })} required />
-                    
+
                     <div className="flex gap-3 sm:col-span-2">
                       {editingRiderId && (
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => {
                             setEditingRiderId(null);
                             setRiderForm({ name: '', email: '', mobile_number: '', password: '', vehicle_type: 'Bike', vehicle_number: '' });
@@ -1706,8 +1706,8 @@ export default function VendorDashboardPage() {
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white">Rider Details</h3>
                         <p className="text-xs text-gray-500 font-semibold mt-0.5">ID: {viewingRider._id}</p>
                       </div>
-                      <button 
-                        onClick={() => setViewingRider(null)} 
+                      <button
+                        onClick={() => setViewingRider(null)}
                         className="text-gray-400 hover:text-gray-650 dark:hover:text-gray-200 cursor-pointer text-xl"
                       >✕</button>
                     </div>
@@ -1748,8 +1748,8 @@ export default function VendorDashboardPage() {
                     </div>
 
                     <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-700">
-                      <button 
-                        onClick={() => setViewingRider(null)} 
+                      <button
+                        onClick={() => setViewingRider(null)}
                         className="px-6 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-200 transition text-sm font-bold cursor-pointer"
                       >Close</button>
                     </div>
@@ -1848,7 +1848,7 @@ export default function VendorDashboardPage() {
                     </label>
                   </div>
                 </div>
-                
+
                 <button type="submit" disabled={saving} className="flex h-12 items-center rounded-xl justify-center gap-2 bg-[#2bb673] text-sm font-extrabold text-white disabled:opacity-70 sm:col-span-2 hover:bg-green-600 transition">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Profile Details'}
                 </button>
@@ -1887,7 +1887,7 @@ export default function VendorDashboardPage() {
                     <label className="text-xs font-bold text-gray-700">Handling & Packaging Charge (₹)</label>
                     <input className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" value={settingsForm.handlingCharge} onChange={(e) => setSettingsForm({ ...settingsForm, handlingCharge: e.target.value })} required />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-700">Open Hours</label>
                     <input type="time" className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" value={settingsForm.openTime} onChange={(e) => setSettingsForm({ ...settingsForm, openTime: e.target.value })} required />
@@ -1937,7 +1937,7 @@ export default function VendorDashboardPage() {
             </button>
           );
         })}
-        
+
         {/* More Tab */}
         <button
           onClick={() => setShowMobileMore(!showMobileMore)}
@@ -1958,7 +1958,7 @@ export default function VendorDashboardPage() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-3">
               {[
                 { id: 'add', label: 'Add Product', icon: PackagePlus },
@@ -1987,8 +1987,8 @@ export default function VendorDashboardPage() {
                 );
               })}
             </div>
-            
-            <button 
+
+            <button
               onClick={() => { signOut(); router.push('/vendor/login'); }}
               className="w-full py-4 text-center border border-red-100 bg-red-50 text-red-600 rounded-2xl text-xs font-black hover:bg-red-100 transition"
             >
@@ -2001,20 +2001,20 @@ export default function VendorDashboardPage() {
       {showProductModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-2xl border border-[#e9f2eb] relative animate-fadeIn max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <button 
+            <button
               type="button"
-              onClick={closeModal} 
+              onClick={closeModal}
               className="absolute top-4 right-4 h-9 w-9 bg-[#f4f7f5] hover:bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-700 transition"
             >
               <X className="h-5 w-5" />
             </button>
 
             <h2 className="text-xl font-black text-gray-950 mb-6">{editingId ? 'Edit Product' : 'Add Product'}</h2>
-            
+
             <form onSubmit={saveProduct} className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2 relative">
                 <input className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Product Name" value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} required />
-                
+
                 {matchingGlobalProducts.length > 0 && (
                   <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-xl space-y-2 relative z-20">
                     <p className="text-xs font-bold text-green-800">Similar products found in master catalog. Click one to copy its details:</p>
@@ -2047,19 +2047,19 @@ export default function VendorDashboardPage() {
                 <label className="text-xs font-bold text-gray-500">Price (₹)</label>
                 <input type="number" step="0.01" className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Price" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: e.target.value })} required />
               </div>
-              
+
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-500">Category</label>
                 <select className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" value={productForm.categorySlug} onChange={(e) => setProductForm({ ...productForm, categorySlug: e.target.value })} required>
                   {categories.map((category) => <option key={category._id} value={category.slug}>{category.name}</option>)}
                 </select>
               </div>
-              
+
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-500">Stock Quantity</label>
                 <input type="number" className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Stock" value={productForm.stock} onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })} required />
               </div>
-              
+
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-500">Discount %</label>
                 <input type="number" max="100" min="0" className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Discount %" value={productForm.discount} onChange={(e) => setProductForm({ ...productForm, discount: e.target.value })} />
@@ -2069,12 +2069,12 @@ export default function VendorDashboardPage() {
                 <label className="text-xs font-bold text-gray-500">Image URL</label>
                 <input className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Image URL" value={productForm.image} onChange={(e) => setProductForm({ ...productForm, image: e.target.value })} required />
               </div>
-              
+
               <div className="sm:col-span-2 space-y-1">
                 <label className="text-xs font-bold text-gray-500">Description</label>
                 <textarea className="w-full min-h-24 border border-gray-200 rounded-xl bg-gray-50 p-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Description" value={productForm.description} onChange={(e) => setProductForm({ ...productForm, description: e.target.value })} required />
               </div>
-              
+
               <div className="flex gap-3 sm:col-span-2 mt-2">
                 <button type="button" onClick={closeModal} className="h-12 flex-1 rounded-xl border border-gray-200 text-sm font-extrabold text-gray-600 hover:bg-gray-50 transition">Cancel</button>
                 <button type="submit" disabled={saving} className="flex h-12 flex-1 rounded-xl items-center justify-center gap-2 bg-[#2bb673] text-sm font-extrabold text-white hover:bg-green-600 transition disabled:opacity-70">

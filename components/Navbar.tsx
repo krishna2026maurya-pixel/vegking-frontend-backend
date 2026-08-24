@@ -224,10 +224,10 @@ export default function Navbar() {
           <div className="flex items-center justify-between gap-4">
 
             {/* Logo */}
-            <Link href="/" className="group flex items-center gap-2 transition-transform duration-200 hover:scale-[1.01] shrink-0">
+            <Link href="/" className="group flex items-center gap-2">
               <Image src="/logo.png" alt="Organic Vatika" width={55} height={55} priority className="object-contain" />
               <span className="text-lg sm:text-xl font-extrabold tracking-tight text-text-brand transition-colors duration-200">
-                Veg<span className="text-[#6b4308] group-hover:text-[#80520d] transition-colors duration-200">King</span>
+                Veg<span className="text-[#6b4308]  transition-colors duration-200">King</span>
               </span>
             </Link>
 
@@ -648,8 +648,8 @@ export default function Navbar() {
             <Link
               href={isApprovedVendor ? '/vendor/dashboard' : '/partner'}
               className={`px-4 py-2 text-xs font-extrabold transition-all duration-300 flex items-center gap-1.5 ${pathname === '/partner' || (isApprovedVendor && pathname?.startsWith('/vendor'))
-                  ? 'bg-primary text-white shadow-md shadow-primary/10'
-                  : 'text-gray-600 hover:text-primary hover:bg-gray-50'
+                ? 'bg-primary text-white shadow-md shadow-primary/10'
+                : 'text-gray-600 hover:text-primary hover:bg-gray-50'
                 }`}
             >
               <Store className="w-3.5 h-3.5" strokeWidth={2.2} />

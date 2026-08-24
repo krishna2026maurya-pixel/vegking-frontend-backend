@@ -246,8 +246,8 @@ export default function SubscriptionsPage() {
         <p className="text-gray-500 mb-8">
           You have no active subscriptions yet. Subscribe to your favorite wholesale organic produce for automated recurring delivery!
         </p>
-        <button 
-          onClick={() => router.push('/')} 
+        <button
+          onClick={() => router.push('/')}
           className="w-full sm:w-auto px-8 py-3.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl shadow-lg transition-all hover:-translate-y-0.5"
         >
           Explore Wholesale Produce
@@ -259,170 +259,167 @@ export default function SubscriptionsPage() {
   return (
     <>
       <div className="max-w-4xl mx-auto px-4">
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
-            <Calendar className="w-8 h-8 text-green-600" />
-            My Subscriptions
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">Manage and track your recurring wholesale organic deliveries</p>
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
+              <Calendar className="w-8 h-8 text-green-600" />
+              My Subscriptions
+            </h1>
+            <p className="text-gray-500 text-sm mt-1">Manage and track your recurring wholesale organic deliveries</p>
+          </div>
+          <button
+            onClick={() => router.push('/')}
+            className="self-start sm:self-center flex items-center gap-2 px-5 py-2.5 bg-green-50 text-green-700 hover:bg-green-100 font-bold rounded-xl transition-colors text-sm"
+          >
+            <PlusCircle className="w-4 h-4" /> Subscribe to More
+          </button>
         </div>
-        <button 
-          onClick={() => router.push('/')}
-          className="self-start sm:self-center flex items-center gap-2 px-5 py-2.5 bg-green-50 text-green-700 hover:bg-green-100 font-bold rounded-xl transition-colors text-sm"
-        >
-          <PlusCircle className="w-4 h-4" /> Subscribe to More
-        </button>
-      </div>
 
-      <div className="space-y-6">
-        {subscriptions.map((sub) => {
-          const product = sub.productId || {};
-          const fallbackImg = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?q=80&w=900&auto=format&fit=crop';
-          const imageUrl = product.image || fallbackImg;
+        <div className="space-y-6">
+          {subscriptions.map((sub) => {
+            const product = sub.productId || {};
+            const fallbackImg = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?q=80&w=900&auto=format&fit=crop';
+            const imageUrl = product.image || fallbackImg;
 
-          const basePrice = (product.price || 0) * sub.quantity;
-          const recurringPrice = Math.round(basePrice * (sub.frequency === 'weekly' ? 0.9 : 0.85));
+            const basePrice = (product.price || 0) * sub.quantity;
+            const recurringPrice = Math.round(basePrice * (sub.frequency === 'weekly' ? 0.9 : 0.85));
 
-          return (
-            <div key={sub._id} className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-md">
-              {/* Header Info Panel */}
-              <div className="p-6 md:p-8 flex flex-wrap justify-between items-center gap-4 bg-gray-50/40 border-b border-gray-100/50">
-                <div className="flex items-center gap-4">
-                  <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
-                    <Calendar className="w-6 h-6 text-green-600" />
+            return (
+              <div key={sub._id} className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-md">
+                {/* Header Info Panel */}
+                <div className="p-6 md:p-8 flex flex-wrap justify-between items-center gap-4 bg-gray-50/40 border-b border-gray-100/50">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
+                      <Calendar className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Frequency & Delivery</p>
+                      <p className="font-extrabold text-gray-900 text-base capitalize">
+                        {sub.frequency} Delivery ({sub.deliveryDate})
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Frequency & Delivery</p>
-                    <p className="font-extrabold text-gray-900 text-base capitalize">
-                      {sub.frequency} Delivery ({sub.deliveryDate})
-                    </p>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    {getVerificationBadge(sub.verificationStatus)}
+                    {getStatusBadge(sub.status)}
                   </div>
                 </div>
-                
-                <div className="flex flex-wrap items-center gap-3">
-                  {getVerificationBadge(sub.verificationStatus)}
-                  {getStatusBadge(sub.status)}
-                </div>
-              </div>
 
-              {/* Product Preview Body */}
-              <div className="p-6 md:p-8">
-                <div className="flex flex-col sm:flex-row items-center gap-6">
-                  {/* Image container */}
-                  <div className="relative w-28 h-28 bg-white border border-gray-100 rounded-3xl overflow-hidden p-3 flex-shrink-0 flex items-center justify-center shadow-sm">
-                    <img 
-                      src={imageUrl} 
-                      alt={product.name || 'Vegetable'} 
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  </div>
+                {/* Product Preview Body */}
+                <div className="p-6 md:p-8">
+                  <div className="flex flex-col sm:flex-row items-center gap-6">
+                    {/* Image container */}
+                    <div className="relative w-28 h-28 bg-white border border-gray-100 rounded-3xl overflow-hidden p-3 flex-shrink-0 flex items-center justify-center shadow-sm">
+                      <img
+                        src={imageUrl}
+                        alt={product.name || 'Vegetable'}
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </div>
 
-                  {/* Details */}
-                  <div className="flex-grow text-center sm:text-left space-y-2">
-                    <h3 className="font-extrabold text-xl text-gray-900">
-                      {product.name || 'Unknown Vegetable'}
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      High-quality organic wholesale selection.
-                    </p>
-                    <div className="flex flex-wrap justify-center sm:justify-start items-center gap-y-2 gap-x-6 pt-2">
-                      <div className="text-center sm:text-left">
-                        <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Volume (Packs)</p>
-                        <p className="font-bold text-gray-800 text-sm">{sub.quantity} pack(s)</p>
-                      </div>
-                      <div className="text-center sm:text-left">
-                        <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Subscribed Date</p>
-                        <p className="font-bold text-gray-800 text-sm">
-                          {new Date(sub.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="text-center sm:text-left">
-                        <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Next Delivery</p>
-                        <p className={`font-bold text-sm ${sub.nextDeliveryDate ? 'text-indigo-600' : 'text-gray-400'}`}>
-                          {sub.nextDeliveryDate
-                            ? new Date(sub.nextDeliveryDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
-                            : 'Pending approval'
-                          }
-                        </p>
-                      </div>
-                      <div className="text-center sm:text-left">
-                        <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Recurring Price</p>
-                        <p className="font-extrabold text-green-600 text-sm">₹{recurringPrice}</p>
+                    {/* Details */}
+                    <div className="flex-grow text-center sm:text-left space-y-2">
+                      <h3 className="font-extrabold text-xl text-gray-900">
+                        {product.name || 'Unknown Vegetable'}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        High-quality organic wholesale selection.
+                      </p>
+                      <div className="flex flex-wrap justify-center sm:justify-start items-center gap-y-2 gap-x-6 pt-2">
+                        <div className="text-center sm:text-left">
+                          <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Volume (Packs)</p>
+                          <p className="font-bold text-gray-800 text-sm">{sub.quantity} pack(s)</p>
+                        </div>
+                        <div className="text-center sm:text-left">
+                          <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Subscribed Date</p>
+                          <p className="font-bold text-gray-800 text-sm">
+                            {new Date(sub.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="text-center sm:text-left">
+                          <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Next Delivery</p>
+                          <p className={`font-bold text-sm ${sub.nextDeliveryDate ? 'text-indigo-600' : 'text-gray-400'}`}>
+                            {sub.nextDeliveryDate
+                              ? new Date(sub.nextDeliveryDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
+                              : 'Pending approval'
+                            }
+                          </p>
+                        </div>
+                        <div className="text-center sm:text-left">
+                          <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Recurring Price</p>
+                          <p className="font-extrabold text-green-600 text-sm">₹{recurringPrice}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <hr className="my-6 border-gray-100" />
+                  <hr className="my-6 border-gray-100" />
 
-                {/* Dashboard Action panel */}
-                <div className="flex flex-wrap justify-between items-center gap-4">
-                  <span className="text-xs text-gray-400 font-medium">
-                    ID: {sub._id}
-                  </span>
-                  
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <button 
-                      disabled={updatingId === sub._id || sub.status === 'cancelled'}
-                      onClick={() => openEditModal(sub)}
-                      className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 font-bold text-sm transition-all ${
-                        updatingId === sub._id || sub.status === 'cancelled' ? 'opacity-40 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      <Edit2 className="w-3.5 h-3.5" /> Edit
-                    </button>
-                    <button 
-                      disabled={updatingId === sub._id || sub.status === 'cancelled'}
-                      onClick={() => handlePauseResume(sub._id, sub.status)}
-                      className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 font-bold text-sm transition-all ${
-                        updatingId === sub._id || sub.status === 'cancelled' ? 'opacity-40 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      {updatingId === sub._id ? (
-                        <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 border-t-gray-600 animate-spin" />
-                      ) : sub.status === 'active' ? (
-                        <Pause className="w-3.5 h-3.5" />
-                      ) : (
-                        <Play className="w-3.5 h-3.5" strokeWidth={2.5} />
-                      )}
-                      {updatingId === sub._id ? (
-                        'Processing...'
-                      ) : sub.status === 'active' ? (
-                        'Pause'
-                      ) : (
-                        'Resume'
-                      )}
-                    </button>
-                    <button 
-                      disabled={updatingId === sub._id || sub.status === 'cancelled'}
-                      onClick={() => handleCancelSubscription(sub._id)}
-                      className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 font-bold text-sm transition-all ${
-                        updatingId === sub._id || sub.status === 'cancelled' ? 'opacity-40 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" /> Cancel
-                    </button>
+                  {/* Dashboard Action panel */}
+                  <div className="flex flex-wrap justify-between items-center gap-4">
+                    <span className="text-xs text-gray-400 font-medium">
+                      ID: {sub._id}
+                    </span>
+
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                      <button
+                        disabled={updatingId === sub._id || sub.status === 'cancelled'}
+                        onClick={() => openEditModal(sub)}
+                        className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 font-bold text-sm transition-all ${updatingId === sub._id || sub.status === 'cancelled' ? 'opacity-40 cursor-not-allowed' : ''
+                          }`}
+                      >
+                        <Edit2 className="w-3.5 h-3.5" /> Edit
+                      </button>
+                      <button
+                        disabled={updatingId === sub._id || sub.status === 'cancelled'}
+                        onClick={() => handlePauseResume(sub._id, sub.status)}
+                        className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 font-bold text-sm transition-all ${updatingId === sub._id || sub.status === 'cancelled' ? 'opacity-40 cursor-not-allowed' : ''
+                          }`}
+                      >
+                        {updatingId === sub._id ? (
+                          <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 border-t-gray-600 animate-spin" />
+                        ) : sub.status === 'active' ? (
+                          <Pause className="w-3.5 h-3.5" />
+                        ) : (
+                          <Play className="w-3.5 h-3.5" strokeWidth={2.5} />
+                        )}
+                        {updatingId === sub._id ? (
+                          'Processing...'
+                        ) : sub.status === 'active' ? (
+                          'Pause'
+                        ) : (
+                          'Resume'
+                        )}
+                      </button>
+                      <button
+                        disabled={updatingId === sub._id || sub.status === 'cancelled'}
+                        onClick={() => handleCancelSubscription(sub._id)}
+                        className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 font-bold text-sm transition-all ${updatingId === sub._id || sub.status === 'cancelled' ? 'opacity-40 cursor-not-allowed' : ''
+                          }`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Cancel
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
 
       {/* Edit Subscription Modal */}
       {isEditModalOpen && editingSub && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fadeIn">
           <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 max-w-md w-full relative shadow-2xl border border-gray-100 flex flex-col gap-5 sm:gap-6 animate-scaleIn max-h-[90vh] overflow-y-auto">
-            <button 
-              onClick={() => setIsEditModalOpen(false)} 
+            <button
+              onClick={() => setIsEditModalOpen(false)}
               className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 text-2xl font-bold transition-colors"
             >
               ×
             </button>
-            
+
             <div>
               <h3 className="text-2xl font-extrabold text-gray-900">Edit Subscription</h3>
               <p className="text-gray-500 text-xs mt-1">Modify your recurring fresh delivery of {editingSub.productId?.name}</p>
@@ -431,9 +428,9 @@ export default function SubscriptionsPage() {
             {/* Product Preview */}
             <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100/50">
               <div className="relative w-16 h-16 bg-white border border-gray-100 rounded-xl overflow-hidden p-2 flex items-center justify-center flex-shrink-0">
-                <img 
-                  src={editingSub.productId?.image || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?q=80&w=900&auto=format&fit=crop'} 
-                  alt={editingSub.productId?.name || 'Vegetable'} 
+                <img
+                  src={editingSub.productId?.image || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?q=80&w=900&auto=format&fit=crop'}
+                  alt={editingSub.productId?.name || 'Vegetable'}
                   className="max-h-full max-w-full object-contain"
                 />
               </div>
@@ -447,15 +444,15 @@ export default function SubscriptionsPage() {
             <div className="flex flex-col gap-2">
               <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Quantity (Packs)</label>
               <div className="flex items-center gap-4 bg-gray-50 rounded-2xl p-1.5 self-start border border-gray-100">
-                <button 
-                  onClick={() => setEditQty(q => Math.max(1, q - 1))} 
+                <button
+                  onClick={() => setEditQty(q => Math.max(1, q - 1))}
                   className="w-10 h-10 rounded-xl bg-white border border-gray-100 text-gray-700 font-bold hover:bg-gray-100 active:scale-95 transition-all flex items-center justify-center"
                 >
                   -
                 </button>
                 <span className="font-extrabold text-gray-900 text-base min-w-[24px] text-center">{editQty}</span>
-                <button 
-                  onClick={() => setEditQty(q => q + 1)} 
+                <button
+                  onClick={() => setEditQty(q => q + 1)}
                   className="w-10 h-10 rounded-xl bg-white border border-gray-100 text-gray-700 font-bold hover:bg-gray-100 active:scale-95 transition-all flex items-center justify-center"
                 >
                   +
@@ -467,30 +464,28 @@ export default function SubscriptionsPage() {
             <div className="flex flex-col gap-2">
               <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Delivery Frequency</label>
               <div className="grid grid-cols-2 gap-4">
-                <div 
+                <div
                   onClick={() => {
                     setEditFreq('weekly');
                     setEditDeliveryDate('Monday');
                   }}
-                  className={`border-2 rounded-2xl p-4 cursor-pointer text-center transition-all ${
-                    editFreq === 'weekly' 
-                      ? 'border-green-600 bg-green-50/50 shadow-sm' 
+                  className={`border-2 rounded-2xl p-4 cursor-pointer text-center transition-all ${editFreq === 'weekly'
+                      ? 'border-green-600 bg-green-50/50 shadow-sm'
                       : 'border-gray-100 hover:border-gray-200 bg-white'
-                  }`}
+                    }`}
                 >
                   <div className="font-extrabold text-gray-900 text-sm">Weekly</div>
                   <div className="text-[10px] font-bold text-green-600 uppercase tracking-wider mt-1">Save 10% Extra</div>
                 </div>
-                <div 
+                <div
                   onClick={() => {
                     setEditFreq('monthly');
                     setEditDeliveryDate('1st of the month');
                   }}
-                  className={`border-2 rounded-2xl p-4 cursor-pointer text-center transition-all ${
-                    editFreq === 'monthly' 
-                      ? 'border-green-600 bg-green-50/50 shadow-sm' 
+                  className={`border-2 rounded-2xl p-4 cursor-pointer text-center transition-all ${editFreq === 'monthly'
+                      ? 'border-green-600 bg-green-50/50 shadow-sm'
                       : 'border-gray-100 hover:border-gray-200 bg-white'
-                  }`}
+                    }`}
                 >
                   <div className="font-extrabold text-gray-900 text-sm">Monthly</div>
                   <div className="text-[10px] font-bold text-green-600 uppercase tracking-wider mt-1">Save 15% Extra</div>
@@ -540,7 +535,7 @@ export default function SubscriptionsPage() {
             </div>
 
             {/* Submit Button */}
-            <button 
+            <button
               disabled={isSavingEdit}
               onClick={handleSaveEdit}
               className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-extrabold rounded-2xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"

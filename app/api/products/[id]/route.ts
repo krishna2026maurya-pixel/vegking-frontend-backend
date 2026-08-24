@@ -6,7 +6,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     await connectDB();
     const { id } = await params;
-    const item = await Product.findById(id).lean();
+    const item = await Product.findById(id)
+      .populate('vendor_id', 'shop_name full_name shop_image is_verified city address')
+      .lean();
     if (!item) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
     return NextResponse.json({ success: true, data: item });
   } catch (e: any) { return NextResponse.json({ success: false, error: e.message }, { status: 500 }); }

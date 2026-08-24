@@ -17,9 +17,11 @@ export async function proxy(request: NextRequest) {
 
     console.log(`\n\x1b[1m\x1b[33m--> [REQUEST]\x1b[0m \x1b[1m${methodColor}${method}\x1b[0m \x1b[0m${url}\x1b[0m`);
 
-    // Print warning if they are requesting API endpoints without the /api prefix
-    const apiKeywords = ['orders', 'products', 'delivery-boys', 'categories', 'vendor-add-products', 'wishlist', 'cart', 'auth'];
-    const isMissingApiPrefix = !pathname.startsWith('/api') && apiKeywords.some(keyword => pathname.includes(keyword));
+    // Print warning if they are requesting API endpoints without the /api prefix (ignore page routes)
+    const validPageRoutes = ['/cart', '/products', '/orders', '/login', '/signup', '/checkout', '/profile', '/vendors', '/subscriptions'];
+    const isPageRoute = validPageRoutes.some(route => pathname === route || pathname.startsWith(route + '/'));
+    const apiKeywords = ['delivery-boys', 'vendor-add-products', 'wishlist'];
+    const isMissingApiPrefix = !pathname.startsWith('/api') && !isPageRoute && apiKeywords.some(keyword => pathname.includes(keyword));
     
     if (isMissingApiPrefix) {
       console.warn(`\x1b[31m⚠️ [WARNING]: Missing '/api' prefix in request path! Did you mean '/api${pathname}${search}'?\x1b[0m`);

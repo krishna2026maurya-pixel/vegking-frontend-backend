@@ -56,12 +56,12 @@ export default function VendorsPage() {
           <p className="text-gray-500 text-sm mt-1">Check back later for new sellers joining our network.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-10">
           {vendors.map((vendor) => (
             <Link
               key={vendor._id}
               href={`/vendors/${vendor._id}`}
-              className="group flex flex-col justify-between border border-gray-100 rounded-3xl bg-white p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:border-green-200"
+              className="group flex flex-col justify-between border border-gray-100 rounded-3xl bg-white p-10 shadow-sm hover:shadow-lg transition-all duration-300 hover:border-green-200"
             >
               <div className="space-y-4">
                 <div className="flex h-14 w-14 items-center justify-center bg-green-50 text-green-700 rounded-2xl group-hover:bg-green-600 group-hover:text-white transition-colors duration-300 overflow-hidden">
@@ -79,10 +79,10 @@ export default function VendorsPage() {
                     Proprietor: {vendor.full_name}
                   </p>
                 </div>
-                {vendor.city && (
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
-                    <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                    <span>{vendor.city}</span>
+                {(vendor.city || vendor.gps_location || vendor.address || vendor.state) && (
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium line-clamp-1">
+                    <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                    <span className="truncate">{vendor.city || vendor.gps_location || vendor.address || vendor.state}</span>
                   </div>
                 )}
               </div>
