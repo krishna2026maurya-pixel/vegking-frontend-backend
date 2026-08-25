@@ -198,6 +198,7 @@ export default function ProductCard({ product }: { product: any }) {
             onChange={(e) => setQty(e.target.value)}
             style={styles.qtySelect}
           >
+<<<<<<< HEAD
             {options.map((o: any) => (
               <option key={o} value={o}>{o}</option>
             ))}
@@ -206,6 +207,60 @@ export default function ProductCard({ product }: { product: any }) {
         </div>
         <div style={inStock ? styles.stockIn : styles.stockOut}>
           {inStock ? `${stockCount} in stock` : 'Out of stock'}
+=======
+            <Heart
+              className={`w-3 h-3 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-400'
+                }`}
+            />
+          </button>
+
+          {/* Bottom Right Circular Green Plus / Stepper Button */}
+          <div className="absolute bottom-1 right-1 z-10">
+            {cartQty > 0 ? (
+              <div className="bg-[#16a34a] text-white flex items-center justify-between rounded-full px-1.5 py-0.5 gap-1 shadow-md h-6">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    updateQuantity(product?._id, cartQty - 1, e);
+                  }}
+                  className="font-black text-xs p-0.5 active:scale-75 cursor-pointer"
+                >
+                  <Minus className="w-2.5 h-2.5" strokeWidth={3} />
+                </button>
+                <span className="font-extrabold text-[10px] select-none px-0.5">{cartQty}</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    updateQuantity(product?._id, cartQty + 1, e);
+                  }}
+                  className="font-black text-xs p-0.5 active:scale-75 cursor-pointer"
+                >
+                  <Plus className="w-2.5 h-2.5" strokeWidth={3} />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (inStock) {
+                    addToCart({ ...product, qty, price: yourPrice }, e);
+                  }
+                }}
+                disabled={!inStock}
+                className="w-6.5 h-6.5 rounded-full bg-[#16a34a] hover:bg-[#15803d] text-white flex items-center justify-center shadow-md active:scale-90 transition-transform cursor-pointer disabled:bg-gray-300"
+                title="Add to cart"
+              >
+                <Plus className="w-3.5 h-3.5" strokeWidth={2.8} />
+              </button>
+            )}
+          </div>
+>>>>>>> 03f5774 (product status verified)
         </div>
 
         {/* price row */}
@@ -219,6 +274,182 @@ export default function ProductCard({ product }: { product: any }) {
             <span style={styles.mrp}>₹{mrp}</span>
             <span style={styles.discountNote}> ({pct}% off)</span>
           </div>
+<<<<<<< HEAD
+=======
+        ) : (
+          /* Standard Desktop Card View */
+          <>
+            {/* Top Left Discount Tag */}
+            {pct > 0 && (
+              <div className="absolute top-2 left-2 z-10 bg-[#256fee] text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded shadow-xs tracking-wider">
+                {pct}% OFF
+              </div>
+            )}
+
+            {/* Top Right Wishlist */}
+            <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsWishlisted(!isWishlisted);
+                }}
+                className="text-gray-400 hover:text-red-500 p-1 bg-white/90 backdrop-blur-xs rounded-full shadow-2xs transition-colors cursor-pointer"
+              >
+                <Heart
+                  className={`w-3.5 h-3.5 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-400'
+                    }`}
+                />
+              </button>
+            </div>
+
+            {/* Product Image */}
+            <div>
+              <Link
+                href={`/product/${product?._id}`}
+                className="relative w-full h-44 rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center block"
+              >
+                <img
+                  src={imgSrc}
+                  alt={product?.name || 'Product'}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  onError={() => setImgSrc(fallbackImage)}
+                />
+              </Link>
+
+              {/* Delivery Time Pill */}
+              <div className="mt-1.5 flex items-center gap-1 bg-gray-100/90 text-gray-600 text-[11px] font-bold px-1.5 py-0.5 rounded w-fit">
+                <Clock className="w-3 h-3 text-gray-500" strokeWidth={2.5} />
+                <span>8 MINS</span>
+              </div>
+
+              {/* Product Title */}
+              <Link href={`/product/${product?._id}`} className="mt-1 block">
+                <h3 className="text-sm font-bold text-gray-900 line-clamp-2 leading-tight hover:text-green-700 transition-colors min-h-[36px]">
+                  {product?.name}
+                </h3>
+              </Link>
+
+              {/* Pack Size / Weight Dropdown */}
+              <div className="mt-0.5">
+                {options.length > 1 ? (
+                  <select
+                    value={qty}
+                    onChange={(e) => setQty(e.target.value)}
+                    className="text-xs text-gray-500 bg-transparent border-none outline-none font-medium cursor-pointer p-0 hover:text-gray-800"
+                  >
+                    {options.map((o: any) => (
+                      <option key={o} value={o}>
+                        {o}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-xs text-gray-500 font-medium block truncate">
+                    {qty}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="mt-2 pt-2 border-t border-gray-100 flex flex-col gap-2">
+              <div className="flex items-baseline justify-between">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-base font-black text-gray-900">
+                    ₹{yourPrice}
+                  </span>
+                  {mrp !== null && pct > 0 && (
+                    <span className="text-xs text-gray-400 line-through">
+                      ₹{mrp}
+                    </span>
+                  )}
+                </div>
+                {pct > 0 && (
+                  <span className="text-[10px] font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded">
+                    {pct}% OFF
+                  </span>
+                )}
+              </div>
+
+              {/* Full Add to Cart Button */}
+              {cartQty > 0 ? (
+                <div className="w-full bg-[#0c831f] text-white flex items-center justify-between rounded-xl px-3 py-2 shadow-xs h-9">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      updateQuantity(product?._id, cartQty - 1, e);
+                    }}
+                    className="font-black text-base hover:scale-110 active:scale-90 transition-transform p-0.5 cursor-pointer"
+                    title="Decrease quantity"
+                  >
+                    <Minus className="w-3.5 h-3.5" strokeWidth={3} />
+                  </button>
+                  <span className="font-extrabold text-sm select-none">
+                    {cartQty} in cart
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      updateQuantity(product?._id, cartQty + 1, e);
+                    }}
+                    className="font-black text-base hover:scale-110 active:scale-90 transition-transform p-0.5 cursor-pointer"
+                    title="Increase quantity"
+                  >
+                    <Plus className="w-3.5 h-3.5" strokeWidth={3} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (inStock) {
+                      addToCart({ ...product, qty, price: yourPrice }, e);
+                    }
+                  }}
+                  disabled={!inStock}
+                  className={`w-full h-9 rounded-xl font-extrabold text-sm tracking-wide transition-all duration-150 active:scale-98 cursor-pointer shadow-xs flex items-center justify-center gap-1.5 ${inStock
+                      ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-600/20'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed border-none'
+                    }`}
+                >
+                  {inStock ? (
+                    <>
+                      <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+                      <span>Add to Cart</span>
+                    </>
+                  ) : (
+                    'Out of Stock'
+                  )}
+                </button>
+              )}
+
+              {/* Full Subscribe & Save Button (Styled like Add to Cart, no arrow icon) */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsSubscribing(true);
+                }}
+                disabled={!inStock}
+                className={`w-full h-9 rounded-xl font-extrabold text-sm tracking-wide transition-all duration-150 active:scale-98 cursor-pointer shadow-xs flex items-center justify-center border ${inStock
+                    ? 'border-green-600 bg-green-50/70 hover:bg-green-600 text-green-700 hover:text-white shadow-green-600/10'
+                    : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
+              >
+                <span>Subscribe & Save</span>
+              </button>
+            </div>
+          </>
+>>>>>>> 03f5774 (product status verified)
         )}
 
         {/* savings pill */}
