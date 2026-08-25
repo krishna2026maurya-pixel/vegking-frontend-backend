@@ -89,6 +89,8 @@ export async function GET(request: NextRequest) {
         subcategorySlug: (p.subcategory || '').toLowerCase().replace(/\s+/g, '-'),
         description:  p.product_description || p.description || '',
         stock:        stockValue > 0 ? stockValue : 0,
+        stock_status: stockValue > 0 ? stockValue : 0,
+        gst:          Number(p.gst) || 0,
         quantity:     p.quantity || '',
         brand:        p.brand || '',
         vendor_id:    p.vendor_id,

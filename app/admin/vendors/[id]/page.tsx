@@ -90,13 +90,16 @@ export default function VendorDetailsPage({ params }: { params: Promise<{ id: st
     {
       key: 'stock_status',
       label: 'Stock',
-      render: (row) => (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-          (row.stock_status ?? 0) <= 5 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-        }`}>
-          {row.stock_status ?? 0}
-        </span>
-      )
+      render: (row: any) => {
+        const count = Number(row.stock_status ?? row.stock ?? 0);
+        return (
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+            count <= 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+          }`}>
+            {count}
+          </span>
+        );
+      }
     },
     { key: 'mrp', label: 'MRP', render: (row) => <span>₹{row.mrp ?? 0}</span> },
     {
