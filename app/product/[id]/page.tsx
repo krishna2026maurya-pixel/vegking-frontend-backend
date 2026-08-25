@@ -89,7 +89,7 @@ export default function ProductDetailPage() {
           discount: item.mrp && item.selling_price ? Math.round(((item.mrp - item.selling_price) / item.mrp) * 100) : 0,
           image: item.product_image || (Array.isArray(item.images) ? item.images[0] : '') || fallbackImage,
           description: item.product_description || item.description || 'Fresh farm produce sourced directly from local growers.',
-          stock: item.stock_status === 1 || item.stock_status === '1' ? 99 : 0,
+          stock: (Number(item.stock_status) > 0 || item.stock_status === 'in_stock' || item.stock_status === '1' || item.stock_status === 1) ? (Number(item.stock_status) || 99) : 0,
           quantity: item.quantity || '1 kg',
           category: item.category || 'Fresh Produce',
           vendor_id: vId,

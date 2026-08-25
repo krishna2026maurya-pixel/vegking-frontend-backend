@@ -4,6 +4,9 @@ import { connectDB } from '@/lib/mongodb';
 import Product from '@/lib/models/Product';
 import Vendor from '@/lib/models/Vendor';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
@@ -71,6 +74,7 @@ export async function GET(request: NextRequest) {
       const price = Number(p.selling_price) || Number(p.total_amt) || 0;
       const discount = mrp > 0 && price > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
 
+      const stockValue = Number(p.stock_status ?? 10);
       return {
         _id:          p._id,
         name:         p.product_name || '',
@@ -84,7 +88,7 @@ export async function GET(request: NextRequest) {
         subcategory:  p.subcategory || '',
         subcategorySlug: (p.subcategory || '').toLowerCase().replace(/\s+/g, '-'),
         description:  p.product_description || p.description || '',
-        stock:        p.stock_status === 1 || p.stock_status === '1' ? 99 : 0,
+        stock:        stockValue > 0 ? stockValue : 0,
         quantity:     p.quantity || '',
         brand:        p.brand || '',
         vendor_id:    p.vendor_id,
