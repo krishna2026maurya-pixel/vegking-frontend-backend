@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import DataTable, { Column, Action, BulkAction } from '../components/DataTable';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, Edit } from 'lucide-react';
 import Link from 'next/link';
 
 interface CategoryType {
@@ -59,7 +59,7 @@ export default function CategoryTypesPage() {
   ];
 
   const actions: Action<CategoryType>[] = [
-    { label: 'Edit', icon: <span className="text-blue-500">Edit</span>, onClick: (row) => window.location.href = `/admin/category-types/${row._id}`, color: 'default' },
+    { label: 'Edit', icon: <Edit size={15} />, onClick: (row) => window.location.href = `/admin/category-types/${row._id}`, color: 'default' },
     { label: 'Delete', icon: <Trash2 size={15} />, color: 'danger',
       onClick: async (row) => {
         if (!confirm(`"${row.name}" delete करें?`)) return;

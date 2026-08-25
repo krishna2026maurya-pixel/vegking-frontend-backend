@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Organic Vatika - Fresh Produce",
+  title: "VegKing - Fresh Produce",
   description: "Get fresh, organic produce delivered to your door.",
 };
 
@@ -29,11 +29,12 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-gray-50">
         <Providers>
           <Navbar />
-          <main className="w-full flex-1 flex flex-col">
+          <main className="w-full flex-1 flex flex-col fade-in">
             {children}
           </main>
           <Footer />

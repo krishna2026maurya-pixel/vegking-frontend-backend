@@ -3,75 +3,52 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Leaf, Phone, Lock, User, UserPlus, Loader2, ShieldCheck, Truck } from 'lucide-react';
+import { Leaf, Mail, Lock, User, UserPlus, Loader2, ShieldCheck, Truck, Phone, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 export default function SignupPage() {
-  const [formData, setFormData] = useState({ name: '', mobileNo: '' });
-  const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'mobile' | 'otp'>('mobile');
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '', mobile_no: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.mobileNo || formData.mobileNo.length < 10) {
-      setError('Please enter your name and a valid mobile number');
-      return;
-    }
     setLoading(true);
     setError('');
-    setMessage('');
 
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/v1/auth/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile_no: formData.mobileNo })
-      });
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
-
-      setMessage(data.message || 'OTP sent successfully! Demo OTP: 1234');
-      setStep('otp');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
       setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otp || otp.length < 4) {
-      setError('Please enter a valid OTP');
       return;
     }
-    setLoading(true);
-    setError('');
-    setMessage('');
+    
+    if (!/^\d{10}$/.test(formData.mobile_no)) {
+      setError('Mobile number must be exactly 10 digits');
+      setLoading(false);
+      return;
+    }
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/v1/auth/verify-otp`, {
+      const { confirmPassword, ...submitData } = formData;
+      const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile_no: formData.mobileNo, otp, name: formData.name })
+        body: JSON.stringify(submitData)
       });
+
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || 'Failed to verify OTP');
-
-      if (data.token) {
-        localStorage.setItem('token', data.token);
+      if (!res.ok) {
+        setError(data.error || 'Signup failed');
+      } else {
+        router.push('/login');
       }
-
-      router.push('/user/dashboard');
     } catch (err: any) {
-      setError(err.message);
+      setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -147,55 +124,73 @@ export default function SignupPage() {
                 Join Organic Vatika for fresh deliveries.
               </p>
 
-              {message && (
-                <div className="mt-3 border border-green-100 bg-green-50 p-3 text-xs font-semibold text-green-600">
-                  {message}
-                </div>
-              )}
-
               {error && (
                 <div className="mt-3 border border-red-100 bg-red-50 p-3 text-xs font-semibold text-red-600 animate-shake">
                   {error}
                 </div>
               )}
 
-              <form onSubmit={step === 'mobile' ? handleSendOtp : handleVerifyOtp} className="mt-4 space-y-3">
-                {step === 'mobile' ? (
-                  <>
-                    <Input
-                      type="text"
-                      placeholder="Full Name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      icon={<User />}
-                      required
-                    />
-                    <Input
-                      type="tel"
-                      placeholder="Mobile Number"
-                      value={formData.mobileNo}
-                      onChange={(e) => setFormData({ ...formData, mobileNo: e.target.value })}
-                      icon={<Phone />}
-                      required
-                    />
-                  </>
-                ) : (
-                  <Input
-                    type="text"
-                    placeholder="Enter OTP"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    icon={<Lock />}
-                    required
-                  />
-                )}
+              <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+                <Input
+                  type="text"
+                  placeholder="Full Name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  icon={<User />}
+                  required
+                />
+                <Input
+                  type="tel"
+                  placeholder="Mobile Number"
+                  value={formData.mobile_no}
+                  onChange={(e) => setFormData({ ...formData, mobile_no: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                  icon={<Phone />}
+                  minLength={10}
+                  maxLength={10}
+                  pattern="[0-9]{10}"
+                  required
+                />
+                <Input
+                  type="email"
+                  placeholder="Email Address"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  icon={<Mail />}
+                  required
+                />
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  icon={<Lock />}
+                  endIcon={
+                    showPassword ? 
+                      <EyeOff onClick={() => setShowPassword(false)} className="h-4 w-4" /> : 
+                      <Eye onClick={() => setShowPassword(true)} className="h-4 w-4" />
+                  }
+                  required
+                />
+                <Input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm Password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  icon={<Lock />}
+                  endIcon={
+                    showConfirmPassword ? 
+                      <EyeOff onClick={() => setShowConfirmPassword(false)} className="h-4 w-4" /> : 
+                      <Eye onClick={() => setShowConfirmPassword(true)} className="h-4 w-4" />
+                  }
+                  required
+                />
 
                 <Button
                   type="submit"
                   disabled={loading}
                   className="w-full h-11 text-xs font-extrabold"
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : step === 'mobile' ? 'Send OTP' : 'Verify & Create Account'}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Account'}
                 </Button>
               </form>
 

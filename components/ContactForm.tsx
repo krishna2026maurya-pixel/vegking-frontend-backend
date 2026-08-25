@@ -53,7 +53,7 @@ export default function ContactForm() {
     ];
     if (allowed.includes(e.key)) return;
     // Allow ctrl+A/C/V/X/Z for copy-paste-undo
-    if ((e.ctrlKey || e.metaKey) && ['a','c','v','x','z'].includes(e.key.toLowerCase())) return;
+    if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x', 'z'].includes(e.key.toLowerCase())) return;
     // Block anything that's not a letter
     if (!/^[A-Za-z]$/.test(e.key)) e.preventDefault();
   };
@@ -65,7 +65,7 @@ export default function ContactForm() {
       'Tab', 'Home', 'End', 'Shift', 'Control', 'Meta'
     ];
     if (allowed.includes(e.key)) return;
-    if ((e.ctrlKey || e.metaKey) && ['a','c','v','x','z'].includes(e.key.toLowerCase())) return;
+    if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x', 'z'].includes(e.key.toLowerCase())) return;
     // Allow digits, +, -, space
     if (!/^[0-9+\-\s]$/.test(e.key)) e.preventDefault();
   };
@@ -73,7 +73,7 @@ export default function ContactForm() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setSubmitError('');
-    
+
     const newErrors: Record<string, string> = {};
     Object.keys(formData).forEach((key) => {
       const err = validateField(key, formData[key as keyof typeof formData]);
@@ -89,7 +89,7 @@ export default function ContactForm() {
     try {
       // DUMMY API CALL: Simulate network request since /api/contact isn't built yet
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      
+
       setSent(true);
       setFormData({ name: '', phone: '', email: '', topic: '', message: '' });
       setErrors({});
@@ -106,7 +106,7 @@ export default function ContactForm() {
           <p className="text-xs font-black uppercase tracking-widest text-green-700">Send a message</p>
           <h2 className="mt-2 text-2xl font-bold text-gray-900 sm:text-3xl">We will get back soon</h2>
         </div>
-        <Send className="hidden h-8 w-8 text-orange-500 sm:block" />
+        {/* <Send className="hidden h-8 w-8 text-orange-500 sm:block" /> */}
       </div>
 
       {submitError && (
@@ -122,8 +122,8 @@ export default function ContactForm() {
         </div>
       ) : (
         <form className="grid gap-4" onSubmit={handleSubmit} noValidate>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="space-y-2">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2">
               <span className="text-xs font-black uppercase tracking-widest text-gray-500">Name *</span>
               <input
                 type="text"
@@ -134,14 +134,13 @@ export default function ContactForm() {
                 onKeyDown={handleNameKeyDown}
                 placeholder="Your full name"
                 required
-                className={`h-12 w-full border bg-gray-50 px-4 text-sm font-semibold text-gray-900 outline-none transition focus:bg-white focus:ring-2 focus:ring-green-500/10 ${
-                  errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-green-500'
-                }`}
+                className={`h-12 w-full border bg-gray-50 px-4 text-sm font-semibold text-gray-900 outline-none transition focus:bg-white focus:ring-2 focus:ring-green-500/10 ${errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-green-500'
+                  }`}
               />
               {errors.name && <span className="text-xs text-red-500 font-bold">{errors.name}</span>}
             </label>
 
-          <label className="space-y-2">
+            <label className="space-y-2">
               <span className="text-xs font-black uppercase tracking-widest text-gray-500">Phone</span>
               <input
                 type="tel"
@@ -151,87 +150,83 @@ export default function ContactForm() {
                 onBlur={handleBlur}
                 onKeyDown={handlePhoneKeyDown}
                 placeholder="+91"
-                className={`h-12 w-full border bg-gray-50 px-4 text-sm font-semibold text-gray-900 outline-none transition focus:bg-white focus:ring-2 focus:ring-green-500/10 ${
-                  errors.phone ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-green-500'
-                }`}
+                className={`h-12 w-full border bg-gray-50 px-4 text-sm font-semibold text-gray-900 outline-none transition focus:bg-white focus:ring-2 focus:ring-green-500/10 ${errors.phone ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-green-500'
+                  }`}
               />
               {errors.phone && <span className="text-xs text-red-500 font-bold">{errors.phone}</span>}
             </label>
-        </div>
+          </div>
 
-        <label className="space-y-2">
-          <span className="text-xs font-black uppercase tracking-widest text-gray-500">Email *</span>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            placeholder="you@example.com"
-            required
-            className={`h-12 w-full border bg-gray-50 px-4 text-sm font-semibold text-gray-900 outline-none transition focus:bg-white focus:ring-2 focus:ring-green-500/10 ${
-              errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-green-500'
-            }`}
-          />
-          {errors.email && <span className="text-xs text-red-500 font-bold">{errors.email}</span>}
-        </label>
+          <label className="space-y-2">
+            <span className="text-xs font-black uppercase tracking-widest text-gray-500">Email *</span>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="you@example.com"
+              required
+              className={`h-12 w-full border bg-gray-50 px-4 text-sm font-semibold text-gray-900 outline-none transition focus:bg-white focus:ring-2 focus:ring-green-500/10 ${errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-green-500'
+                }`}
+            />
+            {errors.email && <span className="text-xs text-red-500 font-bold">{errors.email}</span>}
+          </label>
 
-        <label className="space-y-2">
-          <span className="text-xs font-black uppercase tracking-widest text-gray-500">Topic *</span>
-          <select
-            name="topic"
-            value={formData.topic}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            required
-            className={`h-12 w-full border bg-gray-50 px-4 text-sm font-semibold text-gray-900 outline-none transition focus:bg-white focus:ring-2 focus:ring-green-500/10 ${
-              errors.topic ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-green-500'
-            }`}
+          <label className="space-y-2">
+            <span className="text-xs font-black uppercase tracking-widest text-gray-500">Topic *</span>
+            <select
+              name="topic"
+              value={formData.topic}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              required
+              className={`h-12 w-full border bg-gray-50 px-4 text-sm font-semibold text-gray-900 outline-none transition focus:bg-white focus:ring-2 focus:ring-green-500/10 ${errors.topic ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-green-500'
+                }`}
+            >
+              <option value="" disabled>
+                Choose a support topic
+              </option>
+              <option>Order support</option>
+              <option>Delivery question</option>
+              <option>Subscription help</option>
+              <option>Product quality</option>
+              <option>Bulk enquiry</option>
+            </select>
+            {errors.topic && <span className="text-xs text-red-500 font-bold">{errors.topic}</span>}
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-xs font-black uppercase tracking-widest text-gray-500">Message *</span>
+            <textarea
+              name="message"
+              value={formData.message}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              rows={5}
+              placeholder="Tell us how we can help..."
+              required
+              className={`w-full resize-none border bg-gray-50 px-4 py-3 text-sm font-semibold leading-7 text-gray-900 outline-none transition focus:bg-white focus:ring-2 focus:ring-green-500/10 ${errors.message ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-green-500'
+                }`}
+            />
+            {errors.message && <span className="text-xs text-red-500 font-bold">{errors.message}</span>}
+          </label>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="inline-flex h-12 w-full items-center justify-center gap-2 bg-green-600 px-6 text-sm font-extrabold text-white shadow-md shadow-green-700/15 transition hover:bg-green-700 disabled:bg-gray-400 cursor-pointer sm:w-auto"
           >
-            <option value="" disabled>
-              Choose a support topic
-            </option>
-            <option>Order support</option>
-            <option>Delivery question</option>
-            <option>Subscription help</option>
-            <option>Product quality</option>
-            <option>Bulk enquiry</option>
-          </select>
-          {errors.topic && <span className="text-xs text-red-500 font-bold">{errors.topic}</span>}
-        </label>
-
-        <label className="space-y-2">
-          <span className="text-xs font-black uppercase tracking-widest text-gray-500">Message *</span>
-          <textarea
-            name="message"
-            value={formData.message}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            rows={5}
-            placeholder="Tell us how we can help..."
-            required
-            className={`w-full resize-none border bg-gray-50 px-4 py-3 text-sm font-semibold leading-7 text-gray-900 outline-none transition focus:bg-white focus:ring-2 focus:ring-green-500/10 ${
-              errors.message ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-green-500'
-            }`}
-          />
-          {errors.message && <span className="text-xs text-red-500 font-bold">{errors.message}</span>}
-        </label>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="inline-flex h-12 w-full items-center justify-center gap-2 bg-green-600 px-6 text-sm font-extrabold text-white shadow-md shadow-green-700/15 transition hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed sm:w-auto"
-        >
-          {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <>
-              Send Message
-              <ArrowRight className="h-4 w-4" />
-            </>
-          )}
-        </button>
-      </form>
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                Send Message
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
+          </button>
+        </form>
       )}
     </div>
   );

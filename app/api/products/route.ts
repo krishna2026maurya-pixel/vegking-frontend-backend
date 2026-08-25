@@ -9,15 +9,13 @@ export async function GET(request: NextRequest) {
     await connectDB();
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '10', 10);
+    const limit = parseInt(searchParams.get('limit') || '100', 10); // raised default so all products load
     const search = searchParams.get('search') || '';
     const vendor_id = searchParams.get('vendor_id') || '';
+    const category = searchParams.get('category') || '';
 
     const query: any = {};
     if (search) query.product_name = { $regex: search, $options: 'i' };
-<<<<<<< HEAD
-    if (vendor_id) query.vendor_id = vendor_id;
-=======
     if (vendor_id) {
       if (mongoose.Types.ObjectId.isValid(vendor_id)) {
         query.$or = [
@@ -29,18 +27,81 @@ export async function GET(request: NextRequest) {
       }
     }
     if (category && category !== 'All') query.category = { $regex: category, $options: 'i' };
->>>>>>> 03f5774 (product status verified)
 
-    const [products, total] = await Promise.all([
-      Product.find(query).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    const [rawProducts, totalRaw] = await Promise.all([
+      Product.find(query).sort({ createdAt: -1 }).limit(vendor_id ? limit : 1000).skip(vendor_id ? (page - 1) * limit : 0).lean(),
       Product.countDocuments(query),
     ]);
+
+    let productsList = rawProducts;
+    let total = totalRaw;
+    if (!vendor_id) {
+      const seen = new Map<string, any>();
+      for (const p of rawProducts) {
+        const key = `${(p.product_name || '').trim().toLowerCase()}_${(p.brand || '').trim().toLowerCase()}`;
+        if (!seen.has(key)) {
+          seen.set(key, p);
+        } else {
+          const existing = seen.get(key);
+          const existingPrice = Number(existing.selling_price) || Number(existing.total_amt) || 0;
+          const currentPrice = Number(p.selling_price) || Number(p.total_amt) || 0;
+          if (currentPrice < existingPrice) {
+            seen.set(key, p);
+          }
+        }
+      }
+      const groupedList = Array.from(seen.values());
+      total = groupedList.length;
+      productsList = groupedList.slice((page - 1) * limit, page * limit);
+    }
+
+    // Normalize to the shape ProductCard expects
+    const products = productsList.map((p: any) => {
+      // Parse images array — stored as JSON string or array
+      let images: string[] = [];
+      if (Array.isArray(p.images) && p.images.length > 0) {
+        images = p.images;
+      } else if (typeof p.product_images === 'string' && p.product_images) {
+        try { images = JSON.parse(p.product_images); } catch { images = []; }
+      }
+      const image = p.product_image || images[0] || '';
+
+      // Discount % derived from mrp vs selling_price
+      const mrp = Number(p.mrp) || 0;
+      const price = Number(p.selling_price) || Number(p.total_amt) || 0;
+      const discount = mrp > 0 && price > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
+
+      return {
+        _id:          p._id,
+        name:         p.product_name || '',
+        price,
+        mrp,
+        discount,
+        image,
+        images,
+        category:     p.category || '',
+        categorySlug: (p.category || '').toLowerCase().replace(/\s+/g, '-'),
+        subcategory:  p.subcategory || '',
+        subcategorySlug: (p.subcategory || '').toLowerCase().replace(/\s+/g, '-'),
+        description:  p.product_description || p.description || '',
+        stock:        p.stock_status === 1 || p.stock_status === '1' ? 99 : 0,
+        quantity:     p.quantity || '',
+        brand:        p.brand || '',
+        vendor_id:    p.vendor_id,
+        vendor_shop_name: p.vendor_shop_name || '',
+        // keep raw fields too for any admin panels
+        product_name: p.product_name,
+        selling_price: p.selling_price,
+        product_image: p.product_image,
+      };
+    });
 
     return NextResponse.json({ success: true, data: products, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
 
 export async function POST(request: NextRequest) {
   try {

@@ -8,7 +8,7 @@ import { Search } from 'lucide-react';
 function ProductsContent() {
     const searchParams = useSearchParams();
 
-    // Read will category from URL, default to 'All'
+    // Read category from URL, default to 'All'
     const selectedCategory = searchParams.get('category') || 'All';
     const categoryId = searchParams.get('category_id');
     const searchQuery = searchParams.get('q')?.trim() || '';
@@ -23,12 +23,12 @@ function ProductsContent() {
         const fetchData = async () => {
             try {
                 setError('');
-                let productUrl = '/api/v1/products?page=1&limit=1000';
+                let productUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/v1/products?page=1&limit=1000`;
                 if (searchQuery) {
                     productUrl += `&search=${encodeURIComponent(searchQuery)}`;
                 }
 
-                let explorePromise = Promise.resolve(null);
+                let explorePromise: Promise<any> = Promise.resolve(null);
                 if (categoryId) {
                     explorePromise = fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/v1/hierarchy/explore?category_id=${categoryId}`, {
                         method: 'GET',
@@ -49,7 +49,7 @@ function ProductsContent() {
                         headers: { Accept: 'application/json' },
                     }),
                     explorePromise
-                ]);
+                ]) as [Response, Response, any];
 
                 const ct = productsRes.headers.get('content-type') || '';
                 if (!ct.includes('application/json')) {
@@ -57,10 +57,19 @@ function ProductsContent() {
                 }
                 const productsData = await productsRes.json();
                 const categoriesData = await categoriesRes.json();
-                
-                // Extract array from standard response format { success: true, data: [...] }
-                const actualProducts = productsData?.data || (Array.isArray(productsData) ? productsData : []);
-                const actualCategories = categoriesData?.data || (Array.isArray(categoriesData) ? categoriesData : []);
+
+                // Extract array from standard response formats
+                const productsArray = Array.isArray(productsData)
+                    ? productsData
+                    : Array.isArray(productsData.data)
+                        ? productsData.data
+                        : [];
+
+                const categoriesArray = Array.isArray(categoriesData)
+                    ? categoriesData
+                    : Array.isArray(categoriesData.data)
+                        ? categoriesData.data
+                        : [];
 
                 if (exploreRes?.success && exploreRes?.data?.subcategories) {
                     setSubcategories(exploreRes.data.subcategories);
@@ -68,7 +77,7 @@ function ProductsContent() {
                     setSubcategories([]);
                 }
 
-                const mappedProducts = (Array.isArray(actualProducts) ? actualProducts : []).map(p => ({
+                const mappedProducts = productsArray.map((p: any) => ({
                     ...p,
                     name: p.name || p.product_name,
                     price: p.price || p.selling_price,
@@ -76,9 +85,9 @@ function ProductsContent() {
                     discount: p.discount || p.discount_percent || (p.mrp && p.selling_price ? ((p.mrp - p.selling_price) / p.mrp * 100).toFixed(1) : 0),
                     stock: p.stock || p.stock_status || (p.in_stock ? 100 : 0)
                 }));
-                
+
                 setProducts(mappedProducts);
-                setCategories(Array.isArray(actualCategories) ? actualCategories.filter((category: any) => category.isActive) : []);
+                setCategories(categoriesArray.filter((c: any) => c.isActive !== false));
             } catch (err) {
                 console.error('Failed to fetch products:', err);
                 setError('Products are not available right now. Please try again shortly.');
@@ -94,7 +103,7 @@ function ProductsContent() {
             clearInterval(refresh);
             window.removeEventListener('focus', fetchData);
         };
-    }, [searchQuery]);
+    }, [searchQuery, categoryId]);
 
     const selectedCategoryData = categories.find((category) =>
         category.slug?.toLowerCase() === selectedCategory.toLowerCase() ||
@@ -113,7 +122,12 @@ function ProductsContent() {
         const matchesCategory = !hasCategoryFilter || (
             product.categorySlug?.toLowerCase() === selectedCategory.toLowerCase() ||
             product.category?.toLowerCase() === selectedCategory.toLowerCase() ||
-            (selectedCategoryData && product.category?.toLowerCase() === selectedCategoryData.name.toLowerCase()) ||
+            product.subcategory?.toLowerCase() === selectedCategory.toLowerCase() ||
+            product.subcategorySlug?.toLowerCase() === selectedCategory.toLowerCase() ||
+            (selectedCategoryData && (
+                product.category?.toLowerCase() === selectedCategoryData.name.toLowerCase() ||
+                product.subcategory?.toLowerCase() === selectedCategoryData.name.toLowerCase()
+            )) ||
             product.category === categoryId
         );
 
@@ -135,7 +149,7 @@ function ProductsContent() {
 
     return (
         <div className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8 py-10">
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-8 sm:px-6 lg:px-8">
                 <div className="mb-2 border-b border-gray-100 pb-5">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                         <div>
@@ -158,7 +172,7 @@ function ProductsContent() {
 
                 {subcategories.length > 0 && (
                     <div className="flex flex-wrap gap-2 pb-2">
-                        <button 
+                        <button
                             onClick={() => setSelectedSubcategoryId(null)}
                             className={`px-5 py-2 rounded-full text-sm font-semibold transition-colors ${!selectedSubcategoryId ? 'bg-primary text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                         >
@@ -177,9 +191,22 @@ function ProductsContent() {
                 )}
 
                 {loading ? (
-                    <div className="grid grid-cols-2 justify-items-center gap-4 md:grid-cols-3 xl:grid-cols-5">
-                        {[...Array(8)].map((_, i) => (
-                            <div key={i} className="h-[310px] w-full max-w-[220px] animate-pulse rounded-xl border border-gray-100 bg-white shadow-sm" />
+                    <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-4.5">
+                        {Array.from({ length: 12 }).map((_, idx) => (
+                            <div
+                                key={idx}
+                                className="w-full h-[175px] sm:h-[370px] bg-white border border-gray-100 rounded-2xl p-1.5 sm:px-4 sm:py-3.5 animate-pulse flex flex-col justify-between"
+                            >
+                                <div>
+                                    <div className="w-full aspect-square sm:h-44 bg-gray-100 rounded-xl mb-1.5 sm:mb-3"></div>
+                                    <div className="w-12 sm:w-16 h-2 sm:h-3 bg-gray-100 rounded mb-1 sm:mb-2"></div>
+                                    <div className="w-full h-3 sm:h-4 bg-gray-100 rounded mb-1"></div>
+                                </div>
+                                <div className="pt-1 sm:pt-2 border-t border-gray-50 flex items-center justify-between">
+                                    <div className="w-10 sm:w-16 h-3 sm:h-4 bg-gray-100 rounded"></div>
+                                    <div className="hidden sm:block w-full h-8 bg-gray-100 rounded-xl mt-1"></div>
+                                </div>
+                            </div>
                         ))}
                     </div>
                 ) : error ? (
@@ -187,7 +214,7 @@ function ProductsContent() {
                         {error}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 justify-items-center gap-4 md:grid-cols-3 xl:grid-cols-5">
+                    <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-4.5">
                         {filtered.length > 0 ? (
                             filtered.map(product => (
                                 <ProductCard key={product._id} product={product} />

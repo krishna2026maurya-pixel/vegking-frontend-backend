@@ -3,76 +3,74 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Leaf, LogIn, Phone, Lock, Loader2, ShieldCheck, Truck } from 'lucide-react';
+import { signIn } from 'next-auth/react';
+import { Leaf, LogIn, Mail, Lock, Loader2, ShieldCheck, Truck, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 export default function LoginPage() {
   const [mobileNo, setMobileNo] = useState('');
   const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'mobile' | 'otp'>('mobile');
+  const [step, setStep] = useState(1);
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!mobileNo || mobileNo.length < 10) {
-      setError('Please enter a valid mobile number');
+    if (!mobileNo) {
+      setError('Mobile number is required');
+      return;
+    }
+    if (!/^\d{10}$/.test(mobileNo)) {
+      setError('Mobile number must be exactly 10 digits');
       return;
     }
     setLoading(true);
     setError('');
-    setMessage('');
-
+    
+    // Call our custom send-otp endpoint or simulate for now
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/v1/auth/send-otp`, {
+      const res = await fetch('/api/v1/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobile_no: mobileNo })
       });
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
-
-      setMessage(data.message || 'OTP sent successfully! Demo OTP: 1234');
-      setStep('otp');
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || 'Failed to send OTP');
+      } else {
+        setStep(2);
+      }
     } catch (err: any) {
-      setError(err.message);
+      setError('Something went wrong.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!otp || otp.length < 4) {
-      setError('Please enter a valid OTP');
-      return;
-    }
     setLoading(true);
     setError('');
-    setMessage('');
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/v1/auth/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile_no: mobileNo, otp })
+      const res = await signIn('user-login', {
+        mobile_no: mobileNo,
+        otp,
+        redirect: false,
       });
-      const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || 'Failed to verify OTP');
-
-      // Store token (e.g. localStorage)
-      if (data.token) {
-        localStorage.setItem('token', data.token);
+      if (res?.error) {
+        setError(res.error);
+      } else {
+        const callbackUrl = typeof window !== 'undefined'
+          ? (new URLSearchParams(window.location.search).get('callbackUrl') || '/cart')
+          : '/cart';
+        router.push(callbackUrl);
       }
-
-      router.push('/user/dashboard');
     } catch (err: any) {
-      setError(err.message);
+      setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -87,6 +85,7 @@ export default function LoginPage() {
             alt="Fresh vegetables from Organic Vatika"
             fill
             priority
+            sizes="(max-width: 1024px) 100vw, 450px"
             className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-accent-dark/95 via-accent-dark/55 to-accent-dark/20" />
@@ -125,6 +124,7 @@ export default function LoginPage() {
               alt="Fresh vegetables from Organic Vatika"
               fill
               priority
+              sizes="(max-width: 1024px) 100vw, 450px"
               className="object-cover"
             />
             <div className="absolute inset-0 bg-white/92" />
@@ -148,29 +148,38 @@ export default function LoginPage() {
                 Enter your credentials to access your account.
               </p>
 
-              {message && (
-                <div className="mt-3 border border-green-100 bg-green-50 p-3 text-xs font-semibold text-green-600">
-                  {message}
-                </div>
-              )}
-
               {error && (
                 <div className="mt-3 border border-red-100 bg-red-50 p-3 text-xs font-semibold text-red-600 animate-shake">
                   {error}
                 </div>
               )}
 
-              <form onSubmit={step === 'mobile' ? handleSendOtp : handleVerifyOtp} className="mt-4 space-y-3">
-                {step === 'mobile' ? (
+              {step === 1 ? (
+                <form onSubmit={handleSendOtp} className="mt-4 space-y-3">
                   <Input
                     type="tel"
                     placeholder="Mobile Number"
                     value={mobileNo}
-                    onChange={(e) => setMobileNo(e.target.value)}
+                    onChange={(e) => setMobileNo(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     icon={<Phone />}
+                    minLength={10}
+                    maxLength={10}
+                    pattern="[0-9]{10}"
                     required
                   />
-                ) : (
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-11 text-xs font-extrabold"
+                  >
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send OTP'}
+                  </Button>
+                </form>
+              ) : (
+                <form onSubmit={handleLogin} className="mt-4 space-y-3">
+                  <div className="text-xs font-medium text-green-600 bg-green-50 p-2 border border-green-100 rounded-md">
+                    OTP sent successfully
+                  </div>
                   <Input
                     type="text"
                     placeholder="Enter OTP"
@@ -179,16 +188,22 @@ export default function LoginPage() {
                     icon={<Lock />}
                     required
                   />
-                )}
-
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full h-11 text-xs font-extrabold"
-                >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : step === 'mobile' ? 'Send OTP' : 'Verify & Login'}
-                </Button>
-              </form>
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-11 text-xs font-extrabold"
+                  >
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Login'}
+                  </Button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setStep(1); setOtp(''); setError(''); }} 
+                    className="w-full text-xs text-gray-500 hover:underline pt-2 block"
+                  >
+                    Back to Mobile Number
+                  </button>
+                </form>
+              )}
 
               <p className="mt-4 text-center text-xs font-semibold text-gray-600">
                 Don&apos;t have an account?{' '}

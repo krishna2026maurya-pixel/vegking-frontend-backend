@@ -10,6 +10,7 @@ const shopLinks = [
   { href: '/contact', label: 'Contact' },
   { href: '/cart', label: 'Cart' },
   { href: '/login', label: 'Orders' },
+  { href: '/vendor/login', label: 'Vendor Login' },
 ];
 
 const helpLinks = [
@@ -34,7 +35,7 @@ export default function Footer() {
           {/* Logo & Slogan Column */}
           <div className="space-y-4">
             <Link href="/" className="group inline-flex items-center gap-2.5">
-              <Image src="/logo.PNG" alt="Organic Vatika" width={44} height={44} priority className="object-contain" />
+              <Image src="/logo.png" alt="Organic Vatika" width={44} height={44} priority className="object-contain" />
             </Link>
             <p className="max-w-sm text-xs sm:text-sm leading-relaxed text-green-100/80 font-medium">
               Fresh, organic, and locally grown vegetables delivered quickly from trusted farms to your kitchen. Healthy living starts here.
@@ -89,7 +90,7 @@ export default function Footer() {
               </p>
               <p className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-green-300 shrink-0" />
-                hello@veggiemart.local
+                hello@vegking.local
               </p>
               <p className="flex items-center gap-3">
                 <MapPin className="h-4 w-4 text-green-300 shrink-0" />

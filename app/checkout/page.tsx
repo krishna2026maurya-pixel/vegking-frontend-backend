@@ -2,24 +2,31 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+import { useAuth } from '@/context/AuthContext';
 
-import { MapPin, CreditCard, ShoppingBag, Loader2, CheckCircle2 } from 'lucide-react';
+import { MapPin, CreditCard, ShoppingBag, Loader2, CheckCircle2, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
+// Dynamically import the map picker to avoid SSR issues with window/google
+const GoogleMapAddressPicker = dynamic(
+    () => import('@/components/GoogleMapAddressPicker'),
+    { ssr: false }
+);
 
 export default function CheckoutPage() {
     const { cart, cartTotal, removeFromCart } = useCart();
     const [address, setAddress] = useState('');
+    const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
     const [loading, setLoading] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('COD');
     const [success, setSuccess] = useState(false);
     const [orderId, setOrderId] = useState<string | null>(null);
     const [step, setStep] = useState(1);
+    const [showMapPicker, setShowMapPicker] = useState(false);
     const router = useRouter();
 
-    // Mocking session for now until next-auth is fully added
-    const session = { user: { role: 'user', name: 'Test User', email: 'user@gmail.com' } };
-    const status: string = 'authenticated';
+    const { data: session, status } = useAuth();
 
     useEffect(() => {
         if (status === 'loading') return;
@@ -42,6 +49,9 @@ export default function CheckoutPage() {
         });
     };
 
+    const deliveryCharge = cartTotal > 0 && cartTotal < 199 ? 40 : 0;
+    const finalTotal = cartTotal + deliveryCharge;
+
     const handlePlaceOrder = async () => {
         if (!address) return;
         setLoading(true);
@@ -57,11 +67,12 @@ export default function CheckoutPage() {
                             productId: item.productId || item._id,
                             name: item.name,
                             price: item.price,
-                            quantity: item.quantity,
+                            quantity: item.cartQuantity,
                             image: item.image,
                         })),
-                        totalAmount: cartTotal,
+                        totalAmount: finalTotal,
                         shippingAddress: address,
+                        coords,
                     }),
                 });
                 if (res.ok) {
@@ -83,11 +94,12 @@ export default function CheckoutPage() {
                             productId: item.productId || item._id,
                             name: item.name,
                             price: item.price,
-                            quantity: item.quantity,
+                            quantity: item.cartQuantity,
                             image: item.image,
                         })),
-                        totalAmount: cartTotal,
+                        totalAmount: finalTotal,
                         shippingAddress: address,
+                        coords,
                     }),
                 });
                 if (!createRes.ok) {
@@ -105,7 +117,7 @@ export default function CheckoutPage() {
                     key: paymentData.keyId,
                     amount: paymentData.amount,
                     currency: paymentData.currency,
-                    name: 'VeggieMart',
+                    name: 'VegKing',
                     description: 'Order Payment',
                     order_id: paymentData.razorpayOrderId,
                     handler: async (response: any) => {
@@ -122,7 +134,7 @@ export default function CheckoutPage() {
                         });
                         if (verifyRes.ok) {
                             setSuccess(true);
-                            setTimeout(() => router.push('/profile?tab=orders'), 3000);
+                            setTimeout(() => router.push('/profile/orders'), 3000);
                         } else {
                             const vdata = await verifyRes.json().catch(() => ({}));
                             alert(vdata.message || 'Payment verification failed.');
@@ -165,9 +177,9 @@ export default function CheckoutPage() {
                 <div className="p-8 bg-white rounded-3xl shadow-xl shadow-primary/10 text-center border border-gray-100 animate-in zoom-in duration-500">
                     <CheckCircle2 className="mx-auto mb-4 text-green-600 w-16 h-16" />
                     <h2 className="text-2xl font-black mb-2 text-gray-950">Order Placed Successfully!</h2>
-                    {orderId && <p className="mb-4 text-sm font-medium text-gray-500">Your order ID: <span className="font-bold text-gray-900">{orderId}</span></p>}
+                    {orderId && <p className="mb-4 text-sm font-medium text-gray-500">Your order ID: <span className="font-bold text-gray-900">{orderId.toUpperCase()}</span></p>}
                     <Button
-                        onClick={() => router.push('/profile?tab=orders')}
+                        onClick={() => router.push('/profile/orders')}
                         className="mt-4"
                     >
                         View My Orders
@@ -175,19 +187,39 @@ export default function CheckoutPage() {
                 </div>
             ) : (
                 <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-xl shadow-primary/5">
-                    {/* Address input */}
+                    {/* ── Address Section ── */}
                     <div className="mb-6">
-                        <label className="flex items-center gap-2 text-sm font-bold text-gray-950 mb-2">
+                        <label className="flex items-center gap-2 text-sm font-bold text-gray-950 mb-3">
                             <MapPin className="w-4 h-4 text-primary" />
                             Shipping Address
                         </label>
+
+                        {/* Choose from Map button */}
+                        <button
+                            type="button"
+                            onClick={() => setShowMapPicker(true)}
+                            className="w-full mb-3 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 hover:border-primary/60 text-primary font-bold text-sm transition-all group"
+                        >
+                            <Map className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                            {address ? 'Change location on map' : 'Choose location from Google Map'}
+                        </button>
+
+                        {/* Editable textarea — shows selected or manual address */}
                         <textarea
                             value={address}
                             onChange={(e) => setAddress(e.target.value)}
-                            placeholder="Enter your complete shipping address..."
-                            rows={4}
+                            placeholder="Or type your complete shipping address manually..."
+                            rows={3}
                             className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-gray-50/50 resize-none transition-colors text-sm font-medium text-gray-800"
                         />
+
+                        {/* Coords badge — shown when address picked from map */}
+                        {coords && (
+                            <div className="mt-2 flex items-center gap-2 text-xs text-gray-400 font-medium">
+                                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                                Location pinned: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+                            </div>
+                        )}
                     </div>
 
                     {step === 1 ? (
@@ -206,18 +238,55 @@ export default function CheckoutPage() {
                             </h2>
 
                             <div className="space-y-3 bg-green-50/50 border border-green-100/50 p-6 rounded-2xl mb-6">
+                                <div className="space-y-2 mb-4 pb-4 border-b border-green-200/50">
+                                    {cart.map((item: any) => {
+                                        const itemTotal = (parseFloat(item.price) || 0) * (parseInt(item.cartQuantity) || 1);
+                                        return (
+                                            <div key={item.cartId || item._id} className="flex justify-between text-gray-700 text-sm">
+                                                <span className="truncate pr-4">
+                                                    {item.name} <span className="text-gray-500 text-xs ml-1">x{item.cartQuantity}</span>
+                                                </span>
+                                                <span className="font-semibold text-gray-900 flex-shrink-0">₹{itemTotal.toFixed(2)}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                                 <div className="flex justify-between text-gray-600 font-medium text-sm">
-                                    <span>Items ({cart.length})</span>
+                                    <span>Subtotal ({cart.length} items)</span>
                                     <span>₹{Number(cartTotal || 0).toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-gray-600 font-medium text-sm">
                                     <span>Delivery</span>
-                                    <span className="text-green-600 font-bold uppercase tracking-wider text-xs">Free</span>
+                                    {deliveryCharge > 0 ? (
+                                        <span className="text-gray-900 font-bold">₹{deliveryCharge.toFixed(2)}</span>
+                                    ) : (
+                                        <span className="text-green-600 font-bold uppercase tracking-wider text-xs">Free</span>
+                                    )}
                                 </div>
-                                <div className="h-px bg-gray-200/60 my-4"></div>
+                                {deliveryCharge > 0 && (
+                                    <p className="text-xs text-gray-400 text-right mt-1">Add ₹{(199 - cartTotal).toFixed(2)} more for FREE delivery!</p>
+                                )}
+                                <div className="h-px bg-gray-200/60 my-4" />
                                 <div className="flex justify-between text-xl font-black text-gray-950">
                                     <span>Total</span>
-                                    <span className="text-primary">₹{Number(cartTotal || 0).toFixed(2)}</span>
+                                    <span className="text-primary">₹{Number(finalTotal || 0).toFixed(2)}</span>
+                                </div>
+                            </div>
+
+                            {/* Delivery address preview */}
+                            <div className="mb-6 p-4 bg-gray-50 rounded-2xl border border-gray-100 flex gap-3">
+                                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                    <MapPin className="w-4 h-4 text-primary" />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Delivering to</p>
+                                    <p className="text-sm font-semibold text-gray-800 leading-snug">{address}</p>
+                                    <button
+                                        onClick={() => setStep(1)}
+                                        className="text-xs text-primary font-bold mt-1 hover:underline"
+                                    >
+                                        Change
+                                    </button>
                                 </div>
                             </div>
 
@@ -270,6 +339,18 @@ export default function CheckoutPage() {
                         </div>
                     )}
                 </div>
+            )}
+
+            {/* ── Google Map Picker Modal ── */}
+            {showMapPicker && (
+                <GoogleMapAddressPicker
+                    defaultAddress={address}
+                    onSelect={(addr, latlng) => {
+                        setAddress(addr);
+                        setCoords(latlng);
+                    }}
+                    onClose={() => setShowMapPicker(false)}
+                />
             )}
         </div>
     );

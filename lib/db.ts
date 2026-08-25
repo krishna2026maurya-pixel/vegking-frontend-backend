@@ -1,7 +1,7 @@
 import mysql from 'mysql2/promise';
 
 /**
- * Creates a connection to the VegiMart MySQL database.
+ * Creates a connection to the VegKing MySQL database.
  * Ensure your .env.local file has the correct database credentials.
  */
 export async function getDbConnection() {
@@ -9,7 +9,7 @@ export async function getDbConnection() {
     host: process.env.DB_HOST || '127.0.0.1',
     user: process.env.DB_USERNAME || 'root',
     password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_DATABASE || 'vegimart_backend',
+    database: process.env.DB_DATABASE || 'vegking_backend',
   });
 
   return connection;

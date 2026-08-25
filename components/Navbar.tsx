@@ -6,9 +6,13 @@ import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import { Search, ShoppingCart, User, LogOut, ShieldCheck, X, Bell, Clock, ShieldAlert, CheckCircle2, XCircle, Menu, ChevronDown, Package, Store } from 'lucide-react';
+import { Search, ShoppingCart, User, LogOut, ShieldCheck, X, Bell, Clock, ShieldAlert, CheckCircle2, XCircle, Menu, ChevronDown, ChevronRight, Package, Store } from 'lucide-react';
 
 const allProductsCategory = { _id: 'all', name: 'All Products', slug: 'All' };
+const CATEGORY_HIERARCHY: Record<string, string[]> = {
+  'Vegetables': ['Exotic Vegetables', 'Leafy Greens', 'Root Vegetables'],
+};
+const SUBCATEGORIES_SET = new Set(['Exotic Vegetables', 'Leafy Greens', 'Root Vegetables']);
 const alwaysVisibleCategorySlugs = new Set(['dairy', 'herbs', 'organic-daals', 'vegetables', 'fruits', 'seeds',]);
 
 // Dummy Data
@@ -45,6 +49,7 @@ export default function Navbar() {
   const [showProductsMenu, setShowProductsMenu] = useState(false);
   const [activeCategory, setActiveCategory] = useState('All');
   const [navCategories, setNavCategories] = useState([allProductsCategory]);
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
   const activeRole = session?.user?.role || 'guest';
   const isApprovedVendor = activeRole === 'vendor' && session?.user?.vendorStatus === 'approved';
@@ -125,28 +130,56 @@ export default function Navbar() {
   }, [pathname]);
 
   useEffect(() => {
-    // Load Dummy Data instead of fetch
-    setSearchProducts(dummyProducts);
+    const fetchData = async () => {
+      try {
+        const [productsRes, categoriesRes] = await Promise.all([
+          fetch('/api/products?limit=250', { cache: 'no-store' }),
+          fetch('/api/categories?limit=50', { cache: 'no-store' }),
+        ]);
+
+        const productsJson = await productsRes.json();
+        const categoriesJson = await categoriesRes.json();
+
+        const productsArray = Array.isArray(productsJson)
+          ? productsJson
+          : productsJson.data || [];
+        const categoriesArray = Array.isArray(categoriesJson)
+          ? categoriesJson
+          : categoriesJson.data || [];
+
+        setSearchProducts(productsArray);
+
+        const activeCats = categoriesArray.filter(
+          (c: any) => c.isActive !== false && c.is_active !== '0'
+        );
+        // Exclude specific subcategories from the top level
+        const mainCats = activeCats.filter((c: any) => !SUBCATEGORIES_SET.has(c.name));
+        mainCats.sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0));
+
+        setNavCategories([
+          allProductsCategory,
+          ...mainCats.map((cat: any) => ({
+            _id: cat._id,
+            name: cat.name,
+            slug: cat.slug || cat.name.toLowerCase().replace(/\s+/g, '-'),
+          })),
+        ]);
+      } catch (err) {
+        console.error('Failed to fetch navbar data:', err);
+        setSearchProducts(dummyProducts);
+        setNavCategories([
+          allProductsCategory,
+          ...dummyCategories.map((cat) => ({
+            _id: cat._id,
+            name: cat.name,
+            slug: cat.slug,
+          })),
+        ]);
+      }
+    };
+
+    fetchData();
     setNotifications(dummyNotifications);
-
-    const categoriesWithProducts = dummyCategories.filter((category) =>
-      category.isActive &&
-      (alwaysVisibleCategorySlugs.has(category.slug) ||
-        dummyProducts.some((product) =>
-          product.categorySlug?.toLowerCase() === category.slug?.toLowerCase() ||
-          product.category?.toLowerCase() === category.name?.toLowerCase()
-        )
-      )
-    );
-
-    setNavCategories([
-      allProductsCategory,
-      ...categoriesWithProducts.map((cat) => ({
-        _id: cat._id,
-        name: cat.name,
-        slug: cat.slug,
-      })),
-    ]);
   }, []);
 
   const updateSearch = (value: string) => {
@@ -191,10 +224,10 @@ export default function Navbar() {
           <div className="flex items-center justify-between gap-4">
 
             {/* Logo */}
-            <Link href="/" className="group flex items-center gap-2 transition-transform duration-200 hover:scale-[1.01] shrink-0">
-              <Image src="/logo.PNG" alt="Organic Vatika" width={48} height={48} priority className="object-contain" />
+            <Link href="/" className="group flex items-center gap-2">
+              <Image src="/logo.png" alt="Organic Vatika" width={55} height={55} priority className="object-contain" />
               <span className="text-lg sm:text-xl font-extrabold tracking-tight text-text-brand transition-colors duration-200">
-                Organic<span className="text-[#6b4308] group-hover:text-[#80520d] transition-colors duration-200"> Vatika</span>
+                Veg<span className="text-[#6b4308]  transition-colors duration-200">King</span>
               </span>
             </Link>
 
@@ -300,7 +333,7 @@ export default function Navbar() {
                   </button>
 
                   {showNotifications && (
-                    <div className="absolute right-0 mt-3 w-80 sm:w-96 border border-gray-100 bg-white shadow-2xl ring-1 ring-black/5 z-50 overflow-hidden animate-fadeIn">
+                    <div className="absolute -right-24 sm:right-0 mt-3 w-80 sm:w-96 border border-gray-100 bg-white shadow-2xl ring-1 ring-black/5 z-50 overflow-hidden animate-fadeIn">
                       <div className="px-5 py-3 border-b border-gray-50 flex items-center justify-between bg-gray-50">
                         <div className="font-extrabold text-gray-900 text-xs flex items-center gap-1">
                           Notifications
@@ -575,6 +608,16 @@ export default function Navbar() {
               About
             </Link>
 
+            <Link
+              href="/vendors"
+              className={`px-4 py-2 text-xs font-extrabold transition-all duration-300 ${pathname === '/vendors'
+                ? 'bg-primary text-white shadow-md shadow-primary/10'
+                : 'text-gray-600 hover:text-primary hover:bg-gray-50'
+                }`}
+            >
+              Sellers
+            </Link>
+
             <div className="relative" onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
@@ -591,24 +634,61 @@ export default function Navbar() {
               </button>
 
               {showProductsMenu && (
-                <div className="absolute left-0 top-full z-50 mt-0 w-56 overflow-hidden border-l-2 border-primary bg-white shadow-xl ring-1 ring-black/5 animate-fadeIn">
-                  <div className="max-h-[28rem] overflow-y-auto py-1">
-                    {navCategories.map((cat) => (
-                      <Link
-                        key={cat._id || cat.slug}
-                        href={productCategoryHref(cat.slug)}
-                        onClick={() => {
-                          setActiveCategory(cat.slug);
-                          setShowProductsMenu(false);
-                        }}
-                        className={`block px-8 py-3.5 text-sm font-medium transition-all duration-200 ${activeCategory === cat.slug && pathname?.startsWith('/products')
-                          ? 'bg-green-50 text-primary'
-                          : 'text-slate-1200 hover:bg-green-50 hover:text-primary'
-                          }`}
-                      >
-                        {cat.name}
-                      </Link>
-                    ))}
+                <div className="absolute left-0 top-full z-50 mt-0 w-56 border-l-2 border-primary bg-white shadow-xl ring-1 ring-black/5 animate-fadeIn">
+                  <div className="relative py-1">
+                    {navCategories.map((cat) => {
+                      const subItems = CATEGORY_HIERARCHY[cat.name] || [];
+                      const hasSubs = subItems.length > 0;
+                      return (
+                        <div
+                          key={cat._id || cat.slug}
+                          onMouseEnter={() => setHoveredCategory(cat.name)}
+                          onMouseLeave={() => setHoveredCategory(null)}
+                          className="relative group"
+                        >
+                          <Link
+                            href={productCategoryHref(cat.slug)}
+                            onClick={() => {
+                              setActiveCategory(cat.slug);
+                              setShowProductsMenu(false);
+                            }}
+                            className={`flex items-center justify-between px-8 py-3.5 text-sm font-medium transition-all duration-200 ${activeCategory === cat.slug && pathname?.startsWith('/products')
+                              ? 'bg-green-50 text-primary font-bold'
+                              : 'text-slate-1200 hover:bg-green-50 hover:text-primary'
+                              }`}
+                          >
+                            <span>{cat.name}</span>
+                            {hasSubs && (
+                              <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-primary transition-colors duration-200" />
+                            )}
+                          </Link>
+
+                          {/* Subcategory flyout */}
+                          {hasSubs && hoveredCategory === cat.name && (
+                            <div className="absolute left-full top-0 z-50 w-56 border-l border-gray-100 bg-white shadow-2xl ring-1 ring-black/5 animate-fadeIn">
+                              <div className="py-1">
+                                {subItems.map((subName) => {
+                                  const subSlug = subName.toLowerCase().replace(/\s+/g, '-');
+                                  return (
+                                    <Link
+                                      key={subName}
+                                      href={productCategoryHref(subSlug)}
+                                      onClick={() => {
+                                        setActiveCategory(subSlug);
+                                        setShowProductsMenu(false);
+                                      }}
+                                      className={`block px-8 py-3 text-sm font-medium transition-all duration-200 text-slate-1200 hover:bg-green-50 hover:text-primary`}
+                                    >
+                                      {subName}
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -616,16 +696,16 @@ export default function Navbar() {
 
 
 
-            {/* <Link
-              href={isApprovedVendor ? '/vendor/dashboard' : '/sell'}
-              className={`px-4 py-2 text-xs font-extrabold transition-all duration-300 flex items-center gap-1.5 ${pathname?.startsWith('/vendor')
+            <Link
+              href={isApprovedVendor ? '/vendor/dashboard' : '/partner'}
+              className={`px-4 py-2 text-xs font-extrabold transition-all duration-300 flex items-center gap-1.5 ${pathname === '/partner' || (isApprovedVendor && pathname?.startsWith('/vendor'))
                 ? 'bg-primary text-white shadow-md shadow-primary/10'
                 : 'text-gray-600 hover:text-primary hover:bg-gray-50'
                 }`}
             >
               <Store className="w-3.5 h-3.5" strokeWidth={2.2} />
-              {isApprovedVendor ? 'Vendor Dashboard' : 'Sell'}
-            </Link> */}
+              {isApprovedVendor ? 'Vendor Dashboard' : 'Grow With Us'}
+            </Link>
 
             <Link
               href="/contact"
@@ -701,7 +781,17 @@ export default function Navbar() {
                       }`}
                   >
                     <Menu className="h-5 w-5 text-gray-900" />
-                    About Organic Vatika
+                    About VegKing
+                  </Link>
+
+                  <Link
+                    href="/vendors"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-4 px-1 py-3 text-base font-bold transition ${pathname === '/vendors' ? 'text-primary' : 'text-gray-950 hover:text-primary'
+                      }`}
+                  >
+                    <Store className="h-5 w-5 text-gray-900" />
+                    Our Sellers
                   </Link>
                 </div>
 
@@ -728,12 +818,12 @@ export default function Navbar() {
                       </Link>
                     )}
                     <Link
-                      href={isApprovedVendor ? '/vendor/dashboard' : '/sell'}
+                      href={isApprovedVendor ? '/vendor/dashboard' : '/partner'}
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center gap-4 px-1 py-3 text-base font-bold text-gray-950 transition hover:text-primary"
                     >
                       <Store className="h-5 w-5 text-gray-900" />
-                      {isApprovedVendor ? 'Vendor Dashboard' : 'Sell with us'}
+                      {isApprovedVendor ? 'Vendor Dashboard' : 'Grow with us'}
                     </Link>
                   </div>
                 </div>

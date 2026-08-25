@@ -10,8 +10,8 @@ export default function SettingsPage() {
       <div><h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1><p className="text-sm text-gray-500 mt-1">Manage application settings</p></div>
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-4">
         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">General Settings</h2>
-        <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">App Name</label><input defaultValue="VegiMart" className={inputCls} /></div>
-        <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Support Email</label><input defaultValue="support@vegimart.com" className={inputCls} /></div>
+        <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">App Name</label><input defaultValue="VegKing" className={inputCls} /></div>
+        <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Support Email</label><input defaultValue="support@vegking.com" className={inputCls} /></div>
         <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Support Phone</label><input defaultValue="+91 9876543210" className={inputCls} /></div>
         <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency</label><input defaultValue="INR (₹)" className={inputCls} /></div>
       </div>

@@ -13,16 +13,17 @@ interface Order {
   payment_method: 'COD' | 'ONLINE';
   payment_status: 'pending' | 'completed' | 'failed';
   status: number;
+  orderStatus: string;
   created_at: string;
 }
 
-const statusMap: Record<number, { label: string; color: string }> = {
-  0: { label: 'Pending',    color: 'bg-yellow-100 text-yellow-800' },
-  1: { label: 'Confirmed',  color: 'bg-blue-100 text-blue-800' },
-  2: { label: 'Processing', color: 'bg-purple-100 text-purple-800' },
-  3: { label: 'Shipped',    color: 'bg-indigo-100 text-indigo-800' },
-  4: { label: 'Delivered',  color: 'bg-green-100 text-green-800' },
-  5: { label: 'Cancelled',  color: 'bg-red-100 text-red-800' },
+const statusMap: Record<string, { label: string; color: string }> = {
+  'Order Placed':     { label: 'Order Placed',     color: 'bg-yellow-100 text-yellow-800' },
+  'Order Confirmed':  { label: 'Order Confirmed',  color: 'bg-blue-100 text-blue-800' },
+  'Packing':          { label: 'Packing',          color: 'bg-purple-100 text-purple-800' },
+  'Out for Delivery': { label: 'Out for Delivery', color: 'bg-indigo-100 text-indigo-800' },
+  'Delivered':        { label: 'Delivered',        color: 'bg-green-100 text-green-800' },
+  'Cancelled':        { label: 'Cancelled',        color: 'bg-red-100 text-red-800' },
 };
 
 export default function OrdersPage() {
@@ -34,7 +35,7 @@ export default function OrdersPage() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [error, setError] = useState('');
-  const [statusModal, setStatusModal] = useState<{ open: boolean; orderId: string | null; current: number }>({ open: false, orderId: null, current: 0 });
+  const [statusModal, setStatusModal] = useState<{ open: boolean; orderId: string | null; current: string }>({ open: false, orderId: null, current: 'Order Placed' });
   const limit = 10;
 
   const fetchOrders = useCallback(async () => {
@@ -58,20 +59,21 @@ export default function OrdersPage() {
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
-  const applyStatus = async (newStatus: number) => {
+  const applyStatus = async (newStatus: string) => {
     if (!statusModal.orderId) return;
     try {
+      const legacyMap: Record<string, number> = { 'Order Placed': 0, 'Order Confirmed': 1, 'Packing': 2, 'Out for Delivery': 3, 'Delivered': 4, 'Cancelled': 5 };
       const res = await fetch(`/api/orders/${statusModal.orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ orderStatus: newStatus, status: legacyMap[newStatus] }),
       });
       if (!res.ok) throw new Error('Update failed');
       fetchOrders();
     } catch (e: any) {
       alert(e.message);
     } finally {
-      setStatusModal({ open: false, orderId: null, current: 0 });
+      setStatusModal({ open: false, orderId: null, current: 'Order Placed' });
     }
   };
 
@@ -105,10 +107,10 @@ export default function OrdersPage() {
       )
     },
     {
-      key: 'status',
+      key: 'orderStatus' as keyof Order,
       label: 'Status',
       render: (row) => {
-        const s = statusMap[row.status] ?? { label: 'Unknown', color: 'bg-gray-100 text-gray-800' };
+        const s = statusMap[row.orderStatus] ?? { label: row.orderStatus || 'Unknown', color: 'bg-gray-100 text-gray-800' };
         return <span className={clsx('px-2 py-0.5 text-xs font-medium rounded-full', s.color)}>{s.label}</span>;
       }
     },
@@ -125,7 +127,7 @@ export default function OrdersPage() {
     {
       label: 'Change Status',
       icon: <ArrowUpDown size={15} />,
-      onClick: (row) => setStatusModal({ open: true, orderId: row._id, current: row.status }),
+      onClick: (row) => setStatusModal({ open: true, orderId: row._id, current: row.orderStatus || 'Order Placed' }),
       color: 'success'
     },
     {
@@ -217,8 +219,8 @@ export default function OrdersPage() {
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-80">
             <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Change Order Status</h3>
             <select
-              defaultValue={statusModal.current}
-              onChange={(e) => setStatusModal(m => ({ ...m, current: Number(e.target.value) }))}
+              value={statusModal.current}
+              onChange={(e) => setStatusModal(m => ({ ...m, current: e.target.value }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             >
               {Object.entries(statusMap).map(([val, s]) => (
@@ -227,7 +229,7 @@ export default function OrdersPage() {
             </select>
             <div className="flex gap-3">
               <button
-                onClick={() => setStatusModal({ open: false, orderId: null, current: 0 })}
+                onClick={() => setStatusModal({ open: false, orderId: null, current: 'Order Placed' })}
                 className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
               >Cancel</button>
               <button

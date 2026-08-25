@@ -11,28 +11,6 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const { data: session, status: authStatus } = useAuth();
   const isSyncing = useRef(false);
 
-<<<<<<< HEAD
-  const fetchCart = async () => {
-    try {
-      const res = await fetch('/api/v1/cart');
-      const data = await res.json();
-      if (data.success) {
-        // Map backend product schema to match frontend product cards
-        const mappedProducts = (data.data.products || []).map((p: any) => ({
-          _id: p.product_id,
-          name: p.product_name,
-          image: p.product_image,
-          price: p.selling_price,
-          quantity: p.cart_count,
-          unit: p.quantity_unit,
-        }));
-        setCart(mappedProducts);
-        setCartTotal(data.data.pricing.payable_amount || 0);
-      }
-    } catch (e) {
-      console.error('Failed to fetch cart', e);
-    }
-=======
   // Compute total price from cart array
   const calculateTotal = (items: any[]) => {
     return items.reduce((sum, item) => {
@@ -40,7 +18,6 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       const qty = Number(item.cartQuantity || item.quantity || 1);
       return sum + price * qty;
     }, 0);
->>>>>>> 03f5774 (product status verified)
   };
 
   // Fetch cart from backend or fallback to localStorage for guests
@@ -279,20 +256,6 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const removeFromCart = async (id: string) => {
-<<<<<<< HEAD
-    try {
-      const existing = cart.find(c => c._id === id);
-      if (!existing) return;
-      
-      // The user specifically requested to use the toggle API to remove items properly.
-      // Since toggle removes by 1, we loop to remove the full quantity.
-      for (let i = 0; i < existing.quantity; i++) {
-        await fetch('/api/v1/cart/toggle', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ product_id: id, status: 'remove' })
-        });
-=======
     if (!id) return;
     const existing = cart.find((c) => (c.cartId || c._id) === id);
     const qtyToRemove = existing ? existing.cartQuantity || existing.quantity || 1 : 1;
@@ -313,29 +276,10 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } catch (e) {
         console.error('Backend remove from cart error:', e);
->>>>>>> 03f5774 (product status verified)
       }
     }
   };
 
-<<<<<<< HEAD
-  const updateQuantity = async (id: string, quantity: number) => {
-    if (quantity < 0) return; // Allow 0 to remove item
-    const existing = cart.find(c => c._id === id);
-    if (!existing) return;
-    
-    const isAdding = quantity > existing.quantity;
-    const difference = Math.abs(quantity - existing.quantity);
-    
-    try {
-      // The toggle API adds or removes by 1, so loop if difference is > 1
-      for (let i = 0; i < difference; i++) {
-        await fetch('/api/v1/cart/toggle', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ product_id: id, status: isAdding ? 'add' : 'remove' })
-        });
-=======
   const updateQuantity = async (id: string, quantity: number, eventOrElement?: any) => {
     if (!id) return;
     if (quantity <= 0) {
@@ -372,7 +316,6 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } catch (e) {
         console.error('Backend update quantity error:', e);
->>>>>>> 03f5774 (product status verified)
       }
     }
   };

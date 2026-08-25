@@ -15,6 +15,7 @@ interface DeliveryBoy {
   is_active: string;
   wallet_balance: number;
   is_verified: string;
+  vendor_id?: { shop_name: string } | null;
 }
 
 export default function DeliveryBoysPage() {
@@ -73,6 +74,11 @@ export default function DeliveryBoysPage() {
     { key: 'mobile_number', label: 'Mobile' },
     { key: 'vehicle_type', label: 'Vehicle' },
     { key: 'vehicle_number', label: 'Vehicle No.' },
+    {
+      key: 'vendor_id',
+      label: 'Sellers/Vendor',
+      render: (row) => <span>{row.vendor_id?.shop_name || 'Global/Admin'}</span>
+    },
     {
       key: 'wallet_balance',
       label: 'Wallet',
