@@ -32,8 +32,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const order = await Order.findById(id);
     if (!order) return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
 
-    // Enforce OTP check if marking order as Delivered
-    if (body.orderStatus === 'Delivered') {
+    // Enforce OTP check if marking order as Delivered (skip for admin override)
+    if (body.orderStatus === 'Delivered' && !body.isAdmin) {
       if (!body.otp) {
         return NextResponse.json({ success: false, error: 'Delivery OTP is required to complete the order.' }, { status: 400 });
       }
@@ -50,15 +50,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       order.statusHistory.push({
         status: body.orderStatus,
         updatedAt: new Date(),
-        // Note: You can pass updatedBy (DeliveryBoy ID or Admin User ID) inside the body 
-        // to track specifically WHO changed it.
-        updatedBy: body.updatedBy || null, 
+        updatedBy: body.updatedBy || (body.isAdmin ? 'Admin' : null), 
       });
     }
 
     // Apply other updates
     const updateData = { ...body };
     delete updateData.otp;
+    delete updateData.isAdmin;
     Object.assign(order, updateData);
     await order.save();
 
