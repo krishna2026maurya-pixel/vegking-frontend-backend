@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Product from '@/lib/models/Product';
@@ -15,7 +16,16 @@ export async function GET(request: NextRequest) {
 
     const query: any = {};
     if (search) query.product_name = { $regex: search, $options: 'i' };
-    if (vendor_id) query.vendor_id = vendor_id;
+    if (vendor_id) {
+      if (mongoose.Types.ObjectId.isValid(vendor_id)) {
+        query.$or = [
+          { vendor_id: vendor_id },
+          { vendor_id: new mongoose.Types.ObjectId(vendor_id) },
+        ];
+      } else {
+        query.vendor_id = vendor_id;
+      }
+    }
     if (category && category !== 'All') query.category = { $regex: category, $options: 'i' };
 
     const [rawProducts, totalRaw] = await Promise.all([

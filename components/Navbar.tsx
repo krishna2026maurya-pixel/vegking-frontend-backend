@@ -455,19 +455,69 @@ export default function Navbar() {
                     </button>
 
                     {/* Dropdown Menu */}
-                    <div className="absolute right-0 mt-0 w-48 bg-white border border-gray-100 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pt-2 pb-2">
-                      <Link
-                        href={accountHref}
-                        className="block px-4 py-2 text-xs font-bold text-gray-700 hover:bg-green-50 hover:text-primary"
-                      >
-                        {accountLabel}
-                      </Link>
+                    <div className="absolute right-0 mt-0 w-52 bg-white border border-gray-100 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 py-1.5 rounded-xl">
+                      {activeRole === 'admin' && (
+                        <>
+                          <div className="px-4 py-2 bg-amber-50/70 border-b border-amber-100 text-[10px] font-black text-amber-800 uppercase tracking-wider">
+                            Logged in as Admin
+                          </div>
+                          <Link
+                            href="/admin"
+                            className="block px-4 py-2.5 text-xs font-bold text-gray-800 hover:bg-green-50 hover:text-primary transition"
+                          >
+                            ⚙️ Admin Dashboard
+                          </Link>
+                          <Link
+                            href="/profile/orders"
+                            className="block px-4 py-2 text-xs font-medium text-gray-600 hover:bg-green-50 hover:text-primary transition"
+                          >
+                            📦 View System Orders
+                          </Link>
+                        </>
+                      )}
+
+                      {activeRole === 'vendor' && (
+                        <>
+                          <div className="px-4 py-2 bg-green-50/70 border-b border-green-100 text-[10px] font-black text-green-800 uppercase tracking-wider">
+                            Merchant Account
+                          </div>
+                          <Link
+                            href="/vendor/dashboard"
+                            className="block px-4 py-2.5 text-xs font-bold text-gray-800 hover:bg-green-50 hover:text-primary transition"
+                          >
+                            🏪 Vendor Dashboard
+                          </Link>
+                        </>
+                      )}
+
+                      {activeRole === 'user' && (
+                        <>
+                          <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 text-[10px] font-black text-gray-600 uppercase tracking-wider">
+                            Customer Account
+                          </div>
+                          <Link
+                            href="/profile"
+                            className="block px-4 py-2.5 text-xs font-bold text-gray-800 hover:bg-green-50 hover:text-primary transition"
+                          >
+                            👤 My Profile
+                          </Link>
+                          <Link
+                            href="/profile/orders"
+                            className="block px-4 py-2 text-xs font-bold text-gray-800 hover:bg-green-50 hover:text-primary transition"
+                          >
+                            📦 My Orders
+                          </Link>
+                        </>
+                      )}
+
+                      <div className="h-px bg-gray-100 my-1" />
+
                       <button
                         onClick={() => signOut()}
-                        className="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2"
+                        className="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition cursor-pointer"
                       >
                         <LogOut className="w-3.5 h-3.5" />
-                        Logout
+                        {activeRole === 'admin' ? 'Logout (Switch User)' : 'Logout'}
                       </button>
                     </div>
                   </div>
@@ -484,6 +534,7 @@ export default function Navbar() {
               {/* Solid Green Cart Button */}
               {showCart && (
                 <Link
+                  id="navbar-cart-button"
                   href="/cart"
                   aria-label={`Shopping cart with ${cartCount} ${cartCount === 1 ? 'item' : 'items'}`}
                   className="relative inline-flex h-10 w-10 items-center justify-center bg-primary text-white shadow-md shadow-primary/20 transition-all duration-300 hover:bg-primary-hover hover:scale-[1.03] shrink-0"

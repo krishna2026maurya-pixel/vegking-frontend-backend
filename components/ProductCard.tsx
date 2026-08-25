@@ -225,7 +225,7 @@ export default function ProductCard({ product }: { product: any }) {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    updateQuantity(product?._id, cartQty - 1);
+                    updateQuantity(product?._id, cartQty - 1, e);
                   }}
                   className="font-black text-xs p-0.5 active:scale-75 cursor-pointer"
                 >
@@ -237,7 +237,7 @@ export default function ProductCard({ product }: { product: any }) {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    updateQuantity(product?._id, cartQty + 1);
+                    updateQuantity(product?._id, cartQty + 1, e);
                   }}
                   className="font-black text-xs p-0.5 active:scale-75 cursor-pointer"
                 >
@@ -251,7 +251,7 @@ export default function ProductCard({ product }: { product: any }) {
                   e.preventDefault();
                   e.stopPropagation();
                   if (inStock) {
-                    addToCart({ ...product, qty, price: yourPrice });
+                    addToCart({ ...product, qty, price: yourPrice }, e);
                   }
                 }}
                 disabled={!inStock}
@@ -515,14 +515,6 @@ export default function ProductCard({ product }: { product: any }) {
                   </span>
                 )}
               </div>
-
-              {/* Seller / Store Name */}
-              {(product?.vendor_shop_name || product?.vendor_name) && (
-                <div className="mt-1 text-[11px] text-gray-500 font-medium truncate flex items-center gap-1">
-                  <span className="text-gray-400">By:</span>
-                  <span className="font-semibold text-gray-700 truncate">{product.vendor_shop_name || product.vendor_name}</span>
-                </div>
-              )}
             </div>
 
             {/* Bottom Actions */}
@@ -553,7 +545,7 @@ export default function ProductCard({ product }: { product: any }) {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      updateQuantity(product?._id, cartQty - 1);
+                      updateQuantity(product?._id, cartQty - 1, e);
                     }}
                     className="font-black text-base hover:scale-110 active:scale-90 transition-transform p-0.5 cursor-pointer"
                     title="Decrease quantity"
@@ -568,7 +560,7 @@ export default function ProductCard({ product }: { product: any }) {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      updateQuantity(product?._id, cartQty + 1);
+                      updateQuantity(product?._id, cartQty + 1, e);
                     }}
                     className="font-black text-base hover:scale-110 active:scale-90 transition-transform p-0.5 cursor-pointer"
                     title="Increase quantity"
@@ -583,7 +575,7 @@ export default function ProductCard({ product }: { product: any }) {
                     e.preventDefault();
                     e.stopPropagation();
                     if (inStock) {
-                      addToCart({ ...product, qty, price: yourPrice });
+                      addToCart({ ...product, qty, price: yourPrice }, e);
                     }
                   }}
                   disabled={!inStock}

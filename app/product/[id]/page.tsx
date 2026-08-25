@@ -2,16 +2,34 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
-import { ArrowLeft, ShoppingCart, CalendarRange, Star, Truck, ShieldCheck, Clock, Store } from 'lucide-react';
+import ProductCard from '@/components/ProductCard';
+import {
+  ArrowLeft,
+  ShoppingCart,
+  CalendarRange,
+  Truck,
+  ShieldCheck,
+  Clock,
+  Store,
+  CheckCircle,
+  MapPin,
+  ArrowRight,
+  Sparkles,
+  Check,
+  Plus,
+  Minus,
+  X,
+} from 'lucide-react';
 
 const fallbackImage = '/images/product-card-default.jpg';
 
 export default function ProductDetailPage() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
-  const { addToCart } = useCart();
+  const { addToCart, updateQuantity, cart } = useCart();
 
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -25,7 +43,21 @@ export default function ProductDetailPage() {
   const [subFreq, setSubFreq] = useState('weekly');
   const [subQty, setSubQty] = useState(1);
   const [deliveryDate, setDeliveryDate] = useState('Monday');
+
+  // Other sellers selling same product name
   const [sellers, setSellers] = useState<any[]>([]);
+
+  // Similar products
+  const [similarProducts, setSimilarProducts] = useState<any[]>([]);
+  const [similarLoading, setSimilarLoading] = useState(false);
+  const [vendorDetails, setVendorDetails] = useState<any>(null);
+
+  // Scroll to top immediately when product ID changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -38,9 +70,15 @@ export default function ProductDetailPage() {
         if (json.error) throw new Error(json.error);
         const item = json.data;
 
-        const vId = typeof item.vendor_id === 'object' && item.vendor_id !== null ? item.vendor_id._id : item.vendor_id;
-        const vShopName = item.vendor_shop_name || (typeof item.vendor_id === 'object' && item.vendor_id !== null ? item.vendor_id.shop_name : '') || '';
-        const vShopImage = (typeof item.vendor_id === 'object' && item.vendor_id !== null ? item.vendor_id.shop_image : '') || '';
+        const isVendorObj = typeof item.vendor_id === 'object' && item.vendor_id !== null;
+        const vId = isVendorObj ? item.vendor_id._id : item.vendor_id;
+        const vShopName = item.vendor_shop_name || (isVendorObj ? item.vendor_id.shop_name : '') || '';
+        const vShopImage = (isVendorObj ? item.vendor_id.shop_image : '') || '';
+        const vFullName = (isVendorObj ? item.vendor_id.full_name : '') || '';
+        const vIsVerified = (isVendorObj ? item.vendor_id.is_verified : '0') || '0';
+        const vLocation = isVendorObj
+          ? [item.vendor_id.address, item.vendor_id.city, item.vendor_id.state].filter(Boolean).join(', ') || item.vendor_id.gps_location || ''
+          : '';
 
         // Normalize fields
         const normalized = {
@@ -57,30 +95,108 @@ export default function ProductDetailPage() {
           vendor_id: vId,
           vendor_shop_name: vShopName,
           vendor_shop_image: vShopImage,
+          vendor_full_name: vFullName,
+          vendor_is_verified: vIsVerified,
+          vendor_location: vLocation,
         };
 
         setProduct(normalized);
         setImgSrc(normalized.image);
         setQty(normalized.quantity);
 
-        // Fetch other sellers with same product name
+        if (isVendorObj) {
+          setVendorDetails(item.vendor_id);
+        }
+
+        // 1. Fetch other sellers with same product name
         const sellersRes = await fetch(`/api/products?search=${encodeURIComponent(normalized.name)}&limit=100`);
-        const sellersJson = await sellersRes.json();
-        const otherSellers = (sellersJson.data || [])
-          .filter((p: any) =>
-            p.name.toLowerCase() === normalized.name.toLowerCase() &&
-            p._id !== normalized._id
-          )
-          .map((p: any) => ({
-            _id: p._id,
-            vendor_id: p.vendor_id,
-            vendor_name: p.vendor_shop_name || 'Other Seller',
-            price: p.price,
-            mrp: p.mrp,
-            discount: p.discount,
-            stock: p.stock,
-          }));
-        setSellers(otherSellers);
+        if (sellersRes.ok) {
+          const sellersJson = await sellersRes.json();
+          const otherSellers = (sellersJson.data || [])
+            .filter((p: any) =>
+              p.name.toLowerCase() === normalized.name.toLowerCase() &&
+              p._id !== normalized._id
+            )
+            .map((p: any) => ({
+              _id: p._id,
+              vendor_id: p.vendor_id,
+              vendor_name: p.vendor_shop_name || 'Other Seller',
+              price: p.price,
+              mrp: p.mrp,
+              discount: p.discount,
+              stock: p.stock,
+            }));
+          setSellers(otherSellers);
+        }
+
+        // 2. Fetch SIMILAR products in the same category / fresh produce
+        setSimilarLoading(true);
+        try {
+          const categoryQuery = normalized.category && normalized.category !== 'Fresh Produce' ? normalized.category : '';
+          const [simRes, vInfoRes] = await Promise.all([
+            fetch(`/api/products?category=${encodeURIComponent(categoryQuery)}&limit=50`),
+            vId && !isVendorObj ? fetch(`/api/vendors/${vId}`) : Promise.resolve(null),
+          ]);
+
+          if (simRes.ok) {
+            const simJson = await simRes.json();
+            const rawProds = Array.isArray(simJson)
+              ? simJson
+              : Array.isArray(simJson.data)
+              ? simJson.data
+              : [];
+
+            let filtered = rawProds
+              .filter((p: any) => (p._id || p.id) !== normalized._id)
+              .map((p: any) => ({
+                ...p,
+                name: p.name || p.product_name,
+                price: p.price || p.selling_price,
+                image: p.image || p.product_image,
+                discount:
+                  p.discount ||
+                  p.discount_percent ||
+                  (p.mrp && p.selling_price
+                    ? Math.round(((p.mrp - p.selling_price) / p.mrp) * 100)
+                    : 0),
+                stock: p.stock || p.stock_status || (p.in_stock ? 100 : 0),
+              }));
+
+            // Fallback if category has very few items: fetch all products
+            if (filtered.length < 5) {
+              const allRes = await fetch(`/api/products?limit=25`);
+              if (allRes.ok) {
+                const allJson = await allRes.json();
+                const allList = (Array.isArray(allJson.data) ? allJson.data : []).map((p: any) => ({
+                  ...p,
+                  name: p.name || p.product_name,
+                  price: p.price || p.selling_price,
+                  image: p.image || p.product_image,
+                  discount:
+                    p.discount ||
+                    p.discount_percent ||
+                    (p.mrp && p.selling_price
+                      ? Math.round(((p.mrp - p.selling_price) / p.mrp) * 100)
+                      : 0),
+                  stock: p.stock || p.stock_status || (p.in_stock ? 100 : 0),
+                }));
+                const extra = allList.filter((p: any) => (p._id || p.id) !== normalized._id && !filtered.some((f: any) => (f._id || f.id) === (p._id || p.id)));
+                filtered = [...filtered, ...extra];
+              }
+            }
+
+            setSimilarProducts(filtered.slice(0, 15));
+          }
+
+          if (vInfoRes && vInfoRes.ok) {
+            const vInfoJson = await vInfoRes.json();
+            setVendorDetails(vInfoJson.data || vInfoJson);
+          }
+        } catch (e) {
+          console.error('Failed to load similar products:', e);
+        } finally {
+          setSimilarLoading(false);
+        }
       } catch (err: any) {
         setError(err.message || 'Failed to load product details');
       } finally {
@@ -96,17 +212,17 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-20 flex justify-center items-center">
-        <div className="w-10 h-10 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="max-w-6xl mx-auto px-4 py-16 flex justify-center items-center">
+        <div className="w-9 h-9 border-3 border-green-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   if (error || !product) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-20 text-center">
-        <h2 className="text-2xl font-serif font-bold text-red-700 mb-4">{error || 'Product Not Found'}</h2>
-        <button onClick={() => router.push('/products')} className="inline-flex items-center gap-2 text-primary font-bold hover:underline">
+      <div className="max-w-6xl mx-auto px-4 py-16 text-center">
+        <h2 className="text-xl font-serif font-bold text-red-700 mb-3">{error || 'Product Not Found'}</h2>
+        <button onClick={() => router.push('/products')} className="inline-flex items-center gap-2 text-primary font-bold hover:underline text-sm cursor-pointer">
           <ArrowLeft className="w-4 h-4" /> Back to Products
         </button>
       </div>
@@ -118,6 +234,14 @@ export default function ProductDetailPage() {
   const yourPrice = product.price;
   const mrp = product.mrp;
   const saving = mrp - yourPrice;
+
+  const cartItem = cart?.find((c: any) => (c.cartId || c._id) === product?._id);
+  const cartQty = cartItem ? (cartItem.cartQuantity || cartItem.quantity || 0) : 0;
+
+  const vendorName = product.vendor_shop_name || vendorDetails?.shop_name || '';
+  const vendorImage = product.vendor_shop_image || vendorDetails?.shop_image || '';
+  const isVerified = (product.vendor_is_verified === '1' || vendorDetails?.is_verified === '1');
+  const locationText = product.vendor_location || (vendorDetails ? Array.from(new Set([vendorDetails.address, vendorDetails.city, vendorDetails.state].filter(Boolean))).join(', ') || vendorDetails.gps_location : '');
 
   const handleSubscribe = async () => {
     try {
@@ -162,170 +286,297 @@ export default function ProductDetailPage() {
   };
 
   return (
-    <div className="max-w-[80rem] mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <button onClick={() => router.push('/products')} className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-primary transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Back to Products
-      </button>
+    <div className="max-w-[85rem] mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-5 sm:space-y-6">
+      {/* Back button */}
+      <div>
+        <button
+          onClick={() => router.push('/products')}
+          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-gray-500 hover:text-green-700 transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Products
+        </button>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 bg-white border border-gray-100 rounded-3xl p-6 sm:p-10 shadow-sm">
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* ── Compact Main Product Card ──────────────────────────────── */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 bg-white border border-gray-100/90 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xs">
         {/* Left: Product Image */}
-        <div className="flex items-center justify-center bg-gray-50/55 rounded-2xl p-6 relative aspect-square border border-gray-100/50">
+        <div className="flex items-center justify-center bg-gray-50/70 rounded-xl sm:rounded-2xl p-4 relative aspect-square max-h-[300px] sm:max-h-[340px] mx-auto w-full border border-gray-100">
           {pct > 0 && (
-            <span className="absolute top-4 left-4 z-10 rounded-full bg-red-500 px-3.5 py-1 text-xs font-bold text-white shadow-sm">
+            <span className="absolute top-3 left-3 z-10 rounded-full bg-red-500 px-2.5 py-0.5 text-[11px] font-extrabold text-white shadow-xs">
               {pct}% OFF
             </span>
           )}
           <img
             src={imgSrc}
             alt={product.name}
-            className="max-h-[380px] object-contain transition-transform duration-300 hover:scale-105"
+            className="max-h-[240px] sm:max-h-[270px] w-full object-contain transition-transform duration-300 hover:scale-105"
             onError={() => setImgSrc(fallbackImage)}
           />
         </div>
 
-        {/* Right: Product Details */}
-        <div className="flex flex-col gap-5 justify-center">
+        {/* Right: Product Details (Compact, No 'Sold by' on product) */}
+        <div className="flex flex-col gap-3 justify-center">
           <div>
-            <h1 className="text-3xl font-serif font-bold text-gray-900 leading-tight">
+            <p className="text-[11px] font-bold text-green-700 uppercase tracking-wider mb-0.5">
+              {product.category || 'Fresh Produce'}
+            </p>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-serif font-bold text-gray-900 leading-snug">
               {product.name}
             </h1>
-            <p className="text-sm font-medium text-gray-400 mt-1 uppercase tracking-wider">
-              Category: {product.category || 'Fresh Produce'}
-            </p>
           </div>
 
-          <div className="flex items-baseline gap-3">
-            <span className="text-4xl font-extrabold text-gray-900">₹{yourPrice}</span>
+          <div className="flex items-baseline gap-2.5">
+            <span className="text-3xl sm:text-4xl font-extrabold text-gray-900">₹{yourPrice}</span>
             {mrp > yourPrice && (
               <>
-                <span className="text-lg text-gray-400 line-through">₹{mrp}</span>
-                <span className="text-sm font-bold text-green-600">Save ₹{saving} ({pct}% off)</span>
+                <span className="text-base sm:text-lg text-gray-400 line-through">₹{mrp}</span>
+                <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">
+                  Save ₹{saving} ({pct}% off)
+                </span>
               </>
             )}
           </div>
 
-          <div className="border-y border-gray-100 py-4 flex flex-col gap-3">
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-bold text-gray-700 w-24">Sold by:</span>
-              {product.vendor_shop_name ? (
-                product.vendor_id ? (
-                  <Link
-                    href={`/vendors/${product.vendor_id}`}
-                    className="inline-flex items-center gap-2 text-sm font-semibold text-green-700 hover:text-green-800 hover:underline bg-green-50 hover:bg-green-100/70 px-3 py-1.5 rounded-xl transition border border-green-100 shadow-2xs"
-                  >
-                    {product.vendor_shop_image ? (
-                      <img
-                        src={product.vendor_shop_image}
-                        alt={product.vendor_shop_name}
-                        className="w-6 h-6 rounded-full object-cover border border-green-200"
-                      />
-                    ) : (
-                      <Store className="w-4 h-4 text-green-600" />
-                    )}
-                    <span>{product.vendor_shop_name}</span>
-                  </Link>
-                ) : (
-                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-gray-800 bg-gray-100 px-3 py-1.5 rounded-xl border border-gray-200">
-                    {product.vendor_shop_image ? (
-                      <img
-                        src={product.vendor_shop_image}
-                        alt={product.vendor_shop_name}
-                        className="w-6 h-6 rounded-full object-cover"
-                      />
-                    ) : (
-                      <Store className="w-4 h-4 text-green-600" />
-                    )}
-                    <span>{product.vendor_shop_name}</span>
-                  </span>
-                )
-              ) : (
-                <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-800 bg-gray-100 px-3 py-1.5 rounded-xl">
-                  <ShieldCheck className="w-4 h-4 text-green-600" />
-                  <span>VegKing Direct / In-House</span>
-                </span>
-              )}
+          <div className="border-y border-gray-100 py-2.5 flex flex-col gap-2 text-xs sm:text-sm">
+            <div className="flex items-center gap-3">
+              <span className="font-bold text-gray-700 w-20 sm:w-24">Pack Size:</span>
+              <span className="font-semibold text-gray-900 bg-gray-100 px-2.5 py-0.5 rounded-md">{qty}</span>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-bold text-gray-700 w-24">Pack Size:</span>
-              <span className="text-sm font-semibold text-gray-900 bg-gray-100 px-3 py-1 rounded-md">{qty}</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-bold text-gray-700 w-24">Availability:</span>
-              <span className={`text-sm font-bold ${inStock ? 'text-green-600' : 'text-red-600'}`}>
-                {inStock ? 'In Stock (Farm Fresh)' : 'Out of Stock'}
+
+            <div className="flex items-center gap-3">
+              <span className="font-bold text-gray-700 w-20 sm:w-24">Availability:</span>
+              <span className={`font-bold ${inStock ? 'text-green-600' : 'text-red-600'}`}>
+                {inStock ? '● In Stock (Farm Fresh)' : '● Out of Stock'}
               </span>
             </div>
           </div>
 
-          <p className="text-gray-600 text-sm leading-relaxed">
+          <p className="text-gray-600 text-xs sm:text-sm leading-relaxed line-clamp-3 sm:line-clamp-none">
             {product.description}
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 mt-2">
-            <button
-              onClick={() => {
-                addToCart({ ...product, qty, price: yourPrice });
-                setCartClicked(true);
-                setTimeout(() => setCartClicked(false), 200);
-              }}
-              disabled={!inStock}
-              className="flex-1 inline-flex items-center justify-center gap-2 bg-primary text-white py-4 rounded-xl text-sm font-bold transition hover:bg-primary-hover disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md shadow-primary/10"
-            >
-              <ShoppingCart className="w-4 h-4" />
-              {inStock ? (cartClicked ? 'Added!' : 'Add to Cart') : 'Out of Stock'}
-            </button>
+          {/* Action Buttons (Add to Cart & Subscribe & Save - Equal Width) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+            {/* Add to Cart / In-Cart Stepper */}
+            {cartQty > 0 ? (
+              <div className="w-full bg-gradient-to-r from-[#0c831f] to-[#15803d] text-white flex items-center justify-between rounded-2xl px-4 py-2 sm:py-2.5 shadow-md shadow-green-700/25 h-[50px] border border-green-600/40">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    updateQuantity(product._id, cartQty - 1, e);
+                  }}
+                  className="w-8 h-8 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center font-black text-white hover:scale-110 active:scale-90 transition cursor-pointer"
+                  title="Decrease quantity"
+                >
+                  <Minus className="w-4 h-4" strokeWidth={3} />
+                </button>
+                <div className="flex items-center gap-1.5 select-none text-center">
+                  <ShoppingCart className="w-4 h-4 text-green-200 animate-scale-in" strokeWidth={2.5} />
+                  <span className="font-black text-sm sm:text-base tracking-tight">{cartQty} in Cart</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    updateQuantity(product._id, cartQty + 1, e);
+                  }}
+                  className="w-8 h-8 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center font-black text-white hover:scale-110 active:scale-90 transition cursor-pointer"
+                  title="Increase quantity"
+                >
+                  <Plus className="w-4 h-4" strokeWidth={3} />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  addToCart({ ...product, qty, price: yourPrice }, e);
+                  setCartClicked(true);
+                  setTimeout(() => setCartClicked(false), 600);
+                }}
+                disabled={!inStock}
+                className={`w-full relative group inline-flex items-center justify-center gap-2 py-3 sm:py-3.5 px-4 rounded-2xl text-xs sm:text-sm font-black transition-all duration-200 shadow-md active:scale-[0.98] cursor-pointer h-[50px] overflow-hidden ${
+                  inStock
+                    ? 'bg-gradient-to-r from-[#16a34a] via-[#15803d] to-[#047857] hover:from-[#15803d] hover:to-[#065f46] text-white shadow-green-600/30 hover:shadow-lg hover:shadow-green-600/40 border border-green-500/30'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed border-none shadow-none'
+                }`}
+              >
+                {inStock ? (
+                  <>
+                    {cartClicked ? (
+                      <span className="inline-flex items-center gap-1.5 animate-scale-in text-white">
+                        <Check className="w-4 h-4 text-white stroke-[3]" />
+                        <span>Added to Cart!</span>
+                      </span>
+                    ) : (
+                      <>
+                        <ShoppingCart className="w-4 h-4 transition-transform duration-200 group-hover:scale-115" strokeWidth={2.5} />
+                        <span>Add to Cart</span>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  'Out of Stock'
+                )}
+              </button>
+            )}
 
+            {/* Subscribe & Save Button */}
             <button
+              type="button"
               onClick={() => setIsModalOpen(true)}
               disabled={!inStock}
-              className="flex-1 inline-flex items-center justify-center gap-2 border-2 border-primary text-primary py-4 rounded-xl text-sm font-bold transition hover:bg-green-50 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed"
+              className={`w-full relative group inline-flex items-center justify-center gap-2 py-3 sm:py-3.5 px-4 rounded-2xl text-xs sm:text-sm font-extrabold transition-all duration-200 border-2 shadow-xs active:scale-[0.98] cursor-pointer h-[50px] overflow-hidden ${
+                inStock
+                  ? 'border-emerald-600/40 bg-gradient-to-r from-emerald-50/95 via-green-50/80 to-teal-50/70 hover:from-emerald-100 hover:to-green-100/90 text-emerald-950 hover:border-emerald-600/70 shadow-emerald-700/5'
+                  : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+              }`}
             >
-              <CalendarRange className="w-4 h-4" />
-              Subscribe & Save
+              <CalendarRange className="w-4 h-4 text-emerald-700 group-hover:scale-110 transition-transform" strokeWidth={2.3} />
+              <span>Subscribe & Save</span>
             </button>
           </div>
 
           {/* Delivery & Trust Badges */}
-          <div className="grid grid-cols-3 gap-4 border-t border-gray-100 pt-6 mt-2 text-center text-[11px] font-bold text-gray-500">
-            <div className="flex flex-col items-center gap-1.5">
-              <Truck className="w-5 h-5 text-primary" />
+          <div className="grid grid-cols-3 gap-2 border-t border-gray-100 pt-3 text-center text-[10px] sm:text-[11px] font-bold text-gray-500">
+            <div className="flex flex-col items-center gap-1">
+              <Truck className="w-4 h-4 text-primary" />
               <span>Next Day Delivery</span>
             </div>
-            <div className="flex flex-col items-center gap-1.5">
-              <ShieldCheck className="w-5 h-5 text-primary" />
+            <div className="flex flex-col items-center gap-1">
+              <ShieldCheck className="w-4 h-4 text-primary" />
               <span>100% Organic</span>
             </div>
-            <div className="flex flex-col items-center gap-1.5">
-              <Clock className="w-5 h-5 text-primary" />
+            <div className="flex flex-col items-center gap-1">
+              <Clock className="w-4 h-4 text-primary" />
               <span>Direct Farm Pick</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Other Sellers Section */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* ── Similar Products Section (Responsive) ──────────────────── */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      <div className="space-y-3 sm:space-y-4 pt-1">
+        {/* Section Heading */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-2.5 sm:pb-3">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#1e3b2b]">
+              Similar Products
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Explore freshly harvested produce and essentials you might also like.
+            </p>
+          </div>
+
+          <Link
+            href="/products"
+            className="text-xs font-bold text-green-700 hover:text-green-900 inline-flex items-center gap-1 hover:underline self-start sm:self-auto"
+          >
+            <span>View all products</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {/* Similar Products Grid (Responsive: 2-col mobile, 3-col tablet, 4-5 col desktop) */}
+        {similarLoading ? (
+          <div className="flex justify-center items-center py-10">
+            <div className="w-8 h-8 border-3 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : similarProducts.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-4">
+            {similarProducts.map((p) => (
+              <ProductCard key={p._id || p.id} product={p} />
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white border border-gray-100 rounded-2xl p-6 text-center space-y-2">
+            <Sparkles className="mx-auto h-7 w-7 text-gray-300" />
+            <h3 className="text-sm font-bold text-gray-800">
+              Explore more fresh arrivals
+            </h3>
+            <p className="text-xs text-gray-500 max-w-sm mx-auto">
+              Browse our complete catalog to find farm-fresh fruits, vegetables, and organics.
+            </p>
+            <Link
+              href="/products"
+              className="inline-flex items-center gap-1 text-xs font-bold text-green-700 hover:underline pt-1"
+            >
+              <span>Browse catalog</span>
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+        )}
+
+        {/* Bottom Seller Information & 'See More from Seller' bar */}
+        {vendorName && product.vendor_id && (
+          <div className="mt-4 sm:mt-5 bg-gradient-to-r from-green-50/80 via-emerald-50/40 to-white border border-green-100/90 rounded-2xl p-3.5 sm:p-4.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 shadow-2xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white border border-green-200 flex items-center justify-center overflow-hidden shrink-0 shadow-2xs">
+                {vendorImage ? (
+                  <img src={vendorImage} alt={vendorName} className="w-full h-full object-cover" />
+                ) : (
+                  <Store className="w-5 h-5 text-green-700" />
+                )}
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs sm:text-sm font-bold text-gray-900">{vendorName}</span>
+                  {isVerified && (
+                    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold bg-green-100 text-green-800 px-1.5 py-0.2 rounded-full">
+                      <CheckCircle className="w-2.5 h-2.5" /> Verified
+                    </span>
+                  )}
+                </div>
+                {locationText && (
+                  <p className="text-[11px] text-gray-500 flex items-center gap-1 truncate max-w-xs sm:max-w-md">
+                    <MapPin className="w-3 h-3 text-green-600 shrink-0" />
+                    <span className="truncate">{locationText}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <Link
+              href={`/vendors/${product.vendor_id}`}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 bg-green-700 hover:bg-green-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-2xs hover:shadow-xs shrink-0"
+            >
+              <span>See More from this Seller</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* ── Other Sellers for this Exact Item ──────────────────────── */}
+      {/* ───────────────────────────────────────────────────────────── */}
       {sellers.length > 0 && (
-        <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm space-y-6">
-          <div className="border-b border-gray-100 pb-4">
-            <h2 className="text-xl font-serif font-bold text-[#1e3b2b]">Other Sellers</h2>
-            <p className="text-xs text-gray-500 mt-1">This product is also sold by other verified sellers</p>
+        <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-3">
+          <div className="border-b border-gray-100 pb-2.5">
+            <h2 className="text-base sm:text-lg font-serif font-bold text-[#1e3b2b]">Other Sellers for this Item</h2>
+            <p className="text-xs text-gray-500 mt-0.5">This product is also sold by other verified local sellers</p>
           </div>
           <div className="divide-y divide-gray-50">
             {sellers.map((seller) => (
-              <div key={seller._id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 first:pt-0 last:pb-0">
+              <div key={seller._id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 first:pt-0 last:pb-0">
                 <div>
-                  <h3 className="text-sm font-bold text-gray-900">{seller.vendor_name}</h3>
-                  <p className="text-xs font-semibold text-gray-400 mt-0.5">Price: ₹{seller.price}</p>
+                  <h3 className="text-xs sm:text-sm font-bold text-gray-900">{seller.vendor_name}</h3>
+                  <p className="text-[11px] font-semibold text-gray-400 mt-0.5">Price: ₹{seller.price}</p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <span className="text-lg font-extrabold text-gray-900">₹{seller.price}</span>
+                    <span className="text-base sm:text-lg font-extrabold text-gray-900">₹{seller.price}</span>
                     {seller.mrp > seller.price && (
                       <div className="text-[10px] font-bold text-green-600">₹{seller.mrp - seller.price} off</div>
                     )}
                   </div>
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
                       addToCart({
                         _id: seller._id,
                         name: product.name,
@@ -336,10 +587,10 @@ export default function ProductDetailPage() {
                         description: product.description,
                         stock: seller.stock,
                         quantity: product.quantity,
-                      });
+                      }, e);
                       alert(`Added item from "${seller.vendor_name}" to cart!`);
                     }}
-                    className="bg-primary text-white text-xs font-extrabold px-4 py-2.5 rounded-xl hover:bg-primary-hover transition"
+                    className="bg-primary text-white text-xs font-extrabold px-3.5 py-1.5 rounded-xl hover:bg-primary-hover transition cursor-pointer"
                   >
                     Add to Cart
                   </button>
@@ -350,101 +601,176 @@ export default function ProductDetailPage() {
         </div>
       )}
 
-      {/* Subscription Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full relative flex flex-col gap-4 border border-gray-100 shadow-2xl animate-fadeIn">
-            <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 text-2xl text-gray-400 hover:text-gray-600">×</button>
-            <h3 className="text-xl font-bold text-gray-900 leading-tight">Wholesale Subscription</h3>
-            <p className="text-xs text-gray-500 leading-relaxed -mt-2">Set up recurring fresh deliveries of {product.name}</p>
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* ── Centered Popup Modal (Appears upon the screen/text) ─────── */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      {isModalOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full relative flex flex-col gap-4 border border-gray-100 shadow-2xl animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-900 font-bold transition cursor-pointer"
+              aria-label="Close modal"
+            >
+              <X className="w-4 h-4" />
+            </button>
 
-            {/* Product preview */}
-            <div className="flex items-center gap-3 bg-gray-50 border border-gray-100 rounded-xl p-3">
-              <img src={imgSrc} alt={product.name} className="w-12 h-12 object-contain" />
-              <div>
-                <div className="text-xs font-bold text-gray-900 leading-tight">{product.name}</div>
-                <div className="text-[11px] text-gray-400">Pack Size: {qty}</div>
-                <div className="text-xs font-semibold text-gray-700 mt-0.5">₹{yourPrice} / pack</div>
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 text-xs font-black px-2.5 py-1 rounded-full">
+                <CalendarRange className="w-3.5 h-3.5" />
+                <span>Wholesale Subscription</span>
+              </div>
+              <h3 className="text-xl font-serif font-bold text-gray-900 leading-tight">
+                Subscribe & Save
+              </h3>
+              <p className="text-xs text-gray-500">
+                Scheduled fresh farm deliveries of <span className="font-semibold text-gray-800">{product.name}</span>
+              </p>
+            </div>
+
+            {/* Product preview snippet */}
+            <div className="flex items-center gap-3 bg-gray-50/80 border border-gray-100 rounded-2xl p-3">
+              <div className="w-12 h-12 rounded-xl bg-white border border-gray-200 p-1 flex items-center justify-center overflow-hidden shrink-0">
+                <img src={imgSrc} alt={product.name} className="w-full h-full object-contain" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-extrabold text-gray-900 truncate">{product.name}</div>
+                <div className="text-[11px] text-gray-500">Pack Size: {qty}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs font-extrabold text-gray-900">₹{yourPrice}</div>
+                <div className="text-[10px] text-green-600 font-semibold">per pack</div>
               </div>
             </div>
 
-            {/* Quantity */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-gray-700">Quantity (Packs)</label>
-              <div className="flex items-center gap-4 bg-gray-100 p-1 rounded-xl self-start">
-                <button onClick={() => setSubQty(q => Math.max(1, q - 1))} className="w-8 h-8 rounded-lg border border-gray-200 bg-white font-bold">-</button>
-                <span className="text-sm font-bold text-gray-900 min-w-[16px] text-center">{subQty}</span>
-                <button onClick={() => setSubQty(q => q + 1)} className="w-8 h-8 rounded-lg border border-gray-200 bg-white font-bold">+</button>
-              </div>
-            </div>
-
-            {/* Frequency */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-gray-700">Delivery Frequency</label>
-              <div className="grid grid-cols-2 gap-3">
-                <div
+            {/* Frequency Toggle */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider block">
+                Delivery Frequency
+              </label>
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
                   onClick={() => setSubFreq('weekly')}
-                  className={`border-2 rounded-xl p-3 cursor-pointer text-center transition-all ${subFreq === 'weekly' ? 'border-primary bg-green-50/50' : 'border-gray-200 bg-white'}`}
+                  className={`p-3 rounded-2xl border-2 text-center transition-all cursor-pointer ${
+                    subFreq === 'weekly'
+                      ? 'border-green-600 bg-green-50/70 text-green-800 font-black shadow-xs'
+                      : 'border-gray-200 bg-white text-gray-600 font-semibold hover:bg-gray-50'
+                  }`}
                 >
-                  <div className="text-xs font-bold text-gray-900">Weekly</div>
-                  <div className="text-[10px] font-semibold text-green-600 mt-0.5">Save 10% Extra</div>
-                </div>
-                <div
+                  <div className="text-xs font-bold">Weekly</div>
+                  <div className="text-[10px] text-green-600 font-extrabold mt-0.5">Save 10% Extra</div>
+                </button>
+                <button
+                  type="button"
                   onClick={() => setSubFreq('monthly')}
-                  className={`border-2 rounded-xl p-3 cursor-pointer text-center transition-all ${subFreq === 'monthly' ? 'border-primary bg-green-50/50' : 'border-gray-200 bg-white'}`}
+                  className={`p-3 rounded-2xl border-2 text-center transition-all cursor-pointer ${
+                    subFreq === 'monthly'
+                      ? 'border-green-600 bg-green-50/70 text-green-800 font-black shadow-xs'
+                      : 'border-gray-200 bg-white text-gray-600 font-semibold hover:bg-gray-50'
+                  }`}
                 >
-                  <div className="text-xs font-bold text-gray-900">Monthly</div>
-                  <div className="text-[10px] font-semibold text-green-600 mt-0.5">Save 15% Extra</div>
+                  <div className="text-xs font-bold">Monthly</div>
+                  <div className="text-[10px] text-green-600 font-extrabold mt-0.5">Save 15% Extra</div>
+                </button>
+              </div>
+            </div>
+
+            {/* Preferred Delivery Day & Quantity Packs */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider block">
+                  Delivery Day
+                </label>
+                <select
+                  value={deliveryDate}
+                  onChange={(e) => setDeliveryDate(e.target.value)}
+                  className="w-full p-2.5 text-xs font-semibold border border-gray-200 rounded-xl bg-gray-50 text-gray-800 outline-none cursor-pointer focus:border-green-600 focus:bg-white"
+                >
+                  {subFreq === 'weekly' ? (
+                    <>
+                      <option value="Monday">Every Monday</option>
+                      <option value="Wednesday">Every Wednesday</option>
+                      <option value="Friday">Every Friday</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="1st of the month">1st of month</option>
+                      <option value="10th of the month">10th of month</option>
+                      <option value="20th of the month">20th of month</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider block">
+                  Quantity Packs
+                </label>
+                <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl p-1 h-[38px]">
+                  <button
+                    type="button"
+                    onClick={() => setSubQty((q) => Math.max(1, q - 1))}
+                    className="w-7 h-7 rounded-lg bg-white shadow-xs font-black text-xs text-gray-800 flex items-center justify-center cursor-pointer hover:bg-gray-100"
+                  >
+                    -
+                  </button>
+                  <span className="text-xs font-black text-gray-900">{subQty} pack{subQty > 1 ? 's' : ''}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSubQty((q) => q + 1)}
+                    className="w-7 h-7 rounded-lg bg-white shadow-xs font-black text-xs text-gray-800 flex items-center justify-center cursor-pointer hover:bg-gray-100"
+                  >
+                    +
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Preferred Delivery Date */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-gray-700">Preferred Delivery Day / Date</label>
-              <select
-                value={deliveryDate}
-                onChange={(e) => setDeliveryDate(e.target.value)}
-                className="w-full p-2.5 text-xs border border-gray-200 rounded-xl bg-white outline-none cursor-pointer"
-              >
-                {subFreq === 'weekly' ? (
-                  <>
-                    <option value="Monday">Monday</option>
-                    <option value="Wednesday">Wednesday</option>
-                    <option value="Friday">Friday</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="1st of the month">1st of the month</option>
-                    <option value="10th of the month">10th of the month</option>
-                    <option value="20th of the month">20th of the month</option>
-                  </>
-                )}
-              </select>
-            </div>
-
-            {/* Summary */}
-            <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 text-[11px] text-gray-600 flex flex-col gap-1">
+            {/* Pricing Summary */}
+            <div className="bg-gray-50/80 border border-gray-100 rounded-2xl p-3 text-xs space-y-1.5 text-gray-600">
               <div className="flex justify-between">
-                <span>Base Price ({subQty} x ₹{yourPrice}):</span>
+                <span>Base Price ({subQty} × ₹{yourPrice}):</span>
                 <span>₹{yourPrice * subQty}</span>
               </div>
-              <div className="flex justify-between text-green-600">
-                <span>Sub Discount ({subFreq === 'weekly' ? '10%' : '15%'}):</span>
+              <div className="flex justify-between text-green-600 font-semibold">
+                <span>Subscription Discount ({subFreq === 'weekly' ? '10%' : '15%'}):</span>
                 <span>-₹{Math.round(yourPrice * subQty * (subFreq === 'weekly' ? 0.1 : 0.15))}</span>
               </div>
-              <hr className="border-t border-dashed border-gray-200 my-1" />
-              <div className="flex justify-between font-bold text-gray-900 text-xs">
-                <span>Recurring Price:</span>
-                <span className="text-green-600">₹{Math.round(yourPrice * subQty * (subFreq === 'weekly' ? 0.9 : 0.85))}</span>
+              <div className="border-t border-dashed border-gray-200 pt-1.5 flex justify-between font-black text-gray-900 text-sm">
+                <span>Recurring Total:</span>
+                <span className="text-green-700">₹{Math.round(yourPrice * subQty * (subFreq === 'weekly' ? 0.9 : 0.85))} <span className="text-[10px] font-normal text-gray-500">/{subFreq === 'weekly' ? 'wk' : 'mo'}</span></span>
               </div>
             </div>
 
-            <button onClick={handleSubscribe} className="w-full py-3 bg-primary text-white rounded-xl text-xs font-bold transition hover:bg-primary-hover shadow-lg shadow-primary/20">
-              Confirm Subscription
-            </button>
+            {/* Action CTA */}
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleSubscribe}
+                className="flex-1 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-black text-xs rounded-xl shadow-md shadow-green-600/25 transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                <span>Confirm Subscription</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

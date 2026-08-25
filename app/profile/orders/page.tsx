@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 import {
   ShoppingBag, Package, Truck, CheckCircle2, XCircle,
   ChevronRight, Clock, MapPin, CreditCard, Receipt,
   ArrowLeft, RefreshCw, Loader2, AlertCircle, Box,
-  ClipboardList,
+  ClipboardList, ShieldCheck, LogOut,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -334,9 +336,10 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function MyOrdersPage() {
   const router = useRouter();
+  const { data: session, signOut } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('All');
@@ -421,7 +424,36 @@ export default function MyOrdersPage() {
       </div>
 
       {/* ── Content ── */}
-      <div className="max-w-3xl mx-auto px-4 py-6">
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+        {/* Admin Session Notice */}
+        {session?.user && (session.user as any).role === 'admin' && (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-900 shadow-2xs">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-black">Logged in as Administrator ({session.user.name})</p>
+                <p className="text-[11px] text-amber-700 font-medium mt-0.5">
+                  Showing system-wide orders. To test as a regular customer, log out and sign in with a customer account.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                href="/admin/orders"
+                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition"
+              >
+                Admin Panel
+              </Link>
+              <button
+                onClick={() => signOut()}
+                className="px-3 py-1.5 bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+              >
+                <LogOut size={13} /> Logout
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Loading */}
         {loading && (
           <div className="flex flex-col items-center justify-center py-24 gap-4">

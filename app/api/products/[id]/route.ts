@@ -7,7 +7,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     await connectDB();
     const { id } = await params;
     const item = await Product.findById(id)
-      .populate('vendor_id', 'shop_name full_name shop_image is_verified city address')
+      .populate('vendor_id', 'shop_name full_name shop_image is_verified city address state gps_location')
       .lean();
     if (!item) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
     return NextResponse.json({ success: true, data: item });
