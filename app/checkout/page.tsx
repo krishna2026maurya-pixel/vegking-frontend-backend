@@ -15,7 +15,7 @@ const GoogleMapAddressPicker = dynamic(
 );
 
 export default function CheckoutPage() {
-    const { cart, cartTotal, removeFromCart } = useCart();
+    const { cart, cartTotal, removeFromCart, clearCart } = useCart();
     const [address, setAddress] = useState('');
     const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
     const [loading, setLoading] = useState(false);
@@ -69,6 +69,9 @@ export default function CheckoutPage() {
                             price: item.price,
                             quantity: item.cartQuantity,
                             image: item.image,
+                            is_bulk_deal: Boolean(item.is_bulk_deal),
+                            negotiation_id: item.negotiation_id || null,
+                            deal_token: item.deal_token || null,
                         })),
                         totalAmount: finalTotal,
                         shippingAddress: address,
@@ -79,7 +82,7 @@ export default function CheckoutPage() {
                     const data = await res.json();
                     setOrderId(data.id || data._id);
                     setSuccess(true);
-                    // clearCart(); // Basic CartContext might not have this yet
+                    clearCart();
                 } else {
                     const data = await res.json().catch(() => ({}));
                     throw new Error(data.message || 'Unable to place order.');
@@ -96,6 +99,9 @@ export default function CheckoutPage() {
                             price: item.price,
                             quantity: item.cartQuantity,
                             image: item.image,
+                            is_bulk_deal: Boolean(item.is_bulk_deal),
+                            negotiation_id: item.negotiation_id || null,
+                            deal_token: item.deal_token || null,
                         })),
                         totalAmount: finalTotal,
                         shippingAddress: address,
@@ -134,6 +140,7 @@ export default function CheckoutPage() {
                         });
                         if (verifyRes.ok) {
                             setSuccess(true);
+                            clearCart();
                             setTimeout(() => router.push('/profile/orders'), 3000);
                         } else {
                             const vdata = await verifyRes.json().catch(() => ({}));

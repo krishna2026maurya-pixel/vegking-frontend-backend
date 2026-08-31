@@ -83,7 +83,11 @@ function ProductsContent() {
                     price: p.price || p.selling_price,
                     image: p.image || p.product_image,
                     discount: p.discount || p.discount_percent || (p.mrp && p.selling_price ? ((p.mrp - p.selling_price) / p.mrp * 100).toFixed(1) : 0),
-                    stock: p.stock || p.stock_status || (p.in_stock ? 100 : 0)
+                    stock: (p.stock !== undefined && p.stock !== null && !isNaN(Number(p.stock)))
+                        ? Number(p.stock)
+                        : (p.stock_status !== undefined && p.stock_status !== null && !isNaN(Number(p.stock_status))
+                            ? Number(p.stock_status)
+                            : (p.in_stock ? 100 : 0))
                 }));
 
                 setProducts(mappedProducts);

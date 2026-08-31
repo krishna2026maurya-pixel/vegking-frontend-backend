@@ -292,15 +292,18 @@ const customImages = {
   'Anar (Dadam)': '/images/anar_dadam.png',
 };
 
+const vendorDocs = vendors.map((v, i) => ({ _id: vendorIds[i], shop_name: v.shop_name }));
+
 const products = productList.map((p, i) => {
   const typeName = categoryToTypeMap[p.category] || 'Fresh Vegetables';
   const cat_type_id = typeMap[typeName] || '';
   const imgUrl = customImages[p.name] || buildUnsplashUrl(p.imgId);
+  const chosenVendor = rand(vendorDocs);
 
   return {
     product_name: p.name,
-    vendor_id: rand(vendorIds),
-    vendor_shop_name: rand(shopNames),
+    vendor_id: chosenVendor._id,
+    vendor_shop_name: chosenVendor.shop_name,
     brand: rand(brandNames),
     cat_type_id,
     category: p.category,

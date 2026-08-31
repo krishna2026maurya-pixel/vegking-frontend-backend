@@ -5,8 +5,9 @@ import Link from 'next/link';
 import BlogCard from '@/components/BlogCard';
 import ProductCard from '@/components/ProductCard';
 import ProductCarousel from '@/components/ProductCarousel';
+import NegotiationModal from '@/components/NegotiationModal';
 import { useCart } from '@/context/CartContext';
-import { Leaf, ShieldCheck, Truck, Droplets, UserCheck, Star, Quote, Clock, MapPin, CalendarRange, CheckCircle2, ArrowRight, PackageSearch } from 'lucide-react';
+import { Leaf, ShieldCheck, Truck, Droplets, UserCheck, Star, Quote, Clock, MapPin, CalendarRange, CheckCircle2, ArrowRight, PackageSearch, MessageSquare, Sparkles, Scale } from 'lucide-react';
 import { blogs } from '@/lib/blogs';
 
 const CATEGORY_ORDER = [
@@ -44,6 +45,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [negotiateProduct, setNegotiateProduct] = useState<any>(null);
   const alwaysVisibleCategorySlugs = new Set(['organic-daals']);
 
   const faqs = [
@@ -264,6 +266,106 @@ export default function Home() {
                 />
               );
             })}
+          </div>
+        </section>
+
+        {/* 🌾 Buy in Bulk / Wholesale Market Section (Min 5kg + Direct Negotiation) */}
+        <section className="space-y-8 pt-8 pb-4">
+          <div className="bg-gradient-to-br from-green-900 via-emerald-900 to-teal-950 rounded-[2.5rem] p-6 sm:p-10 text-white shadow-2xl relative overflow-hidden">
+            {/* Background elements */}
+            <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+              <Scale className="w-64 h-64 text-green-300" />
+            </div>
+
+            <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+              <div className="space-y-3 max-w-2xl">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400 text-gray-950 text-xs font-black uppercase tracking-widest shadow-md">
+                  <Sparkles className="w-4 h-4 text-amber-950" />
+                  <span>Wholesale & Bulk Deals</span>
+                </div>
+                <h2 className="text-3xl sm:text-4xl font-serif font-bold text-white tracking-tight">
+                  Buy in Bulk & Negotiate Direct with Farmers & Vendors
+                </h2>
+                <p className="text-green-200 text-sm sm:text-base leading-relaxed">
+                  Save up to 40% on bulk quantities (Minimum 5 kg order). Chat directly with verified vendors to negotiate your best custom rate and quantity.
+                </p>
+              </div>
+
+              <Link
+                href="/bulk-products"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-white text-green-900 font-extrabold text-sm hover:bg-amber-300 hover:text-gray-950 transition-all shadow-lg shrink-0"
+              >
+                <span>Explore Bulk Marketplace</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            {/* Bulk Product Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {(products.filter((p) => p.is_bulk_available).length > 0
+                ? products.filter((p) => p.is_bulk_available).slice(0, 4)
+                : products.slice(0, 4)
+              ).map((p: any) => {
+                const minKg = p.bulk_min_qty || 5;
+                const retailPrice = Number(p.price || p.selling_price || 0);
+                const discountPct = Number(p.discount || 0);
+                const wholesalePrice = (p.bulk_base_price && Number(p.bulk_base_price) > 0 && Number(p.bulk_base_price) < retailPrice)
+                  ? Number(p.bulk_base_price)
+                  : Math.max(1, Math.round(retailPrice * 0.85));
+
+                return (
+                  <div
+                    key={p._id}
+                    className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 hover:border-amber-400/80 transition-all duration-300 flex flex-col justify-between group"
+                  >
+                    <div className="space-y-3">
+                      <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-white/5">
+                        <img
+                          src={p.image || p.product_image || '/images/product-card-default.jpg'}
+                          alt={p.name || p.product_name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <span className="absolute top-2 left-2 bg-amber-400 text-gray-950 font-extrabold text-[10px] px-2 py-0.5 rounded-full uppercase shadow">
+                          Min {minKg} kg
+                        </span>
+                      </div>
+
+                      <div>
+                        <p className="text-[11px] text-green-300 font-bold uppercase tracking-wider">
+                          {p.vendor_shop_name || 'Verified Vendor'}
+                        </p>
+                        <h4 className="font-bold text-white text-base truncate mt-0.5">
+                          {p.name || p.product_name}
+                        </h4>
+                      </div>
+
+                      <div className="p-2.5 bg-black/20 rounded-xl flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] text-gray-300">Wholesale Base Rate:</p>
+                          <p className="text-base font-extrabold text-amber-300">
+                            ₹{wholesalePrice}/kg
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] text-gray-400">Retail Rate:</p>
+                          <p className="text-xs line-through text-gray-300">
+                            ₹{retailPrice}/kg
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setNegotiateProduct(p)}
+                      className="mt-4 w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-gray-950 font-black text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 hover:scale-[1.02]"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      <span>Negotiate Rate</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </section>
 
@@ -491,6 +593,13 @@ export default function Home() {
             ))}
           </div>
         </section>
+
+        {/* Bulk Wholesale Negotiation Modal */}
+        <NegotiationModal
+          isOpen={!!negotiateProduct}
+          onClose={() => setNegotiateProduct(null)}
+          product={negotiateProduct}
+        />
 
       </div>
     </div>

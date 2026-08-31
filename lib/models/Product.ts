@@ -25,6 +25,13 @@ const ProductSchema = new Schema({
   description: String,
   add_info_title: String,
   add_info_desc: String,
+  // Bulk selling fields
+  is_bulk_available: { type: Boolean, default: false },
+  bulk_min_qty: { type: Number, default: 5 }, // Enforced >= 5 kg
+  bulk_base_price: Number, // Starting wholesale price per kg/unit
+  bulk_unit: { type: String, default: 'kg' },
+  bulk_stock: Number,
 }, { timestamps: true });
 
+delete (mongoose.models as any)['Product'];
 export default models.Product || model('Product', ProductSchema);

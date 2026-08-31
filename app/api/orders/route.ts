@@ -1,3 +1,4 @@
+// Orders API Route - Auto sync payment on delivery
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import { getServerSession } from 'next-auth';
@@ -5,6 +6,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { connectDB } from '@/lib/mongodb';
 import Order from '@/lib/models/Order';
 import OrderItem from '@/lib/models/OrderItem';
+import Cart from '@/lib/models/Cart';
 import '@/lib/models/DeliveryBoy';
 import '@/lib/models/User';
 
@@ -18,7 +20,7 @@ export async function GET(request: NextRequest) {
     await connectDB();
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '10', 10);
+    const limit = parseInt(searchParams.get('limit') || '50', 10);
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
 
@@ -36,8 +38,6 @@ export async function GET(request: NextRequest) {
     // Role-based filtering
     if ((session.user as any).role === 'vendor') {
       const Product = (await import('@/lib/models/Product')).default;
-      const OrderItem = (await import('@/lib/models/OrderItem')).default;
-      
       const vendorProducts = await Product.find({ vendor_id: (session.user as any).id }).select('_id').lean();
       const vendorProductIds = vendorProducts.map((p: any) => p._id);
       
@@ -46,12 +46,12 @@ export async function GET(request: NextRequest) {
       
       query._id = { $in: vendorOrderIds };
     } else if ((session.user as any).role !== 'admin') {
-      query.user_id = (session.user as any).id;
+      const uId = (session.user as any).id || (session.user as any)._id;
+      query.user_id = uId;
     }
 
     const [orders, total] = await Promise.all([
       Order.find(query)
-        .populate('items')
         .populate('user_id')
         .populate('delivery_boy_id')
         .sort({ createdAt: -1 })
@@ -61,9 +61,24 @@ export async function GET(request: NextRequest) {
       Order.countDocuments(query),
     ]);
 
+    // Attach items to each order
+    const orderIds = orders.map((o: any) => o._id);
+    const allItems = await OrderItem.find({ order_id: { $in: orderIds } }).lean();
+
+    const ordersWithItems = orders.map((order: any) => {
+      const matchingItems = allItems.filter(
+        (i: any) => i.order_id?.toString() === order._id?.toString()
+      );
+      return {
+        ...order,
+        populatedItems: matchingItems,
+        items: matchingItems,
+      };
+    });
+
     return NextResponse.json({
       success: true,
-      data: orders,
+      data: ordersWithItems,
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) }
     });
   } catch (error: any) {
@@ -86,13 +101,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate a unique order number
+    const userId = session?.user ? ((session.user as any).id || (session.user as any)._id) : null;
     const order_number = `ORD-${Date.now()}`;
 
-    // Create the order first
+    // Create the order
     const order = await Order.create({
       order_number,
-      user_id: session?.user ? (session.user as any).id : null,
+      user_id: userId,
       total_amount: totalAmount,
       payment_method: 'COD',
       payment_status: 'pending',
@@ -110,6 +125,9 @@ export async function POST(request: NextRequest) {
           qty: item.quantity || 1,
           price: item.price || 0,
           image: item.image || '',
+          is_bulk_deal: Boolean(item.is_bulk_deal),
+          negotiation_id: item.negotiation_id || null,
+          deal_token: item.deal_token || null,
         };
       })
     );
@@ -117,6 +135,11 @@ export async function POST(request: NextRequest) {
     // Link item ids back to the order
     order.items = createdItems.map((i: any) => i._id);
     await order.save();
+
+    // Clear backend cart for logged-in user so items don't linger
+    if (userId) {
+      await Cart.findOneAndUpdate({ user_id: userId }, { items: [] });
+    }
 
     return NextResponse.json(
       { success: true, _id: order._id.toString().toUpperCase(), order_number, data: order },

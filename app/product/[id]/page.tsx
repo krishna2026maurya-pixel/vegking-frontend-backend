@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import ProductCard from '@/components/ProductCard';
+import NegotiationModal from '@/components/NegotiationModal';
 import {
   ArrowLeft,
   ShoppingCart,
@@ -22,6 +23,8 @@ import {
   Plus,
   Minus,
   X,
+  MessageSquare,
+  Scale,
 } from 'lucide-react';
 
 const fallbackImage = '/images/product-card-default.jpg';
@@ -37,6 +40,7 @@ export default function ProductDetailPage() {
   const [imgSrc, setImgSrc] = useState(fallbackImage);
   const [qty, setQty] = useState('1 kg');
   const [cartClicked, setCartClicked] = useState(false);
+  const [isNegotiateModalOpen, setIsNegotiateModalOpen] = useState(false);
 
   // Subscription states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -89,7 +93,11 @@ export default function ProductDetailPage() {
           discount: item.mrp && item.selling_price ? Math.round(((item.mrp - item.selling_price) / item.mrp) * 100) : 0,
           image: item.product_image || (Array.isArray(item.images) ? item.images[0] : '') || fallbackImage,
           description: item.product_description || item.description || 'Fresh farm produce sourced directly from local growers.',
-          stock: (Number(item.stock_status) > 0 || item.stock_status === 'in_stock' || item.stock_status === '1' || item.stock_status === 1) ? (Number(item.stock_status) || 99) : 0,
+          stock: (item.stock_status !== undefined && item.stock_status !== null && !isNaN(Number(item.stock_status)))
+            ? Number(item.stock_status)
+            : (item.stock !== undefined && item.stock !== null && !isNaN(Number(item.stock))
+              ? Number(item.stock)
+              : (item.stock_status === 'in_stock' ? 99 : 0)),
           quantity: item.quantity || '1 kg',
           category: item.category || 'Fresh Produce',
           vendor_id: vId,
@@ -98,6 +106,12 @@ export default function ProductDetailPage() {
           vendor_full_name: vFullName,
           vendor_is_verified: vIsVerified,
           vendor_location: vLocation,
+          // Bulk fields
+          is_bulk_available: Boolean(item.is_bulk_available),
+          bulk_min_qty: Math.max(5, Number(item.bulk_min_qty) || 5),
+          bulk_base_price: item.bulk_base_price !== undefined ? Number(item.bulk_base_price) : null,
+          bulk_unit: item.bulk_unit || 'kg',
+          bulk_stock: item.bulk_stock !== undefined ? Number(item.bulk_stock) : null,
         };
 
         setProduct(normalized);
@@ -159,7 +173,11 @@ export default function ProductDetailPage() {
                   (p.mrp && p.selling_price
                     ? Math.round(((p.mrp - p.selling_price) / p.mrp) * 100)
                     : 0),
-                stock: p.stock || p.stock_status || (p.in_stock ? 100 : 0),
+                stock: (p.stock !== undefined && p.stock !== null && !isNaN(Number(p.stock)))
+                  ? Number(p.stock)
+                  : (p.stock_status !== undefined && p.stock_status !== null && !isNaN(Number(p.stock_status))
+                    ? Number(p.stock_status)
+                    : 0),
               }));
 
             // Fallback if category has very few items: fetch all products
@@ -178,7 +196,11 @@ export default function ProductDetailPage() {
                     (p.mrp && p.selling_price
                       ? Math.round(((p.mrp - p.selling_price) / p.mrp) * 100)
                       : 0),
-                  stock: p.stock || p.stock_status || (p.in_stock ? 100 : 0),
+                  stock: (p.stock !== undefined && p.stock !== null && !isNaN(Number(p.stock)))
+                    ? Number(p.stock)
+                    : (p.stock_status !== undefined && p.stock_status !== null && !isNaN(Number(p.stock_status))
+                      ? Number(p.stock_status)
+                      : 0),
                 }));
                 const extra = allList.filter((p: any) => (p._id || p.id) !== normalized._id && !filtered.some((f: any) => (f._id || f.id) === (p._id || p.id)));
                 filtered = [...filtered, ...extra];
@@ -440,6 +462,41 @@ export default function ProductDetailPage() {
             </button>
           </div>
 
+          {/* Bulk / Wholesale Negotiation Card */}
+          <div className="p-4 bg-gradient-to-br from-amber-500/10 via-green-500/10 to-emerald-500/10 border border-amber-300/60 dark:border-amber-700/60 rounded-2xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-black text-amber-900 dark:text-amber-300 uppercase tracking-wider">
+                  <Scale className="w-4 h-4 text-amber-600" />
+                  <span>Wholesale & Bulk Inquiries</span>
+                </div>
+                <span className="bg-amber-400 text-gray-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                  Min {product?.bulk_min_qty || 5} {product?.bulk_unit || 'kg'}
+                </span>
+              </div>
+
+              <p className="text-xs text-gray-600 dark:text-gray-300">
+                Buying for commercial, restaurant, or family bulk use? Chat directly with <strong>{product?.vendor_shop_name || 'Vendor'}</strong> to bargain custom rate & delivery.
+              </p>
+
+              {product?.bulk_base_price && (
+                <div className="flex items-center justify-between text-xs pt-1 font-semibold">
+                  <span className="text-gray-500">Base Wholesale Rate:</span>
+                  <span className="text-green-700 dark:text-green-400 font-extrabold text-sm">
+                    ₹{product.bulk_base_price}/{product.bulk_unit || 'kg'}
+                  </span>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setIsNegotiateModalOpen(true)}
+                className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-gray-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <MessageSquare className="w-4 h-4 text-gray-950" />
+                <span>Negotiate Price with Vendor</span>
+              </button>
+            </div>
+
           {/* Delivery & Trust Badges */}
           <div className="grid grid-cols-3 gap-2 border-t border-gray-100 pt-3 text-center text-[10px] sm:text-[11px] font-bold text-gray-500">
             <div className="flex flex-col items-center gap-1">
@@ -457,6 +514,13 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Bulk Negotiation Modal */}
+      <NegotiationModal
+        isOpen={isNegotiateModalOpen}
+        onClose={() => setIsNegotiateModalOpen(false)}
+        product={product}
+      />
 
       {/* ───────────────────────────────────────────────────────────── */}
       {/* ── Similar Products Section (Responsive) ──────────────────── */}

@@ -97,7 +97,15 @@ export default function ProductCard({ product }: { product: any }) {
   const currentBasePrice = selectedOption ? selectedOption.price : Math.round((product?.price || 0) * multiplier);
 
   const { yourPrice, mrp, pct } = calcPrices(currentBasePrice, product?.discount);
-  const stockCount = Number(product?.stock ?? product?.stock_status ?? 10);
+  const stockCount = typeof product?.stock === 'number'
+    ? product.stock
+    : typeof product?.stock_status === 'number'
+      ? product.stock_status
+      : (product?.stock !== undefined && product?.stock !== null && !isNaN(Number(product.stock)))
+        ? Number(product.stock)
+        : (product?.stock_status !== undefined && product?.stock_status !== null && !isNaN(Number(product.stock_status))
+          ? Number(product.stock_status)
+          : 0);
   const inStock = stockCount > 0;
 
   // Cart quantity for this item
