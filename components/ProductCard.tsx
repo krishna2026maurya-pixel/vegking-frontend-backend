@@ -98,14 +98,10 @@ export default function ProductCard({ product }: { product: any }) {
   const { yourPrice, mrp, pct } = calcPrices(currentBasePrice, product?.discount);
   const stockCount = typeof product?.stock === 'number'
     ? product.stock
-    : typeof product?.stock_status === 'number'
-      ? product.stock_status
-      : (product?.stock !== undefined && product?.stock !== null && !isNaN(Number(product.stock)))
-        ? Number(product.stock)
-        : (product?.stock_status !== undefined && product?.stock_status !== null && !isNaN(Number(product.stock_status))
-          ? Number(product.stock_status)
-          : 0);
-  const inStock = stockCount > 0;
+    : (product?.stock !== undefined && product?.stock !== null && !isNaN(Number(product.stock)))
+      ? Number(product.stock)
+      : (product?.stock_status === 1 || product?.stock_status === '1' || product?.inStock === true ? 10 : 0);
+  const inStock = product?.inStock !== undefined ? Boolean(product.inStock) : (stockCount > 0);
 
   // Cart quantity for this item
   const cartItem = cart?.find((c: any) => (c.cartId || c._id) === product?._id);

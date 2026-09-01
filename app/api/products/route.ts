@@ -81,9 +81,12 @@ export async function GET(request: NextRequest) {
       const price = Number(p.selling_price) || Number(p.total_amt) || 0;
       const discount = mrp > 0 && price > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
 
-      const stockValue = p.stock_status !== undefined && p.stock_status !== null && !isNaN(Number(p.stock_status))
+      const stockQty = p.stock !== undefined && p.stock !== null && !isNaN(Number(p.stock))
+        ? Number(p.stock)
+        : 10;
+      const stockStatus = p.stock_status !== undefined && p.stock_status !== null && !isNaN(Number(p.stock_status))
         ? Number(p.stock_status)
-        : (p.stock !== undefined && p.stock !== null && !isNaN(Number(p.stock)) ? Number(p.stock) : 0);
+        : (stockQty > 0 ? 1 : 0);
 
       const vendorObj = typeof p.vendor_id === 'object' && p.vendor_id !== null ? p.vendor_id : null;
       const vendorShopName = vendorObj?.shop_name || p.vendor_shop_name || '';
@@ -102,8 +105,9 @@ export async function GET(request: NextRequest) {
         subcategory:  p.subcategory || '',
         subcategorySlug: (p.subcategory || '').toLowerCase().replace(/\s+/g, '-'),
         description:  p.product_description || p.description || '',
-        stock:        stockValue,
-        stock_status: stockValue,
+        stock:        stockQty,
+        stock_status: stockStatus,
+        inStock:      stockStatus === 1 && stockQty > 0,
         gst:          Number(p.gst) || 0,
         quantity:     p.quantity || '',
         brand:        p.brand || '',
