@@ -23,7 +23,9 @@ export const authOptions: AuthOptions = {
 
         await connectDB();
         const Vendor = (await import("@/lib/models/Vendor")).default;
-        const vendor = await Vendor.findOne({ email });
+        const vendor = await Vendor.findOne({
+          email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}$`, 'i') }
+        });
 
         if (!vendor) {
           throw new Error("Vendor account not found");
@@ -36,8 +38,8 @@ export const authOptions: AuthOptions = {
           throw new Error("Invalid credentials");
         }
 
-        // Check if verified by admin
-        if (vendor.is_verified !== '1') {
+        // Check if verified by admin (support string and number)
+        if (vendor.is_verified && String(vendor.is_verified) !== '1') {
           throw new Error("Your account is pending verification by admin");
         }
 

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Scale, Sparkles, ShieldCheck, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import DealCountdownTimer from '@/components/DealCountdownTimer';
 
 export default function CartPage() {
   const { cart, removeFromCart, updateQuantity, clearCart, cartTotal } = useCart();
@@ -127,6 +128,7 @@ export default function CartPage() {
                               {item.deal_token}
                             </span>
                           )}
+                          <DealCountdownTimer variant="compact" />
                         </div>
                         <h3 className="font-extrabold text-gray-900 text-base mt-1">{item.name}</h3>
                         <p className="text-emerald-700 font-extrabold text-sm mt-0.5">

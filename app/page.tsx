@@ -269,102 +269,100 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 🌾 Buy in Bulk / Wholesale Market Section (Min 5kg + Direct Negotiation) */}
-        <section className="space-y-8 pt-8 pb-4">
-          <div className="bg-gradient-to-br from-green-900 via-emerald-900 to-teal-950 rounded-[2.5rem] p-6 sm:p-10 text-white shadow-2xl relative overflow-hidden">
-            {/* Background elements */}
-            <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-              <Scale className="w-64 h-64 text-green-300" />
-            </div>
+        {/* Buy in Bulk / Wholesale Market Section (Min 5kg + Direct Negotiation) */}
+        <section className="space-y-6 pt-6 pb-2">
+          <div className="bg-gradient-to-br from-[#0c2a1c] via-[#0d3b25] to-[#071f14] rounded-3xl p-4 sm:p-7 text-white shadow-xl relative overflow-hidden border border-emerald-800/40">
 
-            <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-              <div className="space-y-3 max-w-2xl">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400 text-gray-950 text-xs font-black uppercase tracking-widest shadow-md">
-                  <Sparkles className="w-4 h-4 text-amber-950" />
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+              <div className="space-y-1.5 max-w-2xl">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400 text-gray-950 text-[10px] font-black uppercase tracking-wider shadow-sm">
                   <span>Wholesale & Bulk Deals</span>
                 </div>
-                <h2 className="text-3xl sm:text-4xl font-serif font-bold text-white tracking-tight">
-                  Buy in Bulk & Negotiate Direct with Farmers & Vendors
+                <h2 className="text-xl sm:text-2xl font-serif font-bold text-white tracking-tight">
+                  Buy in Bulk & Direct Vendor Negotiations
                 </h2>
-                <p className="text-green-200 text-sm sm:text-base leading-relaxed">
-                  Save up to 40% on bulk quantities (Minimum 5 kg order). Chat directly with verified vendors to negotiate your best custom rate and quantity.
+                <p className="text-emerald-200/90 text-xs sm:text-sm leading-relaxed">
+                  Save up to 40% on bulk quantities (Min 5 kg order). Chat directly with verified vendors to negotiate your best custom rate.
                 </p>
               </div>
 
               <Link
                 href="/bulk-products"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-white text-green-900 font-extrabold text-sm hover:bg-amber-300 hover:text-gray-950 transition-all shadow-lg shrink-0"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-white text-emerald-950 font-black text-xs hover:bg-amber-300 hover:text-gray-950 transition-all shadow-md shrink-0 cursor-pointer"
               >
                 <span>Explore Bulk Marketplace</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
-            {/* Bulk Product Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {(products.filter((p) => p.is_bulk_available).length > 0
-                ? products.filter((p) => p.is_bulk_available).slice(0, 4)
-                : products.slice(0, 4)
-              ).map((p: any) => {
-                const minKg = p.bulk_min_qty || 5;
-                const retailPrice = Number(p.price || p.selling_price || 0);
-                const discountPct = Number(p.discount || 0);
-                const wholesalePrice = (p.bulk_base_price && Number(p.bulk_base_price) > 0 && Number(p.bulk_base_price) < retailPrice)
-                  ? Number(p.bulk_base_price)
-                  : Math.max(1, Math.round(retailPrice * 0.85));
+            {/* Bulk Product Cards Grid (4 Columns, Compact) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              {(() => {
+                const bulkOnly = products.filter((p) => p.is_bulk_available);
+                const others = products.filter((p) => !p.is_bulk_available && !bulkOnly.some((b) => b._id === p._id));
+                const displayItems = [...bulkOnly, ...others].slice(0, 4);
 
-                return (
-                  <div
-                    key={p._id}
-                    className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 hover:border-amber-400/80 transition-all duration-300 flex flex-col justify-between group"
-                  >
-                    <div className="space-y-3">
-                      <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-white/5">
-                        <img
-                          src={p.image || p.product_image || '/images/product-card-default.jpg'}
-                          alt={p.name || p.product_name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <span className="absolute top-2 left-2 bg-amber-400 text-gray-950 font-extrabold text-[10px] px-2 py-0.5 rounded-full uppercase shadow">
-                          Min {minKg} kg
-                        </span>
-                      </div>
+                return displayItems.map((p: any) => {
+                  const minKg = p.bulk_min_qty || 5;
+                  const retailPrice = Number(p.price || p.selling_price || 0);
+                  const wholesalePrice = (p.bulk_base_price && Number(p.bulk_base_price) > 0 && Number(p.bulk_base_price) < retailPrice)
+                    ? Number(p.bulk_base_price)
+                    : Math.max(1, Math.round(retailPrice * 0.82));
 
-                      <div>
-                        <p className="text-[11px] text-green-300 font-bold uppercase tracking-wider">
-                          {p.vendor_shop_name || 'Verified Vendor'}
-                        </p>
-                        <h4 className="font-bold text-white text-base truncate mt-0.5">
-                          {p.name || p.product_name}
-                        </h4>
-                      </div>
-
-                      <div className="p-2.5 bg-black/20 rounded-xl flex items-center justify-between">
-                        <div>
-                          <p className="text-[10px] text-gray-300">Wholesale Base Rate:</p>
-                          <p className="text-base font-extrabold text-amber-300">
-                            ₹{wholesalePrice}/kg
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[10px] text-gray-400">Retail Rate:</p>
-                          <p className="text-xs line-through text-gray-300">
-                            ₹{retailPrice}/kg
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => setNegotiateProduct(p)}
-                      className="mt-4 w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-gray-950 font-black text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 hover:scale-[1.02]"
+                  return (
+                    <div
+                      key={p._id}
+                      className="bg-white/[0.07] backdrop-blur-md rounded-2xl p-2.5 border border-white/10 hover:border-amber-400/80 transition-all duration-300 flex flex-col justify-between group shadow-sm"
                     >
-                      <MessageSquare className="w-4 h-4" />
-                      <span>Negotiate Rate</span>
-                    </button>
-                  </div>
-                );
-              })}
+                      <div className="space-y-2">
+                        <div className="relative aspect-[4/3] w-full rounded-xl overflow-hidden bg-white/5">
+                          <img
+                            src={p.image || p.product_image || '/images/product-card-default.jpg'}
+                            alt={p.name || p.product_name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <span className="absolute top-2 left-2 bg-amber-400 text-gray-950 font-black text-[9px] px-2 py-0.5 rounded-md uppercase shadow-xs">
+                            Min {minKg} kg
+                          </span>
+                        </div>
+
+                        <div>
+                          <p className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider truncate">
+                            {p.vendor_shop_name || 'Verified Vendor'}
+                          </p>
+                          <h4 className="font-extrabold text-white text-xs sm:text-sm truncate mt-0.5" title={p.name || p.product_name}>
+                            {p.name || p.product_name}
+                          </h4>
+                        </div>
+
+                        <div className="p-2 bg-black/25 rounded-xl flex items-center justify-between border border-white/5">
+                          <div>
+                            <p className="text-[9px] text-gray-300 leading-tight">Wholesale Base:</p>
+                            <p className="text-xs sm:text-sm font-black text-amber-300">
+                              ₹{wholesalePrice}/kg
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[9px] text-gray-400 leading-tight">Retail:</p>
+                            <p className="text-[11px] line-through text-gray-300 font-bold">
+                              ₹{retailPrice}/kg
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setNegotiateProduct(p)}
+                        className="mt-2.5 w-full py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-yellow-400 text-gray-950 font-black text-[11px] uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer hover:scale-[1.01]"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>Negotiate Rate</span>
+                      </button>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </div>
         </section>

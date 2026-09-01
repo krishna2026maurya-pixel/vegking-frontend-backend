@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AddressManager } from '@/components/ui/address-manager';
 import NegotiationModal from '@/components/NegotiationModal';
+import DealCountdownTimer from '@/components/DealCountdownTimer';
 import Image from 'next/image';
 
 const tabs = [
@@ -341,27 +342,34 @@ export default function ProfilePage() {
                                 )}
                               </div>
 
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                                 {isAccepted ? (
-                                  <button
-                                    onClick={(e) => {
-                                      addBulkDealToCart({
-                                        negotiation_id: neg._id,
-                                        product_id: neg.product_id,
-                                        product_name: neg.product_name,
-                                        product_image: neg.product_image,
-                                        agreed_rate: neg.final_agreed_price,
-                                        agreed_qty: neg.final_agreed_qty,
-                                        unit: neg.unit,
-                                        deal_token: neg.deal_token,
-                                      }, e);
-                                      router.push('/cart');
-                                    }}
-                                    className="px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl text-xs font-black shadow-md flex items-center gap-1.5 transition cursor-pointer"
-                                  >
-                                    <ShoppingCart className="w-3.5 h-3.5" />
-                                    <span>Buy Now (₹{neg.total_deal_amount})</span>
-                                  </button>
+                                  <>
+                                    <DealCountdownTimer
+                                      variant="badge"
+                                      expiresAt={neg.deal_expires_at}
+                                      fallbackStartTime={neg.updatedAt}
+                                    />
+                                    <button
+                                      onClick={(e) => {
+                                        addBulkDealToCart({
+                                          negotiation_id: neg._id,
+                                          product_id: neg.product_id,
+                                          product_name: neg.product_name,
+                                          product_image: neg.product_image,
+                                          agreed_rate: neg.final_agreed_price,
+                                          agreed_qty: neg.final_agreed_qty,
+                                          unit: neg.unit,
+                                          deal_token: neg.deal_token,
+                                        }, e);
+                                        router.push('/cart');
+                                      }}
+                                      className="px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl text-xs font-black shadow-md flex items-center gap-1.5 transition cursor-pointer shrink-0"
+                                    >
+                                      <ShoppingCart className="w-3.5 h-3.5" />
+                                      <span>Buy Now (₹{neg.total_deal_amount})</span>
+                                    </button>
+                                  </>
                                 ) : (
                                   <button
                                     onClick={() => setSelectedNegotiateProduct({

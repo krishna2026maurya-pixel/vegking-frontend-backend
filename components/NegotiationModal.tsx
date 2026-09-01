@@ -11,6 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import DealCountdownTimer from '@/components/DealCountdownTimer';
 
 interface NegotiationModalProps {
   isOpen: boolean;
@@ -122,6 +123,9 @@ export default function NegotiationModal({ isOpen, onClose, product }: Negotiati
         const msgRes = await fetch(`/api/negotiations/${active._id}`);
         const msgJson = await msgRes.json();
         if (msgRes.ok && msgJson.data) {
+          if (msgJson.data.session) {
+            setSessionData(msgJson.data.session);
+          }
           const newMessages = msgJson.data.messages || [];
           setMessages((prev) => {
             if (prev.length === newMessages.length) {
@@ -245,7 +249,7 @@ export default function NegotiationModal({ isOpen, onClose, product }: Negotiati
       const sessRes = await fetch(`/api/negotiations/${sessionData._id}`);
       const sessJson = await sessRes.json();
       if (sessRes.ok && sessJson.data) {
-        setSessionData(sessJson.data);
+        setSessionData(sessJson.data.session || sessJson.data);
       }
     } catch (err: any) {
       setError(err.message);
@@ -561,6 +565,13 @@ export default function NegotiationModal({ isOpen, onClose, product }: Negotiati
                       <strong className="text-lg font-black text-amber-300">₹{sessionData.total_deal_amount}</strong>
                     </div>
                   </div>
+
+                  {/* 24-Hour Deal Expiry Countdown Box */}
+                  <DealCountdownTimer
+                    variant="box"
+                    expiresAt={sessionData.deal_expires_at}
+                    fallbackStartTime={sessionData.updatedAt}
+                  />
 
                   <button
                     onClick={handleAddDealToCart}

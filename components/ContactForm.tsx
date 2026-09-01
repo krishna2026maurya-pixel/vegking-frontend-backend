@@ -1,15 +1,12 @@
 "use client";
-
 import { useState } from 'react';
 import { ArrowRight, Send, Loader2, AlertCircle } from 'lucide-react';
-
 export default function ContactForm() {
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', topic: '', message: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState('');
-
   const validateField = (name: string, value: string) => {
     let error = '';
     if (name === 'name' && !/^[A-Za-z\s]+$/.test(value)) {

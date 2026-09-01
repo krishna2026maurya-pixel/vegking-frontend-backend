@@ -136,6 +136,23 @@ export async function POST(request: NextRequest) {
     order.items = createdItems.map((i: any) => i._id);
     await order.save();
 
+    // Mark any linked negotiation sessions as ordered
+    const negotiationIds = items
+      .map((i: any) => i.negotiation_id)
+      .filter((id: any) => id && mongoose.isValidObjectId(id));
+
+    if (negotiationIds.length > 0) {
+      try {
+        const NegotiationSession = (await import('@/lib/models/NegotiationSession')).default;
+        await NegotiationSession.updateMany(
+          { _id: { $in: negotiationIds } },
+          { is_ordered: true, order_id: order._id }
+        );
+      } catch (negErr) {
+        console.error('Failed to link order to negotiation session:', negErr);
+      }
+    }
+
     // Clear backend cart for logged-in user so items don't linger
     if (userId) {
       await Cart.findOneAndUpdate({ user_id: userId }, { items: [] });

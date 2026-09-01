@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, Lock, Mail, Store, ArrowRight } from 'lucide-react';
+import { Loader2, Lock, Mail, Store, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 
@@ -19,6 +19,7 @@ function VendorLoginForm() {
   const { showToast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -42,26 +43,29 @@ function VendorLoginForm() {
     setMessage('');
 
     try {
-      if (!email || !password) {
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanPassword = password.trim();
+
+      if (!cleanEmail || !cleanPassword) {
         triggerError('Email and password are required.');
         setLoading(false);
         return;
       }
 
       const res = await signIn('vendor', {
-        email,
-        password,
+        email: cleanEmail,
+        password: cleanPassword,
         redirect: false
       });
 
       if (res?.error) {
-        triggerError('Invalid credentials.');
+        triggerError('Invalid email or password. Please verify your credentials.');
       } else {
         showToast('Logged in successfully!', 'success');
         router.push('/vendor/dashboard');
       }
     } catch {
-      triggerError('Something went wrong.');
+      triggerError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -155,17 +159,28 @@ function VendorLoginForm() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Password</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Password</label>
+                <span className="text-[10px] text-gray-400 font-medium">Default: <code className="text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded font-mono font-bold">password123</code></span>
+              </div>
               <div className="flex h-10 items-center gap-2.5 border border-gray-200 rounded-xl bg-gray-50 px-3.5 focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all">
                 <Lock className="h-4 w-4 text-gray-400 shrink-0" />
                 <input 
-                  type="password" 
+                  type={showPassword ? 'text' : 'password'} 
                   value={password} 
                   onChange={(event) => setPassword(event.target.value)} 
                   placeholder="Enter account password" 
                   className="h-full min-w-0 flex-1 bg-transparent text-xs font-semibold outline-none text-gray-800" 
                   required 
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-gray-400 hover:text-gray-600 cursor-pointer transition p-1"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
               </div>
             </div>
 

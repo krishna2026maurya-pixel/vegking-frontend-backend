@@ -1,5 +1,4 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import Link from 'next/link';
@@ -350,8 +349,8 @@ export default function ProductCard({ product }: { product: any }) {
                     type="button"
                     onClick={() => setSubFreq('weekly')}
                     className={`p-1.5 rounded-xl border text-center cursor-pointer transition-all ${subFreq === 'weekly'
-                        ? 'border-green-600 bg-green-50 text-green-800 font-bold shadow-2xs'
-                        : 'border-gray-200 text-gray-600 font-medium hover:bg-gray-50'
+                      ? 'border-green-600 bg-green-50 text-green-800 font-bold shadow-2xs'
+                      : 'border-gray-200 text-gray-600 font-medium hover:bg-gray-50'
                       }`}
                   >
                     <div className="text-xs">Weekly</div>
@@ -361,8 +360,8 @@ export default function ProductCard({ product }: { product: any }) {
                     type="button"
                     onClick={() => setSubFreq('monthly')}
                     className={`p-1.5 rounded-xl border text-center cursor-pointer transition-all ${subFreq === 'monthly'
-                        ? 'border-green-600 bg-green-50 text-green-800 font-bold shadow-2xs'
-                        : 'border-gray-200 text-gray-600 font-medium hover:bg-gray-50'
+                      ? 'border-green-600 bg-green-50 text-green-800 font-bold shadow-2xs'
+                      : 'border-gray-200 text-gray-600 font-medium hover:bg-gray-50'
                       }`}
                   >
                     <div className="text-xs">Monthly</div>
@@ -588,8 +587,8 @@ export default function ProductCard({ product }: { product: any }) {
                   }}
                   disabled={!inStock}
                   className={`w-full h-9 rounded-xl font-extrabold text-sm tracking-wide transition-all duration-150 active:scale-98 cursor-pointer shadow-xs flex items-center justify-center gap-1.5 ${inStock
-                      ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-600/20'
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed border-none'
+                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-600/20'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed border-none'
                     }`}
                 >
                   {inStock ? (
@@ -613,8 +612,8 @@ export default function ProductCard({ product }: { product: any }) {
                 }}
                 disabled={!inStock}
                 className={`w-full h-9 rounded-xl font-extrabold text-sm tracking-wide transition-all duration-150 active:scale-98 cursor-pointer shadow-xs flex items-center justify-center border ${inStock
-                    ? 'border-green-600 bg-green-50/70 hover:bg-green-600 text-green-700 hover:text-white shadow-green-600/10'
-                    : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                  ? 'border-green-600 bg-green-50/70 hover:bg-green-600 text-green-700 hover:text-white shadow-green-600/10'
+                  : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                   }`}
               >
                 <span>Subscribe & Save</span>

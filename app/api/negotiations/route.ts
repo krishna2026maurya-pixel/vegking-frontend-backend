@@ -21,12 +21,27 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
 
     const query: any = {};
-    if (userId) query.user_id = userId;
-    if (vendorId) query.vendor_id = vendorId;
+    if (userId) {
+      query.user_id = userId;
+    }
+    if (vendorId) {
+      const mongoose = (await import('mongoose')).default;
+      if (mongoose.isValidObjectId(vendorId)) {
+        query.$or = [
+          { vendor_id: vendorId },
+          { vendor_id: new mongoose.Types.ObjectId(vendorId) }
+        ];
+      } else {
+        query.vendor_id = vendorId;
+      }
+    }
     if (productId) query.product_id = productId;
     if (status) query.status = status;
 
     const sessions = await NegotiationSession.find(query)
+      .populate('vendor_id', 'shop_name full_name shop_image mobile_number')
+      .populate('user_id', 'name email mobile_no')
+      .populate('product_id', 'product_name product_image selling_price')
       .sort({ updatedAt: -1 })
       .lean();
 

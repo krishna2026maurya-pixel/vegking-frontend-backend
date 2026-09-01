@@ -229,7 +229,7 @@ export default function VendorDashboardPage() {
             const res = await fetch(`/api/negotiations/${item.session_id}`);
             const json = await res.json();
             if (json.success && json.data) {
-              openNegotiation(json.data);
+              openNegotiation(json.data.session || json.data);
             }
           } catch {}
         }
@@ -242,11 +242,16 @@ export default function VendorDashboardPage() {
   };
 
   const openNegotiation = async (sessionItem: any) => {
-    setSelectedNegotiation(sessionItem);
+    if (!sessionItem) return;
+    const sessionObj = sessionItem.session || sessionItem;
+    setSelectedNegotiation(sessionObj);
     try {
-      const res = await fetch(`/api/negotiations/${sessionItem._id}`);
+      const res = await fetch(`/api/negotiations/${sessionObj._id}`);
       const json = await res.json();
       if (json.success && json.data) {
+        if (json.data.session) {
+          setSelectedNegotiation(json.data.session);
+        }
         setNegotiationMessages(json.data.messages || []);
       }
     } catch (e) {

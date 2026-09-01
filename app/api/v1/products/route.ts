@@ -28,12 +28,24 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category')    || '';
     const brand    = searchParams.get('brand')       || '';
 
+    const vendor_id = searchParams.get('vendor_id') || '';
     const category_id = searchParams.get('category_id') || '';
 
-    const query: any = { is_active: '1' };
+    const query: any = { is_active: { $ne: '0' } };
     if (search)   query.product_name = { $regex: search, $options: 'i' };
     if (category) query.category     = { $regex: category, $options: 'i' };
     if (brand)    query.brand        = { $regex: brand, $options: 'i' };
+
+    if (vendor_id) {
+      if (mongoose.Types.ObjectId.isValid(vendor_id)) {
+        query.$or = [
+          { vendor_id: vendor_id },
+          { vendor_id: new mongoose.Types.ObjectId(vendor_id) },
+        ];
+      } else {
+        query.vendor_id = vendor_id;
+      }
+    }
 
     if (category_id) {
         if (mongoose.Types.ObjectId.isValid(category_id)) {
