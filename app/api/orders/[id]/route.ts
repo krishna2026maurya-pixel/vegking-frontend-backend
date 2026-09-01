@@ -32,8 +32,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const order = await Order.findById(id);
     if (!order) return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
 
-    // Enforce OTP check if marking order as Delivered
-    if (body.orderStatus === 'Delivered') {
+    // Enforce OTP check if marking order as Delivered (skip for admin override)
+    if (body.orderStatus === 'Delivered' && !body.isAdmin) {
       if (!body.otp) {
         return NextResponse.json({ success: false, error: 'Delivery OTP is required to complete the order.' }, { status: 400 });
       }
@@ -47,19 +47,41 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     // Track status history if orderStatus is being updated
     if (body.orderStatus && body.orderStatus !== order.orderStatus) {
+      const legacyStatusMap: Record<string, number> = {
+        'Order Placed': 0,
+        'Order Confirmed': 1,
+        'Packing': 2,
+        'Out for Delivery': 3,
+        'Delivered': 4,
+        'Cancelled': 5,
+      };
+      if (legacyStatusMap[body.orderStatus] !== undefined) {
+        order.status = legacyStatusMap[body.orderStatus];
+      }
+
       order.statusHistory.push({
         status: body.orderStatus,
         updatedAt: new Date(),
-        // Note: You can pass updatedBy (DeliveryBoy ID or Admin User ID) inside the body 
-        // to track specifically WHO changed it.
-        updatedBy: body.updatedBy || null, 
+        updatedBy: body.updatedBy || (body.isAdmin ? 'Admin' : 'Admin'), 
       });
+
+      // Automatically mark payment as completed when delivered
+      if (body.orderStatus === 'Delivered') {
+        order.payment_status = 'completed';
+      }
     }
 
     // Apply other updates
     const updateData = { ...body };
     delete updateData.otp;
+    delete updateData.isAdmin;
+    delete updateData.statusHistory;
     Object.assign(order, updateData);
+
+    if (order.orderStatus === 'Delivered') {
+      order.payment_status = 'completed';
+    }
+
     await order.save();
 
     // Trigger step-by-step notifications (DB, Email, and Sockets)

@@ -52,6 +52,12 @@ export default function EditProductPage() {
     add_info_desc: '',
     stock_status: '',
     description: '',
+    // Bulk selling fields
+    is_bulk_available: false,
+    bulk_min_qty: '5',
+    bulk_base_price: '',
+    bulk_unit: 'kg',
+    bulk_stock: '',
   });
 
   useEffect(() => {
@@ -63,8 +69,12 @@ export default function EditProductPage() {
         if (!res.ok) throw new Error(json.error);
         if (json.data) {
           const d = json.data;
+          const vendorId = typeof d.vendor_id === 'object' && d.vendor_id !== null
+            ? (d.vendor_id._id?.toString() || d.vendor_id.id?.toString() || '')
+            : (d.vendor_id?.toString() || '');
+
           setForm({
-            vendor_id: d.vendor_id || '',
+            vendor_id: vendorId,
             product_name: d.product_name || '',
             cat_type_id: d.cat_type_id?.toString() || '',
             category: d.category || '',
@@ -74,15 +84,21 @@ export default function EditProductPage() {
             product_label: d.product_label || '',
             quantity: d.quantity || '',
             volume: d.volume || '',
-            mrp: d.mrp?.toString() || '',
-            selling_price: d.selling_price?.toString() || '',
-            gst: d.gst?.toString() || '0',
-            total_amt: d.total_amt?.toString() || '',
+            mrp: d.mrp !== undefined && d.mrp !== null ? d.mrp.toString() : '',
+            selling_price: d.selling_price !== undefined && d.selling_price !== null ? d.selling_price.toString() : '',
+            gst: d.gst !== undefined && d.gst !== null ? d.gst.toString() : '0',
+            total_amt: d.total_amt !== undefined && d.total_amt !== null ? d.total_amt.toString() : '',
             product_description: d.product_description || '',
             add_info_title: d.add_info_title || '',
             add_info_desc: d.add_info_desc || '',
-            stock_status: d.stock_status || '',
+            stock_status: d.stock_status !== undefined && d.stock_status !== null ? d.stock_status.toString() : '',
             description: d.description || '',
+            // Bulk fields
+            is_bulk_available: Boolean(d.is_bulk_available),
+            bulk_min_qty: d.bulk_min_qty ? String(d.bulk_min_qty) : '5',
+            bulk_base_price: d.bulk_base_price !== undefined && d.bulk_base_price !== null ? String(d.bulk_base_price) : '',
+            bulk_unit: d.bulk_unit || 'kg',
+            bulk_stock: d.bulk_stock !== undefined && d.bulk_stock !== null ? String(d.bulk_stock) : '',
           });
 
           // Parse multiple images
@@ -107,7 +123,13 @@ export default function EditProductPage() {
   }, [id]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const target = e.target;
+    if (target.type === 'checkbox') {
+      const checked = (target as HTMLInputElement).checked;
+      setForm(prev => ({ ...prev, [target.name]: checked }));
+    } else {
+      setForm(prev => ({ ...prev, [target.name]: target.value }));
+    }
   };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -158,13 +180,21 @@ export default function EditProductPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
+          vendor_id: form.vendor_id || null,
           images: images,
           product_image: mainImage || (images.length > 0 ? images[0] : null),
           product_images: JSON.stringify(images),
-          mrp: Number(form.mrp),
-          selling_price: Number(form.selling_price),
-          gst: Number(form.gst),
+          mrp: Number(form.mrp) || 0,
+          selling_price: Number(form.selling_price) || 0,
+          gst: Number(form.gst) || 0,
           total_amt: Number(form.total_amt) || 0,
+          stock_status: form.stock_status !== '' && !isNaN(Number(form.stock_status)) ? Number(form.stock_status) : 0,
+          // Bulk fields
+          is_bulk_available: form.is_bulk_available,
+          bulk_min_qty: Math.max(5, Number(form.bulk_min_qty) || 5),
+          bulk_base_price: form.bulk_base_price !== '' ? Number(form.bulk_base_price) : Number(form.selling_price) || 0,
+          bulk_unit: form.bulk_unit || 'kg',
+          bulk_stock: form.bulk_stock !== '' ? Number(form.bulk_stock) : 0,
         }),
       });
       const json = await res.json();
@@ -239,8 +269,8 @@ export default function EditProductPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><label className={labelCls}>Product Name *</label><input name="product_name" value={form.product_name} onChange={handleChange} required className={inputCls} /></div>
             <div>
-              <label className={labelCls}>Vendor *</label>
-              <select name="vendor_id" value={form.vendor_id} onChange={handleChange} required className={inputCls}>
+              <label className={labelCls}>Vendor</label>
+              <select name="vendor_id" value={form.vendor_id} onChange={handleChange} className={inputCls}>
                 <option value="">Select Vendor...</option>
                 {vendors.map(v => <option key={v._id} value={v._id}>{v.shop_name}</option>)}
               </select>
@@ -265,14 +295,14 @@ export default function EditProductPage() {
               <label className={labelCls}>Category</label>
               <select name="category" value={form.category} onChange={handleChange} className={inputCls}>
                 <option value="">Select Category...</option>
-                {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                {categories.map(c => <option key={c._id} value={c.name || c._id}>{c.name}</option>)}
               </select>
             </div>
             <div>
               <label className={labelCls}>Subcategory</label>
               <select name="subcategory" value={form.subcategory} onChange={handleChange} className={inputCls}>
                 <option value="">Select Subcategory...</option>
-                {subcategories.map(s => <option key={s._id} value={s._id}>{s.category_name || s.name}</option>)}
+                {subcategories.map(s => <option key={s._id} value={s.category_name || s.name || s._id}>{s.category_name || s.name}</option>)}
               </select>
             </div>
             <div><label className={labelCls}>Low Category</label><input name="low_category" value={form.low_category} onChange={handleChange} className={inputCls} /></div>
@@ -296,6 +326,49 @@ export default function EditProductPage() {
             </div>
             <div><label className={labelCls}>Total Amount (Internal Use)</label><input name="total_amt" type="number" step="0.01" value={form.total_amt} onChange={handleChange} className={inputCls} /></div>
           </div>
+        </div>
+
+        {/* Bulk Selling & Negotiation Settings Section */}
+        <div className={sectionCls}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Bulk Selling & Negotiation Settings</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Enable customers to negotiate rate & weight in bulk (Minimum 5 kg)</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" name="is_bulk_available" checked={form.is_bulk_available} onChange={handleChange} className="sr-only peer" />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+            </label>
+          </div>
+
+          {form.is_bulk_available && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+              <div>
+                <label className={labelCls}>Min Bulk Qty (Min 5 kg) *</label>
+                <input name="bulk_min_qty" type="number" min="5" step="1" value={form.bulk_min_qty} onChange={handleChange} placeholder="5" required className={inputCls} />
+                <span className="text-[11px] text-gray-400">Must be at least 5 kg</span>
+              </div>
+              <div>
+                <label className={labelCls}>Wholesale Base Price (₹/unit)</label>
+                <input name="bulk_base_price" type="number" step="0.01" value={form.bulk_base_price} onChange={handleChange} placeholder={form.selling_price || "e.g. 40"} className={inputCls} />
+                <span className="text-[11px] text-gray-400">Starting wholesale price</span>
+              </div>
+              <div>
+                <label className={labelCls}>Bulk Unit</label>
+                <select name="bulk_unit" value={form.bulk_unit} onChange={handleChange} className={inputCls}>
+                  <option value="kg">kg</option>
+                  <option value="crate">Crate</option>
+                  <option value="box">Box</option>
+                  <option value="quintal">Quintal</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Bulk Stock Available</label>
+                <input name="bulk_stock" type="number" value={form.bulk_stock} onChange={handleChange} placeholder="e.g. 500" className={inputCls} />
+                <span className="text-[11px] text-gray-400">Total bulk inventory</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Additional Info Section */}

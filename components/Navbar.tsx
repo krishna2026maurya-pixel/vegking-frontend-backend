@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import { Search, ShoppingCart, User, LogOut, ShieldCheck, X, Bell, Clock, ShieldAlert, CheckCircle2, XCircle, Menu, ChevronDown, ChevronRight, Package, Store } from 'lucide-react';
+import { Search, ShoppingCart, User, LogOut, ShieldCheck, X, Bell, Clock, ShieldAlert, CheckCircle2, XCircle, Menu, ChevronDown, ChevronRight, Package, Store, Scale } from 'lucide-react';
 
 const allProductsCategory = { _id: 'all', name: 'All Products', slug: 'All' };
 const CATEGORY_HIERARCHY: Record<string, string[]> = {
@@ -618,6 +618,19 @@ export default function Navbar() {
               Sellers
             </Link>
 
+            <Link
+              href="/bulk-products"
+              className={`px-4 py-2 text-xs font-extrabold transition-all duration-300 flex items-center gap-1.5 ${pathname === '/bulk-products'
+                ? 'bg-primary text-white'
+                : 'text-gray-600 hover:text-primary hover:bg-gray-50'
+                }`}
+            >
+              <span className="flex items-center gap-1.5">
+                <span>Buy in Bulk</span>
+                {/* <span className="bg-amber-400 text-gray-950 text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase">5kg+</span> */}
+              </span>
+            </Link>
+
             <div className="relative" onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
@@ -792,6 +805,16 @@ export default function Navbar() {
                   >
                     <Store className="h-5 w-5 text-gray-900" />
                     Our Sellers
+                  </Link>
+
+                  <Link
+                    href="/bulk-products"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-4 px-1 py-3 text-base font-bold transition ${pathname === '/bulk-products' ? 'text-primary' : 'text-amber-800 hover:text-primary'
+                      }`}
+                  >
+                    <Scale className="h-5 w-5 text-amber-600" />
+                    <span>Buy in Bulk</span>
                   </Link>
                 </div>
 

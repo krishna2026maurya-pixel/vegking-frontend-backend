@@ -7,6 +7,9 @@ const OrderItemSchema = new Schema({
   qty:          { type: Number, required: true },
   price:        { type: Number, required: true },
   image:        { type: String, default: '' },
+  is_bulk_deal: { type: Boolean, default: false },
+  negotiation_id: { type: Schema.Types.ObjectId, ref: 'NegotiationSession' },
+  unit:         { type: String, default: 'kg' },
 }, { timestamps: true });
 
 // Delete cached model so schema changes are picked up on hot-reload

@@ -4,6 +4,9 @@ import { connectDB } from '@/lib/mongodb';
 import Product from '@/lib/models/Product';
 import Vendor from '@/lib/models/Vendor';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
@@ -13,9 +16,11 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const vendor_id = searchParams.get('vendor_id') || '';
     const category = searchParams.get('category') || '';
+    const is_bulk = searchParams.get('is_bulk');
 
     const query: any = {};
     if (search) query.product_name = { $regex: search, $options: 'i' };
+    if (is_bulk === 'true' || is_bulk === '1') query.is_bulk_available = true;
     if (vendor_id) {
       if (mongoose.Types.ObjectId.isValid(vendor_id)) {
         query.$or = [
@@ -29,7 +34,12 @@ export async function GET(request: NextRequest) {
     if (category && category !== 'All') query.category = { $regex: category, $options: 'i' };
 
     const [rawProducts, totalRaw] = await Promise.all([
-      Product.find(query).sort({ createdAt: -1 }).limit(vendor_id ? limit : 1000).skip(vendor_id ? (page - 1) * limit : 0).lean(),
+      Product.find(query)
+        .populate('vendor_id', 'shop_name full_name')
+        .sort({ createdAt: -1 })
+        .limit(vendor_id ? limit : 1000)
+        .skip(vendor_id ? (page - 1) * limit : 0)
+        .lean(),
       Product.countDocuments(query),
     ]);
 
@@ -71,6 +81,14 @@ export async function GET(request: NextRequest) {
       const price = Number(p.selling_price) || Number(p.total_amt) || 0;
       const discount = mrp > 0 && price > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
 
+      const stockValue = p.stock_status !== undefined && p.stock_status !== null && !isNaN(Number(p.stock_status))
+        ? Number(p.stock_status)
+        : (p.stock !== undefined && p.stock !== null && !isNaN(Number(p.stock)) ? Number(p.stock) : 0);
+
+      const vendorObj = typeof p.vendor_id === 'object' && p.vendor_id !== null ? p.vendor_id : null;
+      const vendorShopName = vendorObj?.shop_name || p.vendor_shop_name || '';
+      const vendorId = vendorObj ? vendorObj._id : (p.vendor_id || '');
+
       return {
         _id:          p._id,
         name:         p.product_name || '',
@@ -84,11 +102,19 @@ export async function GET(request: NextRequest) {
         subcategory:  p.subcategory || '',
         subcategorySlug: (p.subcategory || '').toLowerCase().replace(/\s+/g, '-'),
         description:  p.product_description || p.description || '',
-        stock:        p.stock_status === 1 || p.stock_status === '1' ? 99 : 0,
+        stock:        stockValue,
+        stock_status: stockValue,
+        gst:          Number(p.gst) || 0,
         quantity:     p.quantity || '',
         brand:        p.brand || '',
-        vendor_id:    p.vendor_id,
-        vendor_shop_name: p.vendor_shop_name || '',
+        vendor_id:    vendorId,
+        vendor_shop_name: vendorShopName,
+        // Bulk selling fields
+        is_bulk_available: Boolean(p.is_bulk_available),
+        bulk_min_qty:      Number(p.bulk_min_qty) >= 5 ? Number(p.bulk_min_qty) : 5,
+        bulk_base_price:   p.bulk_base_price !== undefined && p.bulk_base_price !== null ? Number(p.bulk_base_price) : null,
+        bulk_unit:         p.bulk_unit || 'kg',
+        bulk_stock:        p.bulk_stock !== undefined && p.bulk_stock !== null ? Number(p.bulk_stock) : null,
         // keep raw fields too for any admin panels
         product_name: p.product_name,
         selling_price: p.selling_price,
@@ -114,6 +140,24 @@ export async function POST(request: NextRequest) {
       if (vendor && !body.vendor_shop_name) {
         body.vendor_shop_name = vendor.shop_name;
       }
+    } else if (body.vendor_id === '' || body.vendor_id === null) {
+      body.vendor_id = null;
+      body.vendor_shop_name = '';
+    }
+
+    if (body.stock_status !== undefined) {
+      body.stock_status = Number(body.stock_status) || 0;
+    }
+
+    // Bulk fields normalization (min 5 kg enforced)
+    if (body.is_bulk_available) {
+      body.is_bulk_available = Boolean(body.is_bulk_available);
+      body.bulk_min_qty = Math.max(5, Number(body.bulk_min_qty) || 5);
+      if (body.bulk_base_price !== undefined) body.bulk_base_price = Number(body.bulk_base_price) || 0;
+      if (body.bulk_stock !== undefined) body.bulk_stock = Number(body.bulk_stock) || 0;
+      body.bulk_unit = body.bulk_unit || 'kg';
+    } else {
+      body.is_bulk_available = false;
     }
 
     // Multi-image logic:

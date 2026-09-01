@@ -1,24 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { connectDB } from '@/lib/mongodb';
 import Cart from '@/lib/models/Cart';
-import { authMiddleware } from '@/lib/auth';
+import { getUserIdFromRequest } from '@/lib/auth';
 
-async function clearCart(request: NextRequest, userId: string) {
+export async function POST(request: NextRequest) {
   try {
     await connectDB();
-    
-    let cart = await Cart.findOne({ user_id: userId });
-    if (cart) {
-      cart.items = [];
-      await cart.save();
+    const session = await getServerSession(authOptions);
+    const userId = (session?.user as any)?.id || (session?.user as any)?._id || await getUserIdFromRequest(request);
+    if (userId) {
+      await Cart.findOneAndUpdate({ user_id: userId }, { items: [] });
     }
-    
-    return NextResponse.json({ message: 'Cart cleared successfully.', data: cart });
+    return NextResponse.json({ success: true, message: 'Cart cleared successfully.' });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
 
-export const DELETE = authMiddleware(clearCart);
-export const POST = authMiddleware(clearCart); // Allow POST as fallback
-export const GET = authMiddleware(clearCart); // Allow GET as fallback
+export async function DELETE(request: NextRequest) {
+  return POST(request);
+}
+
+export async function GET(request: NextRequest) {
+  return POST(request);
+}

@@ -46,7 +46,7 @@ const StatusHistorySchema = new Schema(
   {
     status:    { type: String, enum: ORDER_STATUSES, required: true },
     updatedAt: { type: Date, default: Date.now },
-    updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    updatedBy: { type: Schema.Types.Mixed, default: null },
   },
   { _id: false }
 );
@@ -88,4 +88,11 @@ const OrderSchema = new Schema(
   { timestamps: true }
 );
 
-export default models.Order || model('Order', OrderSchema);
+OrderSchema.pre('save', function (this: any) {
+  if (this.orderStatus === 'Delivered' || this.status === 4) {
+    this.payment_status = 'completed';
+  }
+});
+
+const Order = models.Order || model('Order', OrderSchema);
+export default Order;

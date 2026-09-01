@@ -7,25 +7,25 @@ import { authMiddleware } from '@/lib/auth';
 /**
  * POST /api/v1/cart/toggle
  *
- * Body: { product_id: string, status: "add" | "remove" }
+ * Body: 
+ * - { product_id: string, status: "add" | "remove" | "delete" | "remove_all" | "set_qty", qty?: number }
  *
- * "add"    → +1 every time called
- * "remove" → -1 every time called (auto-removes when reaches 0)
- *
- * Bas itna — baaki sab backend handle karta hai.
+ * "add"        → +1 every time called
+ * "remove"     → -1 every time called (auto-removes when reaches 0)
+ * "delete"     → instantly and permanently removes the item from the cart
+ * "remove_all" → clears all items from the cart
+ * "set_qty"    → directly sets the item quantity to `qty`
  */
 async function handleCart(request: NextRequest, userId: string) {
   try {
     await connectDB();
 
     const body = await request.json().catch(() => ({}));
-    const { product_id, status } = body;
+    const { product_id, status, qty } = body;
 
-    if (!product_id) {
-      return NextResponse.json({ success: false, error: 'product_id is required.' }, { status: 400 });
-    }
-    if (status !== 'add' && status !== 'remove') {
-      return NextResponse.json({ success: false, error: 'status must be "add" or "remove".' }, { status: 400 });
+    const validStatuses = ['add', 'remove', 'delete', 'remove_all', 'set_qty'];
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json({ success: false, error: 'Invalid status provided.' }, { status: 400 });
     }
 
     // Load or create cart
@@ -34,20 +34,58 @@ async function handleCart(request: NextRequest, userId: string) {
       cart = new Cart({ user_id: userId, items: [] });
     }
 
+    if (status === 'remove_all' || product_id === 'ALL') {
+      cart.items = [];
+      await cart.save();
+      return NextResponse.json({
+        success: true,
+        data: {
+          updated_product: { product_id: 'ALL', cart_count: 0, is_in_cart: false },
+          cart_summary: { cart_count: 0, total_items_qty: 0, total_cart_amount: 0 },
+        },
+      });
+    }
+
+    if (!product_id) {
+      return NextResponse.json({ success: false, error: 'product_id is required.' }, { status: 400 });
+    }
+
     const idx: number = cart.items.findIndex(
-      (item: any) => item.product_id.toString() === product_id
+      (item: any) => item.product_id?.toString() === product_id?.toString()
     );
 
     let new_cart_count = 0;
 
-    if (status === 'add') {
+    if (status === 'delete') {
+      if (idx !== -1) {
+        cart.items.splice(idx, 1);
+      }
+      new_cart_count = 0;
+    } else if (status === 'set_qty') {
+      const targetQty = Number(qty);
+      if (targetQty <= 0) {
+        if (idx !== -1) {
+          cart.items.splice(idx, 1);
+        }
+        new_cart_count = 0;
+      } else {
+        if (idx === -1) {
+          const product: any = await Product.findById(product_id).select('selling_price mrp is_active price').lean();
+          const price = product?.selling_price || product?.price || product?.mrp || 0;
+          cart.items.push({ product_id, qty: targetQty, price });
+        } else {
+          cart.items[idx].qty = targetQty;
+        }
+        new_cart_count = targetQty;
+      }
+    } else if (status === 'add') {
       // Validate product exists (only on first add)
       if (idx === -1) {
-        const product: any = await Product.findById(product_id).select('selling_price mrp is_active').lean();
+        const product: any = await Product.findById(product_id).select('selling_price mrp is_active price').lean();
         if (!product) {
           return NextResponse.json({ success: false, error: 'Product not found.' }, { status: 404 });
         }
-        const price = product.selling_price || product.mrp || 0;
+        const price = product.selling_price || product.price || product.mrp || 0;
         cart.items.push({ product_id, qty: 1, price });
         new_cart_count = 1;
       } else {
@@ -55,7 +93,7 @@ async function handleCart(request: NextRequest, userId: string) {
         new_cart_count = cart.items[idx].qty;
       }
     } else {
-      // remove
+      // remove single quantity
       if (idx === -1) {
         return NextResponse.json({ success: false, error: 'Product is not in cart.' }, { status: 404 });
       }
@@ -83,12 +121,12 @@ async function handleCart(request: NextRequest, userId: string) {
       data: {
         updated_product: {
           product_id,
-          cart_count: new_cart_count,    // qty of this product in cart
+          cart_count: new_cart_count,
           is_in_cart: new_cart_count > 0,
         },
         cart_summary: {
-          cart_count: cart.items.length, // distinct products
-          total_items_qty: total_qty,    // total qty across all
+          cart_count: cart.items.length,
+          total_items_qty: total_qty,
           total_cart_amount: parseFloat(total.toFixed(2)),
         },
       },
@@ -99,4 +137,3 @@ async function handleCart(request: NextRequest, userId: string) {
 }
 
 export const POST = authMiddleware(handleCart);
-export const PUT = authMiddleware(handleCart);

@@ -1,17 +1,13 @@
 'use client';
-
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { MapPin, Search, Navigation, CheckCircle2, Loader2, X } from 'lucide-react';
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface LatLng { lat: number; lng: number; }
-
 interface Props {
   onSelect: (address: string, coords: LatLng) => void;
   onClose: () => void;
   defaultAddress?: string;
 }
-
 // ─── Nominatim reverse geocode (OpenStreetMap, free, no key) ─────────────────
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
   try {
@@ -25,7 +21,6 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
     return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
   }
 }
-
 // ─── Nominatim forward search ─────────────────────────────────────────────────
 interface NominatimResult {
   place_id: number;

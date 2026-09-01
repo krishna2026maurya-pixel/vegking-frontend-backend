@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Loader2, LogOut, Package, PackagePlus, ReceiptText, Store, User, X, Bike, Bell, Settings, ShieldCheck, CheckCircle2, AlertTriangle, Landmark, Search, Mail, ChevronDown, Plus, Heart, Filter, MessageSquare, HelpCircle, Sparkles, Download, Eye, ArrowUpDown, Trash2 } from 'lucide-react';
+import { BarChart3, Loader2, LogOut, Package, PackagePlus, ReceiptText, Store, User, X, Bike, Bell, Settings, ShieldCheck, CheckCircle2, AlertTriangle, Landmark, Search, Mail, ChevronDown, Plus, Heart, Filter, MessageSquare, HelpCircle, Sparkles, Download, Eye, ArrowUpDown, Trash2, Scale, Send, Check } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import DataTable, { Column, Action } from '@/app/admin/components/DataTable';
 
@@ -11,6 +11,7 @@ const tabs = [
   { id: 'home', label: 'Market', icon: BarChart3 },
   { id: 'products', label: 'My Products', icon: Package },
   { id: 'orders', label: 'Orders', icon: ReceiptText },
+  { id: 'negotiations', label: 'Bulk Inquiries', icon: Scale },
   { id: 'customers', label: 'Customers', icon: User },
   { id: 'riders', label: 'My Riders', icon: Bike },
   { id: 'notifications', label: 'Notifications', icon: Bell },
@@ -74,6 +75,11 @@ const emptyProduct = {
   image: '',
   categorySlug: '',
   weightOptions: [] as Array<{ weight: string; price: string }>,
+  is_bulk_available: false,
+  bulk_min_qty: '5',
+  bulk_base_price: '',
+  bulk_unit: 'kg',
+  bulk_stock: '',
 };
 
 export default function VendorDashboardPage() {
@@ -144,6 +150,175 @@ export default function VendorDashboardPage() {
 
   const [matchingGlobalProducts, setMatchingGlobalProducts] = useState<any[]>([]);
   const [searchingGlobal, setSearchingGlobal] = useState(false);
+
+  // Bulk Negotiations State
+  const [negotiations, setNegotiations] = useState<any[]>([]);
+  const [selectedNegotiation, setSelectedNegotiation] = useState<any>(null);
+  const [negotiationMessages, setNegotiationMessages] = useState<any[]>([]);
+  const [negotiationFilter, setNegotiationFilter] = useState('');
+  const [negotiationLoading, setNegotiationLoading] = useState(false);
+  const [vendorChatInput, setVendorChatInput] = useState('');
+  const [vendorCounterInput, setVendorCounterInput] = useState('');
+  const [actionSending, setActionSending] = useState(false);
+  const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+
+  const fetchNegotiations = useCallback(async () => {
+    if (!session?.user?.id) return;
+    setNegotiationLoading(true);
+    try {
+      const res = await fetch(`/api/negotiations?vendor_id=${session.user.id}`);
+      const json = await res.json();
+      if (json.success) {
+        setNegotiations(json.data || []);
+      }
+    } catch (e) {
+      console.error('Failed to load vendor negotiations:', e);
+    } finally {
+      setNegotiationLoading(false);
+    }
+  }, [session?.user?.id]);
+
+  const fetchVendorNotifications = useCallback(async () => {
+    if (!session?.user?.id) return;
+    try {
+      const res = await fetch(`/api/vendor/notifications?vendor_id=${session.user.id}`);
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        setNotifications(json.data);
+        setUnreadNotifCount(json.unreadCount || 0);
+      }
+    } catch (e) {
+      console.error('Failed to fetch notifications:', e);
+    }
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    fetchVendorNotifications();
+    const interval = setInterval(() => {
+      fetchVendorNotifications();
+      fetchNegotiations();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [fetchVendorNotifications, fetchNegotiations]);
+
+  const markNotificationAsRead = async (notifId?: string, markAll = false) => {
+    try {
+      await fetch('/api/vendor/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: notifId, mark_all: markAll, vendor_id: session?.user?.id }),
+      });
+      fetchVendorNotifications();
+    } catch (e) {
+      console.error('Failed to mark notification read:', e);
+    }
+  };
+
+  const handleNotificationClick = async (item: any) => {
+    await markNotificationAsRead(item._id || item.id);
+    setShowNotificationDropdown(false);
+    if (item.type === 'bulk_inquiry' || item.type === 'bulk_chat' || item.type === 'negotiation' || item.session_id) {
+      changeTab('negotiations');
+      if (item.session_id) {
+        const matching = negotiations.find((n) => n._id === item.session_id);
+        if (matching) {
+          openNegotiation(matching);
+        } else {
+          try {
+            const res = await fetch(`/api/negotiations/${item.session_id}`);
+            const json = await res.json();
+            if (json.success && json.data) {
+              openNegotiation(json.data.session || json.data);
+            }
+          } catch {}
+        }
+      }
+    } else if (item.type === 'new_order' || item.type === 'order_status') {
+      changeTab('orders');
+    } else {
+      changeTab('notifications');
+    }
+  };
+
+  const openNegotiation = async (sessionItem: any) => {
+    if (!sessionItem) return;
+    const sessionObj = sessionItem.session || sessionItem;
+    setSelectedNegotiation(sessionObj);
+    try {
+      const res = await fetch(`/api/negotiations/${sessionObj._id}`);
+      const json = await res.json();
+      if (json.success && json.data) {
+        if (json.data.session) {
+          setSelectedNegotiation(json.data.session);
+        }
+        setNegotiationMessages(json.data.messages || []);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleVendorSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedNegotiation?._id || (!vendorChatInput.trim() && !vendorCounterInput)) return;
+    setActionSending(true);
+    try {
+      const proposedPrice = vendorCounterInput ? Number(vendorCounterInput) : null;
+      const res = await fetch(`/api/negotiations/${selectedNegotiation._id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender_id: session?.user?.id,
+          sender_role: 'vendor',
+          sender_name: profile?.businessName || session?.user?.name || 'Vendor',
+          message: vendorChatInput.trim(),
+          proposed_price: proposedPrice,
+          proposed_qty: selectedNegotiation.requested_qty,
+          offer_type: proposedPrice ? 'COUNTER' : 'CHAT',
+        }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setNegotiationMessages((prev) => [...prev, json.data]);
+        setVendorChatInput('');
+        setVendorCounterInput('');
+        fetchNegotiations();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setActionSending(false);
+    }
+  };
+
+  const handleVendorAction = async (action: 'ACCEPT' | 'REJECT') => {
+    if (!selectedNegotiation?._id) return;
+    setActionSending(true);
+    try {
+      const res = await fetch(`/api/negotiations/${selectedNegotiation._id}/action`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          sender_id: session?.user?.id,
+          sender_role: 'vendor',
+          final_price: selectedNegotiation.current_counter_price,
+          final_qty: selectedNegotiation.requested_qty,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setSelectedNegotiation(json.data);
+        openNegotiation(json.data);
+        fetchNegotiations();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setActionSending(false);
+    }
+  };
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -288,6 +463,12 @@ export default function VendorDashboardPage() {
     loadVendorData();
   }, [loadVendorData, router, session, status]);
 
+  useEffect(() => {
+    if (activeTab === 'negotiations') {
+      fetchNegotiations();
+    }
+  }, [activeTab, fetchNegotiations]);
+
   const checkDuplicateCatalog = async (name: string) => {
     if (!name.trim()) {
       setMatchingGlobalProducts([]);
@@ -348,6 +529,12 @@ export default function VendorDashboardPage() {
         category: categoryName,
         vendor_id: session.user.id,
         vendor_shop_name: profile?.businessName || '',
+        // Bulk selling fields
+        is_bulk_available: Boolean(productForm.is_bulk_available),
+        bulk_min_qty: Math.max(5, Number(productForm.bulk_min_qty) || 5),
+        bulk_base_price: productForm.bulk_base_price !== '' ? Number(productForm.bulk_base_price) : sellingPrice,
+        bulk_unit: productForm.bulk_unit || 'kg',
+        bulk_stock: productForm.bulk_stock !== '' ? Number(productForm.bulk_stock) : Number(productForm.stock) || 0,
       };
 
       const url = editingId ? `/api/products/${editingId}` : `/api/products`;
@@ -384,6 +571,11 @@ export default function VendorDashboardPage() {
       image: product.image || '',
       categorySlug: product.categorySlug || categories[0]?.slug || '',
       weightOptions: product.weightOptions || [],
+      is_bulk_available: Boolean(product.is_bulk_available),
+      bulk_min_qty: String(product.bulk_min_qty || '5'),
+      bulk_base_price: product.bulk_base_price !== undefined && product.bulk_base_price !== null ? String(product.bulk_base_price) : '',
+      bulk_unit: product.bulk_unit || 'kg',
+      bulk_stock: product.bulk_stock !== undefined && product.bulk_stock !== null ? String(product.bulk_stock) : '',
     });
     setShowProductModal(true);
   };
@@ -815,6 +1007,7 @@ export default function VendorDashboardPage() {
             {tabs.slice(0, 4).map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
+              const pendingNegotiations = negotiations.filter(n => n.status === 'OPEN' || n.status === 'COUNTERED').length;
               return (
                 <button
                   key={tab.id}
@@ -826,10 +1019,15 @@ export default function VendorDashboardPage() {
                     }`}
                 >
                   <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-600' : 'text-gray-400'}`} />
-                  {tab.label}
-                  {tab.id === 'orders' && orders.filter(o => o.orderStatus === 'Pending').length > 0 && (
+                  <span>{tab.label}</span>
+                  {tab.id === 'orders' && orders.filter(o => o.orderStatus === 'Pending' || o.orderStatus === 'Order Placed').length > 0 && (
                     <span className="ml-auto bg-red-500 text-white text-[9px] font-bold h-5 px-1.5 min-w-5 rounded-full flex items-center justify-center animate-pulse shadow-sm shadow-red-200">
-                      {orders.filter(o => o.orderStatus === 'Pending').length}
+                      {orders.filter(o => o.orderStatus === 'Pending' || o.orderStatus === 'Order Placed').length}
+                    </span>
+                  )}
+                  {tab.id === 'negotiations' && pendingNegotiations > 0 && (
+                    <span className="ml-auto bg-amber-500 text-white text-[9px] font-black h-5 px-1.5 min-w-5 rounded-full flex items-center justify-center animate-pulse shadow-sm">
+                      {pendingNegotiations}
                     </span>
                   )}
                 </button>
@@ -852,7 +1050,12 @@ export default function VendorDashboardPage() {
                     }`}
                 >
                   <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-600' : 'text-gray-400'}`} />
-                  {tab.label}
+                  <span>{tab.label}</span>
+                  {tab.id === 'notifications' && unreadNotifCount > 0 && (
+                    <span className="ml-auto bg-red-500 text-white text-[9px] font-black h-5 px-1.5 min-w-5 rounded-full flex items-center justify-center animate-pulse shadow-sm">
+                      {unreadNotifCount}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -905,17 +1108,130 @@ export default function VendorDashboardPage() {
             </div>
 
             <div className="flex items-center gap-4 text-gray-400">
-              <button type="button" className="p-2 hover:bg-[#f6faf7] dark:hover:bg-gray-700/50 hover:text-[#2bb673] rounded-xl transition">
-                <Mail className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => changeTab('notifications')}
-                className="p-2 hover:bg-[#f6faf7] dark:hover:bg-gray-700/50 hover:text-[#2bb673] rounded-xl transition relative"
+              <button 
+                type="button" 
+                onClick={() => changeTab('negotiations')}
+                className="p-2 hover:bg-[#f6faf7] dark:hover:bg-gray-700/50 hover:text-[#2bb673] rounded-xl transition cursor-pointer relative"
+                title="Bulk Chat & Inquiries"
               >
-                <Bell className="h-5 w-5" />
-                {notifications.length > 0 && <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 bg-red-500 rounded-full ring-2 ring-white" />}
+                <MessageSquare className="h-5 w-5" />
+                {negotiations.filter(n => n.status === 'OPEN' || n.status === 'COUNTERED').length > 0 && (
+                  <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 bg-amber-500 rounded-full ring-2 ring-white" />
+                )}
               </button>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowNotificationDropdown((prev) => !prev)}
+                  className={`p-2 hover:bg-[#f6faf7] dark:hover:bg-gray-700/50 hover:text-[#2bb673] rounded-xl transition relative cursor-pointer ${
+                    showNotificationDropdown ? 'bg-[#edf7f0] text-emerald-700' : ''
+                  }`}
+                  title="Notifications"
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadNotifCount > 0 && (
+                    <span className="absolute top-0.5 right-0.5 h-4 min-w-4 px-1 bg-red-500 text-white text-[9px] font-black rounded-full ring-2 ring-white flex items-center justify-center animate-pulse">
+                      {unreadNotifCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Dropdown Menu anchored to Bell Icon */}
+                {showNotificationDropdown && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowNotificationDropdown(false)}
+                    />
+                    <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-[#e9f2eb] dark:border-gray-700 z-50 overflow-hidden animate-fadeIn text-left">
+                      <div className="p-4 border-b border-[#f0f6f2] dark:border-gray-700 flex items-center justify-between bg-gradient-to-r from-emerald-50/70 to-white dark:from-gray-800 dark:to-gray-800">
+                        <div className="flex items-center gap-2">
+                          <div className="h-7 w-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 flex items-center justify-center">
+                            <Bell className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <h4 className="font-extrabold text-xs text-gray-900 dark:text-white">Notifications</h4>
+                            <p className="text-[10px] text-gray-400 font-semibold">{unreadNotifCount} unread alert{unreadNotifCount === 1 ? '' : 's'}</p>
+                          </div>
+                        </div>
+                        {unreadNotifCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => markNotificationAsRead(undefined, true)}
+                            className="text-[11px] font-extrabold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg transition cursor-pointer"
+                          >
+                            Mark all read
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="max-h-[360px] overflow-y-auto divide-y divide-gray-50 dark:divide-gray-700/50">
+                        {notifications.length === 0 ? (
+                          <div className="py-12 text-center text-xs text-gray-400 font-semibold">
+                            <Bell className="h-8 w-8 text-gray-300 mx-auto mb-2 opacity-50" />
+                            No alerts or inquiries right now
+                          </div>
+                        ) : (
+                          notifications.slice(0, 15).map((item: any) => {
+                            const isBulk = item.type === 'bulk_inquiry' || item.type === 'bulk_chat' || item.type === 'negotiation';
+                            return (
+                              <div
+                                key={item._id || item.id}
+                                onClick={() => handleNotificationClick(item)}
+                                className={`p-3.5 flex gap-3 transition cursor-pointer hover:bg-emerald-50/40 dark:hover:bg-gray-700/60 ${
+                                  !item.isRead ? 'bg-emerald-50/20' : 'opacity-75'
+                                }`}
+                              >
+                                <div className={`h-9 w-9 shrink-0 rounded-2xl flex items-center justify-center ${
+                                  isBulk ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-700'
+                                }`}>
+                                  {isBulk ? <Scale className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-1">
+                                    <p className={`text-xs font-black truncate ${!item.isRead ? 'text-gray-950 dark:text-white' : 'text-gray-700 dark:text-gray-200'}`}>
+                                      {item.title}
+                                    </p>
+                                    <span className="text-[9px] font-semibold text-gray-400 shrink-0">
+                                      {item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (item.time || '')}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-gray-500 dark:text-gray-300 line-clamp-2 mt-0.5 leading-relaxed">
+                                    {item.message}
+                                  </p>
+                                  {isBulk && (
+                                    <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-extrabold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-md">
+                                      <MessageSquare className="w-3 h-3" />
+                                      <span>Open Bulk Chat ➔</span>
+                                    </span>
+                                  )}
+                                </div>
+                                {!item.isRead && (
+                                  <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0 mt-1" />
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+
+                      <div className="p-2.5 bg-gray-50 dark:bg-gray-750 border-t border-gray-100 dark:border-gray-700 text-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowNotificationDropdown(false);
+                            changeTab('notifications');
+                          }}
+                          className="text-xs font-black text-emerald-700 hover:text-emerald-800 cursor-pointer"
+                        >
+                          View All in Notification Center ➔
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
             <div className="h-8 w-px bg-[#f0f6f2] dark:bg-gray-750" />
@@ -1514,8 +1830,210 @@ export default function VendorDashboardPage() {
                 </div>
               )}
             </section>
-          )
-          }
+          )}
+
+          {activeTab === 'negotiations' && (
+            <section className="border border-[#e9f2eb] dark:border-gray-700 rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-6 animate-fadeIn space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-700 pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl font-black text-gray-900 dark:text-white">Bulk Inquiries & Negotiations</h1>
+                    <span className="bg-amber-400 text-gray-950 font-black text-xs px-2.5 py-0.5 rounded-full">
+                      {negotiations.length}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">Chat directly with bulk buyers, negotiate rates, and seal wholesale deals.</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={fetchNegotiations}
+                    className="p-2 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 text-gray-600 text-xs font-bold flex items-center gap-1.5"
+                  >
+                    <span>Refresh</span>
+                  </button>
+                </div>
+              </div>
+
+              {negotiationLoading ? (
+                <div className="p-12 text-center text-gray-400 text-sm">Loading bulk inquiries...</div>
+              ) : negotiations.length === 0 ? (
+                <div className="text-center py-16 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 space-y-2">
+                  <Scale className="w-12 h-12 text-gray-400 mx-auto" />
+                  <h3 className="font-bold text-gray-700 dark:text-gray-200">No Bulk Inquiries Yet</h3>
+                  <p className="text-xs text-gray-400">When customers request bulk quotes (5 kg or more) for your products, they will appear here.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  
+                  {/* Inquiries Sidebar */}
+                  <div className="lg:col-span-5 space-y-3 max-h-[600px] overflow-y-auto pr-1">
+                    {negotiations.map((n) => {
+                      const isSelected = selectedNegotiation?._id === n._id;
+                      return (
+                        <div
+                          key={n._id}
+                          onClick={() => openNegotiation(n)}
+                          className={`p-4 rounded-2xl border transition cursor-pointer space-y-2.5 ${
+                            isSelected
+                              ? 'border-green-600 bg-green-50/50 dark:bg-green-950/20 shadow-sm'
+                              : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-green-400'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-3">
+                              <img src={n.product_image || '/images/product-card-default.jpg'} alt={n.product_name} className="w-10 h-10 rounded-xl object-cover border border-gray-200 shrink-0" />
+                              <div>
+                                <h4 className="font-extrabold text-sm text-gray-900 dark:text-white truncate max-w-[170px]">{n.product_name}</h4>
+                                <p className="text-xs text-gray-500">{n.customer_name || 'Customer'}</p>
+                              </div>
+                            </div>
+
+                            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                              n.status === 'ACCEPTED' ? 'bg-green-100 text-green-800' :
+                              n.status === 'COUNTERED' ? 'bg-amber-100 text-amber-800' :
+                              n.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {n.status}
+                            </span>
+                          </div>
+
+                          <div className="p-2.5 bg-gray-50 dark:bg-gray-700/40 rounded-xl flex items-center justify-between text-xs font-semibold">
+                            <div>
+                              <span className="text-gray-400 text-[10px] block">Requested:</span>
+                              <span className="text-gray-800 dark:text-gray-200">{n.requested_qty} {n.unit || 'kg'}</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-gray-400 text-[10px] block">Offer Rate:</span>
+                              <span className="text-green-600 font-extrabold">₹{n.current_counter_price || n.initial_offer_price}/{n.unit || 'kg'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Active Chat & Action Panel */}
+                  <div className="lg:col-span-7 border border-gray-200 dark:border-gray-700 rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-5 flex flex-col min-h-[500px] justify-between">
+                    {selectedNegotiation ? (
+                      <div className="flex flex-col h-full space-y-4">
+                        
+                        {/* Header */}
+                        <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
+                          <div>
+                            <h3 className="font-extrabold text-base text-gray-900 dark:text-white">{selectedNegotiation.product_name}</h3>
+                            <p className="text-xs text-gray-500">
+                              Buyer: <strong className="text-gray-700 dark:text-gray-300">{selectedNegotiation.customer_name}</strong> {selectedNegotiation.customer_mobile && `(${selectedNegotiation.customer_mobile})`}
+                            </p>
+                          </div>
+
+                          {selectedNegotiation.status === 'ACCEPTED' ? (
+                            <span className="bg-green-100 text-green-800 font-mono font-bold text-xs px-2.5 py-1 rounded-full border border-green-300">
+                              Deal Token: {selectedNegotiation.deal_token}
+                            </span>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleVendorAction('ACCEPT')}
+                                disabled={actionSending}
+                                className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-extrabold shadow flex items-center gap-1 cursor-pointer"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Accept Deal (₹{selectedNegotiation.current_counter_price}/{selectedNegotiation.unit})</span>
+                              </button>
+                              <button
+                                onClick={() => handleVendorAction('REJECT')}
+                                disabled={actionSending}
+                                className="px-3 py-1.5 bg-gray-100 hover:bg-red-50 text-red-600 rounded-xl text-xs font-bold transition cursor-pointer"
+                              >
+                                Decline
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Messages Stream */}
+                        <div className="flex-1 overflow-y-auto space-y-3 min-h-[250px] max-h-[350px] p-2 bg-gray-50 dark:bg-gray-900/40 rounded-xl">
+                          {negotiationMessages.map((msg: any, i: number) => {
+                            const isVendor = msg.sender_role === 'vendor';
+                            return (
+                              <div key={msg._id || i} className={`flex flex-col ${isVendor ? 'items-end' : 'items-start'}`}>
+                                <span className="text-[9px] font-bold text-gray-400 px-1 mb-0.5">
+                                  {isVendor ? 'You' : msg.sender_name || 'Buyer'}
+                                </span>
+                                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-xs shadow-xs ${
+                                  isVendor
+                                    ? 'bg-green-600 text-white rounded-tr-none'
+                                    : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-none'
+                                }`}>
+                                  <p>{msg.message}</p>
+                                  {msg.proposed_price && (
+                                    <div className="mt-1 font-bold text-[10px] opacity-90">
+                                      Offered Rate: ₹{msg.proposed_price}/{selectedNegotiation.unit}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Vendor Reply & Counter Form */}
+                        {selectedNegotiation.status !== 'ACCEPTED' && selectedNegotiation.status !== 'REJECTED' && (
+                          <form onSubmit={handleVendorSendMessage} className="pt-2 space-y-2 border-t border-gray-100 dark:border-gray-700">
+                            <div className="flex items-center gap-1.5 overflow-x-auto text-[10px] font-bold">
+                              <span className="text-gray-400">Min 5kg+:</span>
+                              {[5, 10, 25, 50, 100].map((qVal) => (
+                                <button
+                                  key={qVal}
+                                  type="button"
+                                  onClick={() => setVendorChatInput(`I can supply ${qVal} ${selectedNegotiation.unit || 'kg'} at ₹${vendorCounterInput || selectedNegotiation.current_counter_price}/${selectedNegotiation.unit || 'kg'}`)}
+                                  className="px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-300 rounded-md border border-amber-300 dark:border-amber-700 cursor-pointer"
+                                >
+                                  {qVal} {selectedNegotiation.unit || 'kg'}
+                                </button>
+                              ))}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                step={0.01}
+                                value={vendorCounterInput}
+                                onChange={(e) => setVendorCounterInput(e.target.value)}
+                                placeholder="Counter ₹/kg"
+                                className="w-32 h-10 px-2.5 border border-amber-300 rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-950/20 text-amber-950 dark:text-amber-200 focus:outline-none"
+                              />
+                              <input
+                                type="text"
+                                value={vendorChatInput}
+                                onChange={(e) => setVendorChatInput(e.target.value)}
+                                placeholder="Send message to buyer..."
+                                className="flex-1 h-10 px-3 border border-gray-300 dark:border-gray-600 rounded-xl text-xs bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                              />
+                              <button
+                                type="submit"
+                                disabled={actionSending || (!vendorChatInput.trim() && !vendorCounterInput)}
+                                className="h-10 px-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-xs shadow flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shrink-0"
+                              >
+                                <Send className="w-3.5 h-3.5" />
+                                <span>Send</span>
+                              </button>
+                            </div>
+                          </form>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-20 text-gray-400 text-xs">
+                        Select a bulk inquiry from the list to view chat and manage negotiation offers.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
 
           {activeTab === 'customers' && (
             <section className="border border-[#e9f2eb] rounded-3xl bg-white p-5 sm:p-8 animate-fadeIn space-y-6">
@@ -1760,33 +2278,91 @@ export default function VendorDashboardPage() {
           )}
 
           {activeTab === 'notifications' && (
-            <section className="border border-[#e9f2eb] rounded-3xl bg-white p-5 sm:p-8 space-y-6 animate-fadeIn">
-              <div className="flex justify-between items-center">
+            <section className="border border-[#e9f2eb] rounded-3xl bg-white dark:bg-gray-800 p-5 sm:p-8 space-y-6 animate-fadeIn">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-700 pb-5">
                 <div>
-                  <h1 className="text-2xl font-black text-gray-900">Alerts & Notifications</h1>
-                  <p className="mt-1 text-sm font-medium text-gray-500">Recent inventory alerts, delivery shifts, and stock tracking.</p>
+                  <h1 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2.5">
+                    <Bell className="h-6 w-6 text-emerald-600" />
+                    <span>Alerts & Notifications Center</span>
+                  </h1>
+                  <p className="mt-1 text-xs font-semibold text-gray-500">
+                    Real-time bulk purchase inquiries, buyer negotiations, order updates, and inventory tracking.
+                  </p>
                 </div>
+                {unreadNotifCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => markNotificationAsRead(undefined, true)}
+                    className="self-start sm:self-auto px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold text-xs rounded-xl transition cursor-pointer border border-emerald-200"
+                  >
+                    Mark All As Read ({unreadNotifCount})
+                  </button>
+                )}
               </div>
 
-              <div className="divide-y divide-[#f6faf7]">
-                {notifications.map((item) => (
-                  <div
-                    key={item.id}
-                    className="py-4 flex gap-4 transition rounded-xl px-2 hover:bg-gray-50"
-                  >
-                    <div className="h-10 w-10 shrink-0 rounded-xl bg-green-50 text-[#2bb673] flex items-center justify-center">
-                      <Bell className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start gap-4">
-                        <h3 className="text-sm font-bold text-gray-900">{item.title}</h3>
-                        <span className="text-[10px] font-bold text-gray-400">{item.time}</span>
+              <div className="divide-y divide-[#f6faf7] dark:divide-gray-700/50">
+                {notifications.map((item) => {
+                  const isBulk = item.type === 'bulk_inquiry' || item.type === 'bulk_chat' || item.type === 'negotiation';
+                  return (
+                    <div
+                      key={item._id || item.id}
+                      onClick={() => handleNotificationClick(item)}
+                      className={`py-4 px-3 sm:px-4 flex gap-4 transition rounded-2xl cursor-pointer hover:bg-emerald-50/40 dark:hover:bg-gray-750 ${
+                        !item.isRead ? 'bg-emerald-50/25 border-l-4 border-emerald-500' : 'opacity-85'
+                      }`}
+                    >
+                      <div className={`h-11 w-11 shrink-0 rounded-2xl flex items-center justify-center ${
+                        isBulk ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-700'
+                      }`}>
+                        {isBulk ? <Scale className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">{item.message}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className={`text-sm font-black ${!item.isRead ? 'text-gray-950 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+                              {item.title}
+                            </h3>
+                            {isBulk && (
+                              <span className="text-[9px] font-black bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-300">
+                                🌾 Bulk Deal
+                              </span>
+                            )}
+                            {!item.isRead && (
+                              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+                            )}
+                          </div>
+                          <span className="text-[10px] font-bold text-gray-400">
+                            {item.createdAt ? new Date(item.createdAt).toLocaleString() : (item.time || '')}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">
+                          {item.message}
+                        </p>
+                        {isBulk && (
+                          <div className="mt-2.5 flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleNotificationClick(item);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-sm transition cursor-pointer"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              <span>Open Negotiation Chat & Deal</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
+                  );
+                })}
+                {notifications.length === 0 && (
+                  <div className="py-16 text-center text-sm font-bold text-gray-400">
+                    <Bell className="h-10 w-10 text-gray-300 mx-auto mb-3 opacity-50" />
+                    <p>No notifications or alerts yet.</p>
                   </div>
-                ))}
-                {notifications.length === 0 && <p className="py-12 text-center text-sm font-bold text-gray-400">No alerts yet.</p>}
+                )}
               </div>
             </section>
           )}
@@ -2013,7 +2589,13 @@ export default function VendorDashboardPage() {
 
             <form onSubmit={saveProduct} className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2 relative">
-                <input className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Product Name" value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} required />
+                <input
+                  className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 placeholder:text-gray-400 focus:bg-white"
+                  placeholder="Product Name"
+                  value={productForm.name}
+                  onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                  required
+                />
 
                 {matchingGlobalProducts.length > 0 && (
                   <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-xl space-y-2 relative z-20">
@@ -2033,7 +2615,7 @@ export default function VendorDashboardPage() {
                             });
                             setMatchingGlobalProducts([]);
                           }}
-                          className="bg-white px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-700 border border-gray-200 hover:border-green-500 hover:text-green-700 transition"
+                          className="bg-white px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-700 border border-gray-200 hover:border-green-500 hover:text-green-700 transition cursor-pointer"
                         >
                           {p.name || p.product_name} ({p.category})
                         </button>
@@ -2044,40 +2626,146 @@ export default function VendorDashboardPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500">Price (₹)</label>
-                <input type="number" step="0.01" className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Price" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: e.target.value })} required />
+                <label className="text-xs font-bold text-gray-700">Price (₹)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 placeholder:text-gray-400 focus:bg-white"
+                  placeholder="Price"
+                  value={productForm.price}
+                  onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                  required
+                />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500">Category</label>
-                <select className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" value={productForm.categorySlug} onChange={(e) => setProductForm({ ...productForm, categorySlug: e.target.value })} required>
-                  {categories.map((category) => <option key={category._id} value={category.slug}>{category.name}</option>)}
+                <label className="text-xs font-bold text-gray-700">Category</label>
+                <select
+                  className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 focus:bg-white cursor-pointer"
+                  value={productForm.categorySlug}
+                  onChange={(e) => setProductForm({ ...productForm, categorySlug: e.target.value })}
+                  required
+                >
+                  {categories.map((category) => <option key={category._id} value={category.slug} className="text-gray-900">{category.name}</option>)}
                 </select>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500">Stock Quantity</label>
-                <input type="number" className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Stock" value={productForm.stock} onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })} required />
+                <label className="text-xs font-bold text-gray-700">Stock Quantity</label>
+                <input
+                  type="number"
+                  className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 placeholder:text-gray-400 focus:bg-white"
+                  placeholder="Stock"
+                  value={productForm.stock}
+                  onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
+                  required
+                />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500">Discount %</label>
-                <input type="number" max="100" min="0" className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Discount %" value={productForm.discount} onChange={(e) => setProductForm({ ...productForm, discount: e.target.value })} />
+                <label className="text-xs font-bold text-gray-700">Discount %</label>
+                <input
+                  type="number"
+                  max="100"
+                  min="0"
+                  className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 placeholder:text-gray-400 focus:bg-white"
+                  placeholder="Discount %"
+                  value={productForm.discount}
+                  onChange={(e) => setProductForm({ ...productForm, discount: e.target.value })}
+                />
               </div>
 
               <div className="sm:col-span-2 space-y-1">
-                <label className="text-xs font-bold text-gray-500">Image URL</label>
-                <input className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Image URL" value={productForm.image} onChange={(e) => setProductForm({ ...productForm, image: e.target.value })} required />
+                <label className="text-xs font-bold text-gray-700">Image URL</label>
+                <input
+                  className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 placeholder:text-gray-400 focus:bg-white"
+                  placeholder="Image URL"
+                  value={productForm.image}
+                  onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="sm:col-span-2 p-3 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-gray-900">Enable Bulk / Wholesale Buying</p>
+                    <p className="text-[11px] text-gray-600">Allow customers to negotiate custom bulk rates (Minimum 5 kg)</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={productForm.is_bulk_available}
+                    onChange={(e) => setProductForm({ ...productForm, is_bulk_available: e.target.checked })}
+                    className="w-5 h-5 accent-[#2bb673] rounded cursor-pointer"
+                  />
+                </div>
+
+                {productForm.is_bulk_available && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-gray-200">
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-700">Min Bulk Qty (kg) *</label>
+                      <input
+                        type="number"
+                        min="5"
+                        value={productForm.bulk_min_qty}
+                        onChange={(e) => setProductForm({ ...productForm, bulk_min_qty: e.target.value })}
+                        className="w-full h-10 border border-gray-200 rounded-lg bg-white px-2 text-xs font-semibold text-gray-900 placeholder:text-gray-400"
+                        placeholder="5"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-700">Wholesale Price (₹)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={productForm.bulk_base_price}
+                        onChange={(e) => setProductForm({ ...productForm, bulk_base_price: e.target.value })}
+                        className="w-full h-10 border border-gray-200 rounded-lg bg-white px-2 text-xs font-semibold text-gray-900 placeholder:text-gray-400"
+                        placeholder="e.g. 40"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-700">Bulk Unit</label>
+                      <select
+                        value={productForm.bulk_unit}
+                        onChange={(e) => setProductForm({ ...productForm, bulk_unit: e.target.value })}
+                        className="w-full h-10 border border-gray-200 rounded-lg bg-white px-2 text-xs font-semibold text-gray-900 cursor-pointer"
+                      >
+                        <option value="kg" className="text-gray-900">kg</option>
+                        <option value="crate" className="text-gray-900">Crate</option>
+                        <option value="box" className="text-gray-900">Box</option>
+                        <option value="quintal" className="text-gray-900">Quintal</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-700">Bulk Stock</label>
+                      <input
+                        type="number"
+                        value={productForm.bulk_stock}
+                        onChange={(e) => setProductForm({ ...productForm, bulk_stock: e.target.value })}
+                        className="w-full h-10 border border-gray-200 rounded-lg bg-white px-2 text-xs font-semibold text-gray-900 placeholder:text-gray-400"
+                        placeholder="500"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="sm:col-span-2 space-y-1">
-                <label className="text-xs font-bold text-gray-500">Description</label>
-                <textarea className="w-full min-h-24 border border-gray-200 rounded-xl bg-gray-50 p-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Description" value={productForm.description} onChange={(e) => setProductForm({ ...productForm, description: e.target.value })} required />
+                <label className="text-xs font-bold text-gray-700">Description</label>
+                <textarea
+                  className="w-full min-h-24 border border-gray-200 rounded-xl bg-gray-50 p-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 placeholder:text-gray-400 focus:bg-white"
+                  placeholder="Description"
+                  value={productForm.description}
+                  onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                  required
+                />
               </div>
 
               <div className="flex gap-3 sm:col-span-2 mt-2">
-                <button type="button" onClick={closeModal} className="h-12 flex-1 rounded-xl border border-gray-200 text-sm font-extrabold text-gray-600 hover:bg-gray-50 transition">Cancel</button>
-                <button type="submit" disabled={saving} className="flex h-12 flex-1 rounded-xl items-center justify-center gap-2 bg-[#2bb673] text-sm font-extrabold text-white hover:bg-green-600 transition disabled:opacity-70">
+                <button type="button" onClick={closeModal} className="h-12 flex-1 rounded-xl border border-gray-200 text-sm font-extrabold text-gray-600 hover:bg-gray-50 transition cursor-pointer">Cancel</button>
+                <button type="submit" disabled={saving} className="flex h-12 flex-1 rounded-xl items-center justify-center gap-2 bg-[#2bb673] text-sm font-extrabold text-white hover:bg-green-600 transition disabled:opacity-70 cursor-pointer">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingId ? 'Update Product' : 'Add Product'}
                 </button>
               </div>

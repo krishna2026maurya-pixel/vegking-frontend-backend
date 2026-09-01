@@ -66,7 +66,7 @@ export default function OrdersPage() {
       const res = await fetch(`/api/orders/${statusModal.orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderStatus: newStatus, status: legacyMap[newStatus] }),
+        body: JSON.stringify({ orderStatus: newStatus, status: legacyMap[newStatus], isAdmin: true }),
       });
       if (!res.ok) throw new Error('Update failed');
       fetchOrders();
