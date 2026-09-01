@@ -37,32 +37,14 @@ export async function GET(request: NextRequest) {
 
     // Role-based filtering
     if ((session.user as any).role === 'vendor') {
-      const vendorId = (session.user as any).id;
       const Product = (await import('@/lib/models/Product')).default;
-      
-      const vQuery: any = mongoose.Types.ObjectId.isValid(vendorId)
-        ? { $or: [{ vendor_id: vendorId }, { vendor_id: new mongoose.Types.ObjectId(vendorId) }] }
-        : { vendor_id: vendorId };
-
-      const vendorProducts = await Product.find(vQuery).select('_id').lean();
+      const vendorProducts = await Product.find({ vendor_id: (session.user as any).id }).select('_id').lean();
       const vendorProductIds = vendorProducts.map((p: any) => p._id);
-      const vendorProductObjIds = vendorProductIds.filter(id => mongoose.Types.ObjectId.isValid(id)).map(id => new mongoose.Types.ObjectId(id));
-      const vendorProductStrIds = vendorProductIds.map(id => id.toString());
 
-      const vendorItems = await OrderItem.find({
-        $or: [
-          { product_id: { $in: vendorProductObjIds } },
-          { product_id: { $in: vendorProductStrIds } },
-          ...(mongoose.Types.ObjectId.isValid(vendorId) ? [{ vendor_id: new mongoose.Types.ObjectId(vendorId) }] : []),
-          { vendor_id: vendorId }
-        ]
-      }).select('order_id').lean();
+      const vendorItems = await OrderItem.find({ product_id: { $in: vendorProductIds } }).select('order_id').lean();
+      const vendorOrderIds = vendorItems.map((item: any) => item.order_id);
 
-      const rawOrderIds = vendorItems.map((item: any) => item.order_id).filter(Boolean);
-      const orderObjIds = rawOrderIds.filter(id => mongoose.Types.ObjectId.isValid(id)).map(id => new mongoose.Types.ObjectId(id));
-      const orderStrIds = rawOrderIds.map(id => id.toString());
-
-      query._id = { $in: [...orderObjIds, ...orderStrIds] };
+      query._id = { $in: vendorOrderIds };
     } else if ((session.user as any).role !== 'admin') {
       const uId = (session.user as any).id || (session.user as any)._id;
       query.user_id = uId;
