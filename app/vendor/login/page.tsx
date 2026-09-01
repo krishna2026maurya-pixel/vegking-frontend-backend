@@ -159,10 +159,7 @@ function VendorLoginForm() {
             </div>
 
             <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Password</label>
-                <span className="text-[10px] text-gray-400 font-medium">Default: <code className="text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded font-mono font-bold">password123</code></span>
-              </div>
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Password</label>
               <div className="flex h-10 items-center gap-2.5 border border-gray-200 rounded-xl bg-gray-50 px-3.5 focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all">
                 <Lock className="h-4 w-4 text-gray-400 shrink-0" />
                 <input 
