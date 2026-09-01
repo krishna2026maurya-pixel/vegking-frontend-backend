@@ -38,13 +38,40 @@ export async function GET(request: NextRequest) {
     // Role-based filtering
     if ((session.user as any).role === 'vendor') {
       const Product = (await import('@/lib/models/Product')).default;
-      const vendorProducts = await Product.find({ vendor_id: (session.user as any).id }).select('_id').lean();
-      const vendorProductIds = vendorProducts.map((p: any) => p._id);
+      const vId = (session.user as any).id;
       
-      const vendorItems = await OrderItem.find({ product_id: { $in: vendorProductIds } }).select('order_id').lean();
-      const vendorOrderIds = vendorItems.map((item: any) => item.order_id);
+      const vendorIdMatches: any[] = [vId];
+      if (mongoose.Types.ObjectId.isValid(vId)) {
+        vendorIdMatches.push(new mongoose.Types.ObjectId(vId));
+      }
       
-      query._id = { $in: vendorOrderIds };
+      const vendorProducts = await Product.find({
+        $or: [
+          { vendor_id: { $in: vendorIdMatches } },
+          { vendor_shop_name: (session.user as any).name || '' }
+        ]
+      }).select('_id product_name').lean();
+      
+      const vendorProductIds = vendorProducts.map((p: any) => p._id.toString());
+      const vendorProductObjectIds = vendorProducts
+        .filter((p: any) => mongoose.Types.ObjectId.isValid(p._id.toString()))
+        .map((p: any) => new mongoose.Types.ObjectId(p._id.toString()));
+      const vendorProductNames = vendorProducts.map((p: any) => p.product_name).filter(Boolean);
+
+      const vendorItems = await OrderItem.find({
+        $or: [
+          { product_id: { $in: [...vendorProductIds, ...vendorProductObjectIds] } },
+          { product_name: { $in: vendorProductNames } }
+        ]
+      }).select('order_id').lean();
+      
+      const vendorOrderIds = vendorItems.map((item: any) => item.order_id).filter(Boolean);
+      const vendorOrderIdStrings = vendorOrderIds.map((id: any) => id.toString());
+      const vendorOrderIdObjects = vendorOrderIds
+        .filter((id: any) => mongoose.Types.ObjectId.isValid(id.toString()))
+        .map((id: any) => new mongoose.Types.ObjectId(id.toString()));
+
+      query._id = { $in: [...vendorOrderIdStrings, ...vendorOrderIdObjects] };
     } else if ((session.user as any).role !== 'admin') {
       const uId = (session.user as any).id || (session.user as any)._id;
       query.user_id = uId;
@@ -63,11 +90,21 @@ export async function GET(request: NextRequest) {
 
     // Attach items to each order
     const orderIds = orders.map((o: any) => o._id);
-    const allItems = await OrderItem.find({ order_id: { $in: orderIds } }).lean();
+    const orderIdStrings = orderIds.map((id: any) => id.toString());
+    const orderIdObjects = orderIds
+      .filter((id: any) => mongoose.Types.ObjectId.isValid(id.toString()))
+      .map((id: any) => new mongoose.Types.ObjectId(id.toString()));
+
+    const allItems = await OrderItem.find({
+      $or: [
+        { order_id: { $in: [...orderIdStrings, ...orderIdObjects] } }
+      ]
+    }).lean();
 
     const ordersWithItems = orders.map((order: any) => {
+      const orderIdStr = order._id.toString();
       const matchingItems = allItems.filter(
-        (i: any) => i.order_id?.toString() === order._id?.toString()
+        (i: any) => i.order_id?.toString() === orderIdStr
       );
       return {
         ...order,
