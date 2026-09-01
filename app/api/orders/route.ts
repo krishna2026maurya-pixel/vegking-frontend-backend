@@ -37,41 +37,32 @@ export async function GET(request: NextRequest) {
 
     // Role-based filtering
     if ((session.user as any).role === 'vendor') {
+      const vendorId = (session.user as any).id;
       const Product = (await import('@/lib/models/Product')).default;
-      const vId = (session.user as any).id;
       
-      const vendorIdMatches: any[] = [vId];
-      if (mongoose.Types.ObjectId.isValid(vId)) {
-        vendorIdMatches.push(new mongoose.Types.ObjectId(vId));
-      }
-      
-      const vendorProducts = await Product.find({
-        $or: [
-          { vendor_id: { $in: vendorIdMatches } },
-          { vendor_shop_name: (session.user as any).name || '' }
-        ]
-      }).select('_id product_name').lean();
-      
-      const vendorProductIds = vendorProducts.map((p: any) => p._id.toString());
-      const vendorProductObjectIds = vendorProducts
-        .filter((p: any) => mongoose.Types.ObjectId.isValid(p._id.toString()))
-        .map((p: any) => new mongoose.Types.ObjectId(p._id.toString()));
-      const vendorProductNames = vendorProducts.map((p: any) => p.product_name).filter(Boolean);
+      const vQuery: any = mongoose.Types.ObjectId.isValid(vendorId)
+        ? { $or: [{ vendor_id: vendorId }, { vendor_id: new mongoose.Types.ObjectId(vendorId) }] }
+        : { vendor_id: vendorId };
+
+      const vendorProducts = await Product.find(vQuery).select('_id').lean();
+      const vendorProductIds = vendorProducts.map((p: any) => p._id);
+      const vendorProductObjIds = vendorProductIds.filter(id => mongoose.Types.ObjectId.isValid(id)).map(id => new mongoose.Types.ObjectId(id));
+      const vendorProductStrIds = vendorProductIds.map(id => id.toString());
 
       const vendorItems = await OrderItem.find({
         $or: [
-          { product_id: { $in: [...vendorProductIds, ...vendorProductObjectIds] } },
-          { product_name: { $in: vendorProductNames } }
+          { product_id: { $in: vendorProductObjIds } },
+          { product_id: { $in: vendorProductStrIds } },
+          ...(mongoose.Types.ObjectId.isValid(vendorId) ? [{ vendor_id: new mongoose.Types.ObjectId(vendorId) }] : []),
+          { vendor_id: vendorId }
         ]
       }).select('order_id').lean();
-      
-      const vendorOrderIds = vendorItems.map((item: any) => item.order_id).filter(Boolean);
-      const vendorOrderIdStrings = vendorOrderIds.map((id: any) => id.toString());
-      const vendorOrderIdObjects = vendorOrderIds
-        .filter((id: any) => mongoose.Types.ObjectId.isValid(id.toString()))
-        .map((id: any) => new mongoose.Types.ObjectId(id.toString()));
 
-      query._id = { $in: [...vendorOrderIdStrings, ...vendorOrderIdObjects] };
+      const rawOrderIds = vendorItems.map((item: any) => item.order_id).filter(Boolean);
+      const orderObjIds = rawOrderIds.filter(id => mongoose.Types.ObjectId.isValid(id)).map(id => new mongoose.Types.ObjectId(id));
+      const orderStrIds = rawOrderIds.map(id => id.toString());
+
+      query._id = { $in: [...orderObjIds, ...orderStrIds] };
     } else if ((session.user as any).role !== 'admin') {
       const uId = (session.user as any).id || (session.user as any)._id;
       query.user_id = uId;
@@ -90,21 +81,11 @@ export async function GET(request: NextRequest) {
 
     // Attach items to each order
     const orderIds = orders.map((o: any) => o._id);
-    const orderIdStrings = orderIds.map((id: any) => id.toString());
-    const orderIdObjects = orderIds
-      .filter((id: any) => mongoose.Types.ObjectId.isValid(id.toString()))
-      .map((id: any) => new mongoose.Types.ObjectId(id.toString()));
-
-    const allItems = await OrderItem.find({
-      $or: [
-        { order_id: { $in: [...orderIdStrings, ...orderIdObjects] } }
-      ]
-    }).lean();
+    const allItems = await OrderItem.find({ order_id: { $in: orderIds } }).lean();
 
     const ordersWithItems = orders.map((order: any) => {
-      const orderIdStr = order._id.toString();
       const matchingItems = allItems.filter(
-        (i: any) => i.order_id?.toString() === orderIdStr
+        (i: any) => i.order_id?.toString() === order._id?.toString()
       );
       return {
         ...order,
