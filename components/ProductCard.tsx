@@ -100,8 +100,10 @@ export default function ProductCard({ product }: { product: any }) {
     ? product.stock
     : (product?.stock !== undefined && product?.stock !== null && !isNaN(Number(product.stock)))
       ? Number(product.stock)
-      : (product?.stock_status === 1 || product?.stock_status === '1' || product?.inStock === true ? 10 : 0);
-  const inStock = product?.inStock !== undefined ? Boolean(product.inStock) : (stockCount > 0);
+      : (product?.stock_status === 1 || product?.stock_status === '1' ? 10 : 10);
+  const inStock = product?.inStock === false && Number(product?.stock) === 0 && Number(product?.stock_status) === 0
+    ? false
+    : true;
 
   // Cart quantity for this item
   const cartItem = cart?.find((c: any) => (c.cartId || c._id) === product?._id);
