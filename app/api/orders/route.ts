@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     await connectDB();
     const body = await request.json();
-    const { items, totalAmount, shippingAddress } = body;
+    const { items, totalAmount, shippingAddress, delivery_charge } = body;
 
     if (!items?.length || totalAmount == null || !shippingAddress) {
       return NextResponse.json(
@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
       order_number,
       user_id: userId,
       total_amount: totalAmount,
+      delivery_charge: delivery_charge !== undefined ? Number(delivery_charge) : 0,
       payment_method: 'COD',
       payment_status: 'pending',
       shippingAddress,

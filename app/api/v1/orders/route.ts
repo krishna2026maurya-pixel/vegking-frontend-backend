@@ -12,16 +12,50 @@ async function getMyOrders(request: NextRequest, userId: string) {
     await connectDB();
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const status = searchParams.get('status') || '';
+    const vendorId = searchParams.get('vendor_id') || '';
+
+    // Check token for vendor role
+    const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
+    let role = '';
+    let tokenVendorId = '';
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const { verifyToken } = await import('@/lib/auth');
+      const payload = verifyToken(authHeader.substring(7));
+      role = payload?.role || '';
+      tokenVendorId = payload?.vendor_id || '';
+    }
+
+    const query: any = {};
+    if (status) query.orderStatus = status;
+
+    const effectiveVendorId = vendorId || (role === 'vendor' ? (tokenVendorId || userId) : '');
+
+    if (effectiveVendorId) {
+      const vendorProducts = await Product.find({ vendor_id: effectiveVendorId }).select('_id').lean();
+      const vendorProductIds = vendorProducts.map((p: any) => p._id);
+
+      if (vendorProductIds.length > 0) {
+        const vendorItems = await OrderItem.find({ product_id: { $in: vendorProductIds } }).select('order_id').lean();
+        const vendorOrderIds = vendorItems.map((item: any) => item.order_id);
+        query._id = { $in: vendorOrderIds };
+      }
+      // If vendor has no specific products assigned, return recent store orders so they aren't blank
+    } else if (userId && role !== 'admin') {
+      query.user_id = userId;
+    }
+
     const [data, total] = await Promise.all([
-      Order.find({ user_id: userId })
+      Order.find(query)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
         .populate('items')
+        .populate('delivery_boy_id', 'name mobile is_active vehicle_number')
+        .populate('user_id', 'name email mobile_no')
         .lean(),
-      Order.countDocuments({ user_id: userId }),
+      Order.countDocuments(query),
     ]);
     
     return NextResponse.json({

@@ -83,3 +83,70 @@ export async function GET(
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
+
+// ─── UPDATE PRODUCT (PATCH) ───────────────────────────────────────────────────
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await connectDB();
+    const { id } = await params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, error: 'Invalid product ID' }, { status: 400 });
+    }
+
+    const body = await request.json();
+    const updateData: any = { ...body };
+
+    // Standardize stock and price if aliases sent
+    if (body.price !== undefined && body.selling_price === undefined) {
+      updateData.selling_price = parseFloat(body.price);
+    }
+    if (body.stock !== undefined && body.stock_status === undefined) {
+      updateData.stock_status = parseInt(body.stock);
+    }
+
+    const updated = await Product.findByIdAndUpdate(id, { $set: updateData }, { new: true }).lean();
+    if (!updated) {
+      return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Product updated successfully',
+      data: updated
+    });
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  }
+}
+
+// ─── DELETE PRODUCT (DELETE) ──────────────────────────────────────────────────
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await connectDB();
+    const { id } = await params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, error: 'Invalid product ID' }, { status: 400 });
+    }
+
+    const deleted = await Product.findByIdAndDelete(id);
+    if (!deleted) {
+      return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Product deleted successfully'
+    });
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  }
+}
+
