@@ -30,6 +30,7 @@ interface Order {
   payment_method: string;
   payment_status: string;
   total_amount: number;
+  delivery_charge?: number;
   shippingAddress: string;
   createdAt: string;
   estimated_delivery?: string;
@@ -116,23 +117,41 @@ function isBulkOrder(order: Order): boolean {
   return false;
 }
 
-// ─── Compact Order Detail Modal (Zero-Scroll Optimized) ───────────────────────
+// ─── Compact Vertical Order Detail Modal ──────────────────────────────────────
 function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => void }) {
   const cfg = STATUS_CONFIG[order.orderStatus] || STATUS_CONFIG['Order Placed'];
   const currentStep = cfg.step;
   const isCancelled = order.orderStatus === 'Cancelled';
   const hasBulk = isBulkOrder(order);
-  const items = order.populatedItems || [];
+  const items = (order.populatedItems && order.populatedItems.length > 0)
+    ? order.populatedItems
+    : (order.items || []);
+
+  const itemsSubtotal = items.reduce(
+    (acc: number, item: any) => acc + (Number(item.price || 0) * Number(item.qty || item.quantity || 1)),
+    0
+  );
+
+  // Delivery charge calculation:
+  // Free delivery if items subtotal is >= 199; otherwise standard ₹40 delivery charge
+  const isFreeDelivery = itemsSubtotal >= 199;
+  const deliveryCharge = order.delivery_charge !== undefined && order.delivery_charge !== null
+    ? Number(order.delivery_charge)
+    : (order.total_amount && itemsSubtotal > 0 && order.total_amount > itemsSubtotal)
+    ? Math.max(0, Math.round((order.total_amount - itemsSubtotal) * 100) / 100)
+    : (itemsSubtotal > 0 && itemsSubtotal < 199 ? 40 : 0);
+
+  const calculatedTotal = itemsSubtotal > 0 ? (itemsSubtotal + (isFreeDelivery ? 0 : deliveryCharge)) : (order.total_amount || 0);
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn overflow-y-auto"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 animate-scaleUp max-h-[95vh] flex flex-col">
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-md overflow-hidden border border-gray-100 animate-scaleUp max-h-[92vh] flex flex-col my-auto">
         
-        {/* Compact Header */}
-        <div className="px-4 py-3 bg-gradient-to-r from-gray-50 via-white to-gray-50 border-b border-gray-100 flex items-center justify-between shrink-0">
+        {/* Compact Vertical-First Header */}
+        <div className="px-3.5 py-3 bg-gradient-to-r from-gray-50 via-white to-gray-50 border-b border-gray-100 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
               <Package className="w-3.5 h-3.5" />
@@ -152,8 +171,8 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black border ${cfg.color} ${cfg.bg}`}>
+          <div className="flex items-center gap-1.5">
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black border ${cfg.color} ${cfg.bg}`}>
               {cfg.icon}
               <span>{cfg.label}</span>
             </span>
@@ -161,47 +180,87 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
               onClick={onClose}
               className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 flex items-center justify-center transition cursor-pointer"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        {/* Modal Body (Compact Content Area) */}
-        <div className="p-3.5 sm:p-4 space-y-3 overflow-y-auto max-h-[calc(95vh-60px)]">
+        {/* Modal Body (Compact Vertical Flow) */}
+        <div className="p-3 sm:p-3.5 space-y-2.5 overflow-y-auto max-h-[calc(92vh-60px)]">
           
-          {/* Horizontal Progress Stepper Bar (Clean, Compact, No Scroll Needed) */}
+          {/* Vertical Progress Stepper (Compact & Clean) */}
           {!isCancelled ? (
-            <div className="bg-gray-50/90 rounded-xl p-2.5 border border-gray-100">
-              <div className="flex items-center justify-between relative">
-                {/* Connecting Line */}
-                <div className="absolute left-4 right-4 top-3 h-0.5 bg-gray-200 z-0">
-                  <div
-                    className="h-full bg-emerald-500 transition-all duration-500"
-                    style={{ width: `${Math.min(100, Math.max(0, (currentStep / (TRACK_STEPS.length - 1)) * 100))}%` }}
-                  />
-                </div>
+            <div className="bg-gray-50/90 rounded-2xl p-2.5 sm:p-3 border border-gray-100">
+              <div className="flex items-center justify-between mb-2 px-0.5">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
+                  Tracking Progress
+                </span>
+                <span className="text-[10px] font-bold text-emerald-700">
+                  Step {Math.max(1, currentStep + 1)} of {TRACK_STEPS.length}
+                </span>
+              </div>
 
+              <div className="space-y-0 relative pl-0.5">
                 {TRACK_STEPS.map((step, idx) => {
                   const done = currentStep >= idx;
                   const active = currentStep === idx;
+                  const isLast = idx === TRACK_STEPS.length - 1;
                   const StepIcon = step.icon;
 
                   return (
-                    <div key={step.key} className="relative z-10 flex flex-col items-center flex-1 text-center">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all shadow-xs ${
-                        active
-                          ? 'bg-emerald-600 text-white ring-2 ring-emerald-300 ring-offset-1 scale-110'
-                          : done
-                          ? 'bg-emerald-500 text-white'
-                          : 'bg-white border border-gray-300 text-gray-400'
-                      }`}>
-                        {done ? <CheckCircle2 className="w-3.5 h-3.5" /> : <StepIcon className="w-2.5 h-2.5" />}
+                    <div key={step.key} className="flex items-start gap-2.5 relative">
+                      {/* Column with Circle and Vertical Line */}
+                      <div className="flex flex-col items-center">
+                        <div
+                          className={`w-5 h-5 rounded-full flex items-center justify-center transition-all shadow-2xs z-10 shrink-0 ${
+                            active
+                              ? 'bg-emerald-600 text-white ring-2 ring-emerald-300 ring-offset-1 scale-105'
+                              : done
+                              ? 'bg-emerald-500 text-white'
+                              : 'bg-white border border-gray-300 text-gray-300'
+                          }`}
+                        >
+                          {done ? (
+                            <CheckCircle2 className="w-3 h-3" />
+                          ) : (
+                            <StepIcon className="w-2.5 h-2.5" />
+                          )}
+                        </div>
+
+                        {!isLast && (
+                          <div
+                            className={`w-0.5 h-3.5 transition-colors my-0.5 ${
+                              currentStep > idx ? 'bg-emerald-500' : 'bg-gray-200'
+                            }`}
+                          />
+                        )}
                       </div>
-                      <span className={`text-[9px] font-bold mt-1 tracking-tight truncate max-w-[54px] sm:max-w-none ${
-                        active ? 'text-emerald-700 font-extrabold' : done ? 'text-gray-700' : 'text-gray-400'
-                      }`}>
-                        {step.label}
-                      </span>
+
+                      {/* Step Name & Status */}
+                      <div className="flex items-center justify-between flex-1 min-w-0 pt-0.5 pb-1">
+                        <span
+                          className={`text-xs tracking-tight ${
+                            active
+                              ? 'text-emerald-700 font-extrabold'
+                              : done
+                              ? 'text-gray-800 font-bold'
+                              : 'text-gray-400 font-medium'
+                          }`}
+                        >
+                          {step.label}
+                        </span>
+
+                        {active && (
+                          <span className="text-[9px] font-black text-emerald-700 bg-emerald-100/90 px-1.5 py-0.2 rounded-full uppercase">
+                            Current
+                          </span>
+                        )}
+                        {done && !active && (
+                          <span className="text-[9px] text-gray-400 font-semibold">
+                            Done
+                          </span>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -237,11 +296,11 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
                         <img
                           src={item.image}
                           alt={item.product_name}
-                          className="w-8 h-8 rounded-lg object-cover bg-white border border-gray-200 shrink-0"
+                          className="w-7 h-7 rounded-lg object-cover bg-white border border-gray-200 shrink-0"
                         />
                       ) : (
-                        <div className="w-8 h-8 rounded-lg bg-emerald-100/60 flex items-center justify-center shrink-0">
-                          <Package className="w-4 h-4 text-emerald-700" />
+                        <div className="w-7 h-7 rounded-lg bg-emerald-100/60 flex items-center justify-center shrink-0">
+                          <Package className="w-3.5 h-3.5 text-emerald-700" />
                         </div>
                       )}
                       <div className="min-w-0">
@@ -268,40 +327,101 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
             </div>
           </div>
 
-          {/* Compact Payment, Date & Delivery Grid */}
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-100">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block mb-0.5">Payment Method</span>
+          {/* Vertical Bill Breakdown with Delivery Charges (Below ₹199 vs Free Above ₹199) */}
+          <div className="bg-gray-50/90 rounded-2xl p-3 border border-gray-100 space-y-2 text-xs">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 block">
+              Bill Summary
+            </span>
+
+            <div className="space-y-1.5">
+              {/* Items Subtotal */}
+              <div className="flex items-center justify-between text-gray-600">
+                <span>Items Subtotal ({items.length})</span>
+                <span className="font-bold text-gray-900">₹{itemsSubtotal.toFixed(2)}</span>
+              </div>
+
+              {/* Delivery Charges */}
               <div className="flex items-center justify-between">
-                <strong className="font-black text-gray-900">{order.payment_method}</strong>
-                <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase ${
-                  order.payment_status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'
-                }`}>
-                  {order.payment_status}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-gray-600">Delivery Charges</span>
+                  {isFreeDelivery ? (
+                    <span className="text-[9px] font-black uppercase text-emerald-700 bg-emerald-100/90 px-1.5 py-0.2 rounded">
+                      Free (Above ₹199)
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-semibold text-gray-500 bg-gray-200/80 px-1.5 py-0.2 rounded">
+                      Below ₹199
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  {isFreeDelivery ? (
+                    <div className="text-right flex items-center gap-1">
+                      <span className="line-through text-gray-400 text-[10px]">₹40.00</span>
+                      <strong className="text-emerald-600 font-black">FREE</strong>
+                    </div>
+                  ) : (
+                    <strong className="text-gray-900 font-bold">
+                      ₹{deliveryCharge.toFixed(2)}
+                    </strong>
+                  )}
+                </div>
+              </div>
+
+              {/* Delivery info notice */}
+              {isFreeDelivery ? (
+                <div className="text-[10px] text-emerald-800 font-medium bg-emerald-50 rounded-lg px-2 py-1 border border-emerald-200/60 flex items-center gap-1">
+                  <span>🎉</span>
+                  <span>Free delivery applied! Your order is ₹199 or above.</span>
+                </div>
+              ) : (
+                <div className="text-[10px] text-amber-800 font-medium bg-amber-50 rounded-lg px-2 py-1 border border-amber-200/60">
+                  Delivery charges ₹{deliveryCharge.toFixed(2)} applied for orders below ₹199. Free delivery on orders ₹199+.
+                </div>
+              )}
+
+              {/* Total Bill */}
+              <div className="border-t border-gray-200/80 pt-1.5 flex items-center justify-between">
+                <div>
+                  <span className="font-black text-gray-950 text-xs sm:text-sm block">Total Bill</span>
+                  <span className="text-[9px] text-gray-400 font-medium">Inclusive of delivery & taxes</span>
+                </div>
+                <span className="text-base sm:text-lg font-black text-emerald-700">
+                  ₹{Number(order.total_amount || calculatedTotal).toFixed(2)}
                 </span>
               </div>
             </div>
-
-            <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-100">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block mb-0.5">Total Bill</span>
-              <span className="text-sm sm:text-base font-black text-emerald-700">
-                ₹{Number(order.total_amount || 0).toFixed(2)}
-              </span>
-            </div>
           </div>
 
-          {/* Shipping Address (Compact) */}
-          {order.shippingAddress && (
-            <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-100 flex items-start gap-2 text-xs">
-              <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-              <div className="min-w-0">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block">Deliver To:</span>
-                <p className="text-gray-800 font-semibold text-[11px] leading-tight truncate">
-                  {order.shippingAddress}
-                </p>
+          {/* Vertical Details: Payment & Shipping Address */}
+          <div className="space-y-1.5 text-xs">
+            {/* Payment Method Card */}
+            <div className="p-2.5 bg-gray-50/80 rounded-xl border border-gray-100 flex items-center justify-between">
+              <div>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block">Payment Method</span>
+                <strong className="font-black text-gray-900">{order.payment_method}</strong>
               </div>
+              <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${
+                order.payment_status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'
+              }`}>
+                {order.payment_status}
+              </span>
             </div>
-          )}
+
+            {/* Shipping Address Card */}
+            {order.shippingAddress && (
+              <div className="p-2.5 bg-gray-50/80 rounded-xl border border-gray-100 flex items-start gap-2 text-xs">
+                <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block">Deliver To:</span>
+                  <p className="text-gray-800 font-semibold text-[11px] leading-tight break-words">
+                    {order.shippingAddress}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
 
         </div>
       </div>

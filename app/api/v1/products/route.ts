@@ -84,6 +84,28 @@ export async function POST(request: NextRequest) {
 
     if (contentType.includes('application/json')) {
       const body = await request.json().catch(() => ({}));
+      if (body.product_name) {
+        // ── CREATE PRODUCT (Vendor Mobile App) ──────────────────────────────
+        const product = await Product.create({
+          product_name: body.product_name,
+          category: body.category || body.category_name || 'Vegetables',
+          category_id: body.category_id && mongoose.Types.ObjectId.isValid(body.category_id) ? body.category_id : undefined,
+          selling_price: parseFloat(body.selling_price || body.price || 0),
+          mrp: parseFloat(body.mrp || body.selling_price || 0),
+          product_unit: body.product_unit || body.unit || 'kg',
+          stock_status: parseInt(body.stock_status || body.stock || 10),
+          product_image: body.product_image || (body.images && body.images[0]) || '',
+          images: body.images || (body.product_image ? [body.product_image] : []),
+          description: body.description || body.product_description || '',
+          vendor_id: body.vendor_id && mongoose.Types.ObjectId.isValid(body.vendor_id) ? body.vendor_id : undefined,
+          is_active: body.is_active !== undefined ? String(body.is_active) : '1'
+        });
+        return NextResponse.json({
+          success: true,
+          message: 'Product created successfully',
+          data: product
+        }, { status: 201 });
+      }
       productId = body.id || body.product_id;
     } else if (
       contentType.includes('multipart/form-data') ||
@@ -91,6 +113,24 @@ export async function POST(request: NextRequest) {
     ) {
       const formData = await request.formData().catch(() => null);
       if (formData) {
+        if (formData.get('product_name')) {
+          const product = await Product.create({
+            product_name: formData.get('product_name') as string,
+            category: (formData.get('category') as string) || 'Vegetables',
+            selling_price: parseFloat((formData.get('selling_price') || formData.get('price') || '0') as string),
+            mrp: parseFloat((formData.get('mrp') || formData.get('selling_price') || '0') as string),
+            product_unit: (formData.get('product_unit') || formData.get('unit') || 'kg') as string,
+            stock_status: parseInt((formData.get('stock_status') || formData.get('stock') || '10') as string),
+            product_image: (formData.get('product_image') as string) || '',
+            description: (formData.get('description') as string) || '',
+            is_active: '1'
+          });
+          return NextResponse.json({
+            success: true,
+            message: 'Product created successfully',
+            data: product
+          }, { status: 201 });
+        }
         productId = (formData.get('id') || formData.get('product_id')) as string | null;
       }
     }

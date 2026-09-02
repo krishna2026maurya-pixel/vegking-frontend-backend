@@ -27,3 +27,32 @@ async function getOrderDetail(request: NextRequest, userId: string, params: any)
 
 export const GET = authMiddleware(getOrderDetail);
 export const POST = authMiddleware(getOrderDetail); // Allow POST as fallback
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await connectDB();
+    const { id } = await params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, error: 'Invalid order ID' }, { status: 400 });
+    }
+
+    const order = await Order.findByIdAndDelete(id);
+    if (!order) {
+      return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+    }
+
+    await OrderItem.deleteMany({ order_id: id });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Order deleted successfully'
+    });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
