@@ -84,6 +84,7 @@ const emptyProduct = {
 
 export default function VendorDashboardPage() {
   const { data: session, status, signOut } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('home');
   const [isDarkMode, setIsDarkMode] = useState(false);
 
