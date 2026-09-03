@@ -279,22 +279,22 @@ export default function Navbar() {
                 </span>
               </Link>
 
-              {/* User Current Location Selector */}
+              {/* User Current Location Selector with Shimmer Effect */}
               <button
                 type="button"
                 onClick={() => setShowLocationModal(true)}
-                className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-gray-200 bg-gray-50/80 hover:bg-gray-100 hover:border-primary/40 transition-all text-xs text-left group shrink-0 shadow-xs cursor-pointer"
+                className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-primary/30 bg-gradient-to-r from-green-50/90 via-emerald-50/70 to-green-50/90 hover:bg-green-100/90 hover:border-primary/60 transition-all text-xs text-left group shrink-0 shadow-xs cursor-pointer animate-shimmer relative overflow-hidden ring-1 ring-primary/10"
               >
-                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+                <div className={`w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-all ${isDetecting ? 'animate-pulse' : ''}`}>
                   <MapPin className="w-3.5 h-3.5" />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[9px] font-extrabold uppercase tracking-wider text-gray-400 leading-none">Deliver to</span>
-                  <span className="font-extrabold text-gray-900 truncate max-w-[130px] leading-tight mt-0.5">
+                  <span className="text-[9px] font-extrabold uppercase tracking-wider text-primary/80 leading-none">Deliver to</span>
+                  <span className="font-extrabold text-gray-950 truncate max-w-[130px] leading-tight mt-0.5">
                     {userLocation}
                   </span>
                 </div>
-                <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-0.5 group-hover:text-gray-700" />
+                <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-0.5 group-hover:text-gray-700 transition-transform group-hover:translate-y-0.5" />
               </button>
             </div>
 
