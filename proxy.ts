@@ -17,6 +17,12 @@ export async function proxy(request: NextRequest) {
 
     console.log(`\n\x1b[1m\x1b[33m--> [REQUEST]\x1b[0m \x1b[1m${methodColor}${method}\x1b[0m \x1b[0m${url}\x1b[0m`);
 
+    const authHeader = request.headers.get('authorization');
+    const cookieHeader = request.headers.get('cookie');
+    if (authHeader || cookieHeader) {
+      console.log(`\x1b[90m  Headers: ${authHeader ? 'Authorization: Present | ' : ''}${cookieHeader ? 'Cookie: Present' : ''}\x1b[0m`);
+    }
+
     // Print warning if they are requesting API endpoints without the /api prefix (ignore page routes)
     const validPageRoutes = ['/cart', '/products', '/orders', '/login', '/signup', '/checkout', '/profile', '/vendors', '/subscriptions'];
     const isPageRoute = validPageRoutes.some(route => pathname === route || pathname.startsWith(route + '/'));
@@ -61,6 +67,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - images (public images)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|images).*)',
+    '/((?!_next/static|_next/image|favicon.ico|images).*)',
   ],
 };

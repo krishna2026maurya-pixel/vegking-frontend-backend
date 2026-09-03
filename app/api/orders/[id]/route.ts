@@ -29,7 +29,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const body = await request.json();
     
     // Fetch the order first to properly track history
-    const order = await Order.findById(id);
+    const order = mongoose.Types.ObjectId.isValid(id)
+      ? await Order.findById(id)
+      : await Order.findOne({ order_number: id });
     if (!order) return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
 
     // Enforce OTP check if marking order as Delivered (skip for admin override)

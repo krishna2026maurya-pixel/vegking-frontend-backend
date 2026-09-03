@@ -35,3 +35,13 @@ export const emitOrderStatusChanged = (orderData: any) => {
     console.error("Failed to emit order status:", error);
   }
 };
+
+// Helper function to emit new order placed event from the API
+export const emitNewOrderPlaced = (orderData: any) => {
+  try {
+    const socket = getBackendSocket();
+    socket.emit("emit-new-order", orderData);
+  } catch (error) {
+    console.error("Failed to emit new order:", error);
+  }
+};

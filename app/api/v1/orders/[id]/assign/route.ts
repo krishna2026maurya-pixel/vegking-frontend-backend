@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Order from '@/lib/models/Order';
 import DeliveryBoy from '@/lib/models/DeliveryBoy';
+import OrderItem from '@/lib/models/OrderItem';
 import mongoose from 'mongoose';
+
+const _ensureModels = [Order, DeliveryBoy, OrderItem];
 
 /**
  * POST /api/v1/orders/{orderId}/assign
@@ -16,10 +19,6 @@ export async function POST(
     await connectDB();
     const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ success: false, error: 'Invalid order ID' }, { status: 400 });
-    }
-
     const body = await request.json();
     const riderId = body.delivery_boy_id || body.riderId || body.rider_id;
 
@@ -27,44 +26,64 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'delivery_boy_id is required' }, { status: 400 });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(riderId)) {
-      return NextResponse.json({ success: false, error: 'Invalid delivery boy ID' }, { status: 400 });
+    let rider = null;
+    if (mongoose.Types.ObjectId.isValid(riderId)) {
+      rider = await DeliveryBoy.findById(riderId);
+    }
+    if (!rider) {
+      rider = await DeliveryBoy.findOne({
+        $or: [{ _id: riderId }, { mobile_number: riderId }, { email: riderId }]
+      });
     }
 
-    const rider = await DeliveryBoy.findById(riderId);
     if (!rider) {
       return NextResponse.json({ success: false, error: 'Delivery boy not found' }, { status: 404 });
     }
 
-    const order = await Order.findByIdAndUpdate(
-      id,
-      {
-        $set: {
-          delivery_boy_id: rider._id,
-          orderStatus: 'Packing',
-          updatedAt: new Date()
-        },
-        $push: {
-          statusHistory: {
-            status: `Assigned to rider: ${rider.name}`,
-            updatedAt: new Date()
-          }
-        }
-      },
-      { new: true }
-    )
-      .populate('delivery_boy_id', 'name mobile is_active vehicle_number')
-      .populate('items')
-      .lean();
+    // Resolve target order by ObjectId OR order_number OR order_id
+    let targetOrder = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      targetOrder = await Order.findById(id);
+    }
+    if (!targetOrder) {
+      targetOrder = await Order.findOne({
+        $or: [
+          { order_number: id },
+          { order_id: id },
+          { id: id }
+        ]
+      });
+    }
 
-    if (!order) {
+    if (!targetOrder) {
       return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
     }
+
+    // Update order status & assign rider using valid enum status
+    targetOrder.delivery_boy_id = rider._id;
+    targetOrder.orderStatus = 'Packing';
+    targetOrder.status = 2; // Packing
+    targetOrder.updatedAt = new Date();
+
+    if (!Array.isArray(targetOrder.statusHistory)) {
+      targetOrder.statusHistory = [];
+    }
+    targetOrder.statusHistory.push({
+      status: 'Packing',
+      updatedAt: new Date()
+    });
+
+    await targetOrder.save();
+
+    const updatedOrder = await Order.findById(targetOrder._id)
+      .populate('delivery_boy_id', 'name mobile_number is_active vehicle_number vehicle_type')
+      .populate('items')
+      .lean();
 
     return NextResponse.json({
       success: true,
       message: `Order assigned to rider ${rider.name} successfully`,
-      data: order
+      data: updatedOrder
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

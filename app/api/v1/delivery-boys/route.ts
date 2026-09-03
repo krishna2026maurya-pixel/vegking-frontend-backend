@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import DeliveryBoy from '@/lib/models/DeliveryBoy';
+import Vendor from '@/lib/models/Vendor';
+
+const _ensureModels = [DeliveryBoy, Vendor];
+
 
 /**
  * GET /api/v1/delivery-boys

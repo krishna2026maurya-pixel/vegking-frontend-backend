@@ -298,8 +298,8 @@ export default function ProfilePage() {
                             <div className="flex items-center gap-3.5">
                               <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shrink-0 relative">
                                 <img
-                                  src={neg.product_image || '/images/product-card-default.jpg'}
-                                  alt={neg.product_name}
+                                  src={neg.product_image && neg.product_image.trim() !== '' ? neg.product_image : '/images/product-card-default.jpg'}
+                                  alt={neg.product_name || 'Product'}
                                   className="w-full h-full object-cover"
                                 />
                               </div>

@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { getToken } from 'next-auth/jwt';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'vegking-secure-secret-key-2026';
@@ -47,25 +48,54 @@ export function verifyToken(token: string): any | null {
   }
 }
 
-export async function getUserIdFromRequest(request: NextRequest): Promise<string | null> {
+export async function getUserFromRequest(request: NextRequest): Promise<{ id: string; role?: string; vendor_id?: string } | null> {
   const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    try {
-      const session = await getServerSession(authOptions);
-      if (session?.user?.id) {
-        return session.user.id;
-      }
-    } catch (e) {
-      // Ignore NextAuth retrieval errors
+  
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    const payload = verifyToken(token);
+    if (payload && payload.id) {
+      return { id: payload.id, role: payload.role || 'vendor', vendor_id: payload.vendor_id || payload.id };
     }
-    if (process.env.NODE_ENV === 'development') {
-      return '64c123456789012345678901'; // Dummy user ID for local development
-    }
-    return null;
   }
-  const token = authHeader.substring(7);
-  const payload = verifyToken(token);
-  return payload ? payload.id : null;
+
+  try {
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET || 'dummy-secret-key' });
+    if (token) {
+      return {
+        id: (token.id as string) || (token.sub as string),
+        role: (token.role as string) || 'vendor',
+        vendor_id: (token.vendor_id as string) || (token.id as string) || (token.sub as string),
+      };
+    }
+  } catch (e) {
+    // Ignore JWT decode errors
+  }
+
+  try {
+    const session = await getServerSession(authOptions);
+    if (session?.user) {
+      const u = session.user as any;
+      return {
+        id: u.id,
+        role: u.role || 'vendor',
+        vendor_id: u.vendor_id || u.id,
+      };
+    }
+  } catch (e) {
+    // Ignore NextAuth retrieval errors
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    return { id: '64c123456789012345678901', role: 'vendor' };
+  }
+
+  return null;
+}
+
+export async function getUserIdFromRequest(request: NextRequest): Promise<string | null> {
+  const user = await getUserFromRequest(request);
+  return user ? user.id : null;
 }
 
 export function authMiddleware(handler: (req: NextRequest, userId: string, params?: any) => Promise<NextResponse>) {
@@ -74,7 +104,6 @@ export function authMiddleware(handler: (req: NextRequest, userId: string, param
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized. Please login again.' }, { status: 401 });
     }
-    // Next.js 15: params is now a Promise
     const params = context?.params ? await context.params : {};
     return handler(request, userId, params);
   };

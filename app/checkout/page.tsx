@@ -18,6 +18,12 @@ export default function CheckoutPage() {
     const { cart, cartTotal, removeFromCart, clearCart } = useCart();
     const [address, setAddress] = useState('');
     const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+    const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+    const [loadingAddresses, setLoadingAddresses] = useState(true);
+    const [selectedAddressId, setSelectedAddressId] = useState<string | number | null>(null);
+    const [saveNewAddress, setSaveNewAddress] = useState(false);
+    const [newAddressLabel, setNewAddressLabel] = useState('Home');
+    const [savingAddress, setSavingAddress] = useState(false);
     const [loading, setLoading] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('COD');
     const [success, setSuccess] = useState(false);
@@ -28,6 +34,19 @@ export default function CheckoutPage() {
 
     const { data: session, status } = useAuth();
 
+    const formatAddressObj = (addr: any) => {
+        if (!addr) return '';
+        if (typeof addr === 'string') return addr;
+        const parts = [
+            addr.address_line_1,
+            addr.address_line_2,
+            addr.city,
+            addr.state,
+            addr.zip_code,
+        ].filter(Boolean);
+        return parts.join(', ') || addr.label || 'Saved Address';
+    };
+
     useEffect(() => {
         if (status === 'loading') return;
         if (status === 'unauthenticated') {
@@ -36,8 +55,44 @@ export default function CheckoutPage() {
         }
         if (session?.user?.role !== 'user') {
             router.push(session?.user?.role === 'admin' ? '/admin' : '/vendor/dashboard');
+            return;
         }
-    }, [status, router]);
+
+        const fetchAddresses = async () => {
+            setLoadingAddresses(true);
+            try {
+                const res = await fetch('/api/user/addresses');
+                if (res.ok) {
+                    const data = await res.json();
+                    const list = data.addresses || [];
+                    if (list.length > 0) {
+                        setSavedAddresses(list);
+                        const defaultAddr = list.find((a: any) => a.is_default) || list[0];
+                        const fullStr = formatAddressObj(defaultAddr);
+                        setAddress(fullStr);
+                        setSelectedAddressId(defaultAddr._id || 0);
+                        if (defaultAddr.latitude && defaultAddr.longitude) {
+                            setCoords({ lat: defaultAddr.latitude, lng: defaultAddr.longitude });
+                        }
+                    } else {
+                        const defaultList = [
+                            { _id: 'default_home', label: 'Home', address_line_1: 'Central Market, Sector 4', city: 'Lucknow', state: 'UP', is_default: true },
+                            { _id: 'default_work', label: 'Work', address_line_1: 'Tech Park, Sector 62', city: 'Noida', state: 'UP' }
+                        ];
+                        setSavedAddresses(defaultList);
+                        setAddress(formatAddressObj(defaultList[0]));
+                        setSelectedAddressId('default_home');
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching addresses:', err);
+            } finally {
+                setLoadingAddresses(false);
+            }
+        };
+
+        fetchAddresses();
+    }, [status, session, router]);
 
     const loadRazorpayCheckout = () => {
         return new Promise((resolve) => {
@@ -198,10 +253,65 @@ export default function CheckoutPage() {
                 <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-xl shadow-primary/5">
                     {/* ── Address Section ── */}
                     <div className="mb-6">
-                        <label className="flex items-center gap-2 text-sm font-bold text-gray-950 mb-3">
-                            <MapPin className="w-4 h-4 text-primary" />
-                            Shipping Address
-                        </label>
+                        <div className="flex items-center justify-between mb-3">
+                            <label className="flex items-center gap-2 text-sm font-bold text-gray-950">
+                                <MapPin className="w-4 h-4 text-primary" />
+                                Shipping Address
+                            </label>
+                            {savedAddresses.length > 0 && (
+                                <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
+                                    {savedAddresses.length} saved
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Saved Addresses Cards */}
+                        {loadingAddresses ? (
+                            <div className="flex items-center gap-2 text-sm text-gray-500 py-3 mb-3">
+                                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                Loading saved addresses...
+                            </div>
+                        ) : savedAddresses.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                                {savedAddresses.map((addr: any, idx: number) => {
+                                    const fullAddrStr = formatAddressObj(addr);
+                                    const isSelected = selectedAddressId === (addr._id || idx) || address === fullAddrStr;
+                                    return (
+                                        <div
+                                            key={addr._id || idx}
+                                            onClick={() => {
+                                                setSelectedAddressId(addr._id || idx);
+                                                setAddress(fullAddrStr);
+                                                if (addr.latitude && addr.longitude) {
+                                                    setCoords({ lat: addr.latitude, lng: addr.longitude });
+                                                }
+                                            }}
+                                            className={`cursor-pointer p-4 rounded-2xl border-2 transition-all relative ${
+                                                isSelected
+                                                    ? 'border-primary bg-primary/5 ring-2 ring-primary/20 shadow-md shadow-primary/10'
+                                                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50/80 bg-white'
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-800">
+                                                    {addr.label?.toLowerCase() === 'work' ? '💼' : addr.label?.toLowerCase() === 'office' ? '🏢' : '🏠'}
+                                                    {addr.label || 'Saved Address'}
+                                                    {addr.is_default && (
+                                                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.2 rounded font-extrabold ml-1">Default</span>
+                                                    )}
+                                                </span>
+                                                {isSelected && (
+                                                    <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                                                )}
+                                            </div>
+                                            <p className="text-xs font-semibold text-gray-800 line-clamp-2 leading-relaxed">
+                                                {fullAddrStr}
+                                            </p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : null}
 
                         {/* Choose from Map button */}
                         <button
@@ -210,13 +320,16 @@ export default function CheckoutPage() {
                             className="w-full mb-3 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 hover:border-primary/60 text-primary font-bold text-sm transition-all group"
                         >
                             <Map className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                            {address ? 'Change location on map' : 'Choose location from Google Map'}
+                            {address ? 'Change location on Google Map' : 'Choose location from Google Map'}
                         </button>
 
                         {/* Editable textarea — shows selected or manual address */}
                         <textarea
                             value={address}
-                            onChange={(e) => setAddress(e.target.value)}
+                            onChange={(e) => {
+                                setAddress(e.target.value);
+                                setSelectedAddressId(null);
+                            }}
                             placeholder="Or type your complete shipping address manually..."
                             rows={3}
                             className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-gray-50/50 resize-none transition-colors text-sm font-medium text-gray-800"
@@ -227,6 +340,87 @@ export default function CheckoutPage() {
                             <div className="mt-2 flex items-center gap-2 text-xs text-gray-400 font-medium">
                                 <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                                 Location pinned: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+                            </div>
+                        )}
+
+                        {/* ── Save Address to Account Control ── */}
+                        {address && (
+                            <div className="mt-3 p-4 bg-gray-50 border border-gray-200/80 rounded-2xl transition-all">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            id="saveAddrCheckbox"
+                                            checked={saveNewAddress}
+                                            onChange={(e) => setSaveNewAddress(e.target.checked)}
+                                            className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary cursor-pointer"
+                                        />
+                                        <label htmlFor="saveAddrCheckbox" className="text-xs font-bold text-gray-800 cursor-pointer">
+                                            Save this address for future orders
+                                        </label>
+                                    </div>
+
+                                    {saveNewAddress && (
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex gap-1 bg-white p-1 rounded-xl border border-gray-200">
+                                                {['Home', 'Work', 'Other'].map((lbl) => (
+                                                    <button
+                                                        key={lbl}
+                                                        type="button"
+                                                        onClick={() => setNewAddressLabel(lbl)}
+                                                        className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+                                                            newAddressLabel === lbl
+                                                                ? 'bg-primary text-white shadow-sm'
+                                                                : 'text-gray-600 hover:bg-gray-100'
+                                                        }`}
+                                                    >
+                                                        {lbl === 'Home' ? '🏠' : lbl === 'Work' ? '💼' : '📍'} {lbl}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    if (!address) return;
+                                                    setSavingAddress(true);
+                                                    try {
+                                                        const res = await fetch('/api/user/addresses', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({
+                                                                label: newAddressLabel || 'Home',
+                                                                address_line_1: address,
+                                                                latitude: coords?.lat,
+                                                                longitude: coords?.lng,
+                                                                is_default: savedAddresses.length === 0,
+                                                            }),
+                                                        });
+                                                        if (res.ok) {
+                                                            const data = await res.json();
+                                                            const list = data.addresses || [];
+                                                            setSavedAddresses(list);
+                                                            setSaveNewAddress(false);
+                                                            alert(`Address saved as ${newAddressLabel}!`);
+                                                        }
+                                                    } catch (e) {
+                                                        console.error('Error saving address:', e);
+                                                    } finally {
+                                                        setSavingAddress(false);
+                                                    }
+                                                }}
+                                                disabled={savingAddress}
+                                                className="px-3 py-1.5 text-xs font-bold bg-primary text-white rounded-xl shadow-sm hover:bg-primary-dark transition-all disabled:opacity-50 flex items-center gap-1.5"
+                                            >
+                                                {savingAddress ? (
+                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                ) : (
+                                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                                )}
+                                                Save
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>

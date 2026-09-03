@@ -137,6 +137,20 @@ export async function POST(request: NextRequest) {
     order.items = createdItems.map((i: any) => i._id);
     await order.save();
 
+    try {
+      const { emitNewOrderPlaced } = await import('@/lib/socketClient');
+      emitNewOrderPlaced({
+        _id: order._id,
+        order_number: order.order_number,
+        total_amount: order.total_amount,
+        customerName: shippingAddress?.fullName || session?.user?.name || 'Customer',
+        customerPhone: shippingAddress?.phone || '',
+        createdAt: order.createdAt
+      });
+    } catch (e) {
+      // Ignore socket emit failure
+    }
+
     // Mark any linked negotiation sessions as ordered
     const negotiationIds = items
       .map((i: any) => i.negotiation_id)

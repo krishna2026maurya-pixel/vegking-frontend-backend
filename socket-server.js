@@ -16,7 +16,7 @@ const io = new Server(server, {
 });
 
 io.on("connection", (socket) => {
-  console.log("Client connected:", socket.id);
+  console.log("⚡ Client connected to Socket.IO:", socket.id);
 
   // Allow clients to join specific rooms to listen for targeted events
   socket.on("join-room", (room) => {
@@ -30,18 +30,20 @@ io.on("connection", (socket) => {
   });
 
   // --- INTERNAL API EVENT FORWARDING ---
-  // The Next.js API will act as a client to emit events to this server,
-  // and this server will broadcast them to the relevant rooms.
-  
+  socket.on("emit-new-order", (data) => {
+    io.emit("new-order", data);
+    if (data.vendor_id) {
+      io.to(`vendor_${data.vendor_id}`).emit("new-order", data);
+    }
+    console.log("📢 Broadcasted new order event:", data?.order_number || data?._id);
+  });
+
   socket.on("emit-rider-status", (data) => {
-    // Broadcast to the "admin" room or globally
     io.to("admin").emit("rider-status-changed", data);
     console.log("Broadcasted rider status change:", data);
   });
 
   socket.on("emit-order-status", (data) => {
-    // Broadcast to the specific order room (e.g. "order_12345")
-    // and also to the admin room so admins see it globally.
     if (data.order_id) {
       io.to(`order_${data.order_id}`).emit("order-status-changed", data);
     }
@@ -56,5 +58,5 @@ io.on("connection", (socket) => {
 
 const PORT = 3001;
 server.listen(PORT, () => {
-  console.log(`Socket.IO standalone server running on http://localhost:${PORT}`);
+  console.log(`🚀 Socket.IO standalone server running on http://localhost:${PORT}`);
 });

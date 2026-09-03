@@ -292,10 +292,10 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      {item.image ? (
+                      {item.image && typeof item.image === 'string' && item.image.trim() !== '' ? (
                         <img
                           src={item.image}
-                          alt={item.product_name}
+                          alt={item.product_name || 'Product'}
                           className="w-7 h-7 rounded-lg object-cover bg-white border border-gray-200 shrink-0"
                         />
                       ) : (
@@ -470,10 +470,10 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
       {/* Middle row: Items preview & Date */}
       <div className="flex items-center justify-between gap-2 text-xs text-gray-500 w-full">
         <div className="flex items-center gap-2 min-w-0">
-          {firstItem?.image ? (
+          {firstItem?.image && typeof firstItem.image === 'string' && firstItem.image.trim() !== '' ? (
             <img
               src={firstItem.image}
-              alt={firstItem.product_name}
+              alt={firstItem.product_name || 'Product'}
               className="w-7 h-7 rounded-lg object-cover bg-gray-100 border border-gray-200 shrink-0"
             />
           ) : (

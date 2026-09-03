@@ -78,10 +78,17 @@ function calcPrices(price: any, discountPct: any) {
   return { yourPrice, mrp, saving, pct };
 }
 
+const getSafeImage = (url: any) => {
+  if (!url || typeof url !== 'string' || url.trim() === '') {
+    return fallbackImage;
+  }
+  return url;
+};
+
 /* ── component ───────────────────────────────────────────────── */
 export default function ProductCard({ product }: { product: any }) {
   const { cart, addToCart, updateQuantity } = useCart();
-  const [imgSrc, setImgSrc] = useState(product?.image || fallbackImage);
+  const [imgSrc, setImgSrc] = useState(getSafeImage(product?.image));
   const [isWishlisted, setIsWishlisted] = useState(false);
 
   const hasWeightOptions = product?.weightOptions && product.weightOptions.length > 0;

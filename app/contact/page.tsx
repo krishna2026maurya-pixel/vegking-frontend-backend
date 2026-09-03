@@ -61,8 +61,8 @@ const serviceDetails = [
 
 export default function ContactPage() {
     return (
-        <div className="space-y-14 pb-8 mx-auto max-w-8xl px-4 sm:px-6 lg:px-20 mt-8">
-            <section className="grid items-center gap-10 lg:grid-cols-[0.95fr_1.05fr]">
+        <div className="mx-auto max-w-[90rem] w-full px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+            <section className="grid items-start gap-8 lg:grid-cols-2">
                 <div className="space-y-7">
                     <div className="inline-flex items-center gap-2 border border-green-200 bg-green-50 px-4 py-2 text-xs font-black uppercase tracking-widest text-green-700">
                         <Headphones className="h-4 w-4" />
@@ -78,7 +78,7 @@ export default function ContactPage() {
                         </p>
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-3 lg:max-w-2xl">
+                    <div className="grid gap-3 sm:grid-cols-3 w-full">
                         {serviceDetails.map(({ icon: Icon, title, text }) => (
                             <div key={title} className="border border-gray-100 bg-white p-4 shadow-sm">
                                 <Icon className="h-5 w-5 text-green-600" />

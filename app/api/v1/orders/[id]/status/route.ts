@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Order from '@/lib/models/Order';
+import DeliveryBoy from '@/lib/models/DeliveryBoy';
+import OrderItem from '@/lib/models/OrderItem';
 import mongoose from 'mongoose';
+
+const _ensureModels = [Order, DeliveryBoy, OrderItem];
+
 
 /**
  * PATCH /api/v1/orders/{orderId}/status

@@ -3,8 +3,12 @@ import { connectDB } from '@/lib/mongodb';
 import Product from '@/lib/models/Product';
 import Order from '@/lib/models/Order';
 import Vendor from '@/lib/models/Vendor';
+import DeliveryBoy from '@/lib/models/DeliveryBoy';
 import { verifyToken } from '@/lib/auth';
 import mongoose from 'mongoose';
+
+const _ensureModels = [Product, Order, Vendor, DeliveryBoy];
+
 
 /**
  * GET /api/v1/vendor/dashboard

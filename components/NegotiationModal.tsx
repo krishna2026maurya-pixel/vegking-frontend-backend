@@ -344,8 +344,8 @@ export default function NegotiationModal({ isOpen, onClose, product }: Negotiati
         <div className="px-4 py-3 bg-[#142032] border-b border-gray-800 flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <img 
-              src={productImage} 
-              alt={productName} 
+              src={productImage && typeof productImage === 'string' && productImage.trim() !== '' ? productImage : '/images/product-card-default.jpg'} 
+              alt={productName || 'Product'} 
               className="w-12 h-12 rounded-xl object-cover border border-gray-700 bg-white shrink-0 shadow-xs" 
             />
             <div className="min-w-0">

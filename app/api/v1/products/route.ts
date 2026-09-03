@@ -28,8 +28,16 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category')    || '';
     const brand    = searchParams.get('brand')       || '';
 
-    const vendor_id = searchParams.get('vendor_id') || '';
+    let vendor_id = searchParams.get('vendor_id') || '';
     const category_id = searchParams.get('category_id') || '';
+
+    // If request comes from a logged-in Vendor and vendor_id isn't in URL, default to logged-in vendor ID
+    const userObj = await getUserIdFromRequest(request);
+    const { getUserFromRequest } = await import('@/lib/auth');
+    const fullUser = await getUserFromRequest(request);
+    if (!vendor_id && fullUser && fullUser.role === 'vendor') {
+      vendor_id = fullUser.vendor_id || fullUser.id;
+    }
 
     const query: any = { is_active: { $ne: '0' } };
     if (search)   query.product_name = { $regex: search, $options: 'i' };
@@ -85,7 +93,10 @@ export async function POST(request: NextRequest) {
     if (contentType.includes('application/json')) {
       const body = await request.json().catch(() => ({}));
       if (body.product_name) {
-        // ── CREATE PRODUCT (Vendor Mobile App) ──────────────────────────────
+        const { getUserFromRequest } = await import('@/lib/auth');
+        const fullUser = await getUserFromRequest(request);
+        const activeVendorId = body.vendor_id || (fullUser && fullUser.role === 'vendor' ? (fullUser.vendor_id || fullUser.id) : undefined);
+
         const product = await Product.create({
           product_name: body.product_name,
           category: body.category || body.category_name || 'Vegetables',
@@ -97,7 +108,7 @@ export async function POST(request: NextRequest) {
           product_image: body.product_image || (body.images && body.images[0]) || '',
           images: body.images || (body.product_image ? [body.product_image] : []),
           description: body.description || body.product_description || '',
-          vendor_id: body.vendor_id && mongoose.Types.ObjectId.isValid(body.vendor_id) ? body.vendor_id : undefined,
+          vendor_id: activeVendorId && mongoose.Types.ObjectId.isValid(activeVendorId) ? activeVendorId : (activeVendorId || undefined),
           is_active: body.is_active !== undefined ? String(body.is_active) : '1'
         });
         return NextResponse.json({

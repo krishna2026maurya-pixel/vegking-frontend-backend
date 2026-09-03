@@ -1,8 +1,13 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Order from '@/lib/models/Order';
+import OrderItem from '@/lib/models/OrderItem';
+import Address from '@/lib/models/Address';
 import { authMiddleware } from '@/lib/auth';
 import mongoose from 'mongoose';
+
+const _ensureModels = [Order, OrderItem, Address];
+
 
 /**
  * GET /api/v1/orders/:id/track

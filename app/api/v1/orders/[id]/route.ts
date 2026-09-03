@@ -10,11 +10,11 @@ async function getOrderDetail(request: NextRequest, userId: string, params: any)
     await connectDB();
     const { id } = params;
 
-    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ success: false, error: 'Invalid order ID format.' }, { status: 400 });
-    }
-    
-    const order = await Order.findOne({ _id: id, user_id: userId }).populate('items');
+    const query = mongoose.Types.ObjectId.isValid(id)
+      ? { _id: id }
+      : { order_number: id };
+
+    const order = await Order.findOne(query).populate('items');
     if (!order) {
       return NextResponse.json({ success: false, error: 'Order not found.' }, { status: 404 });
     }
@@ -26,7 +26,69 @@ async function getOrderDetail(request: NextRequest, userId: string, params: any)
 }
 
 export const GET = authMiddleware(getOrderDetail);
-export const POST = authMiddleware(getOrderDetail); // Allow POST as fallback
+export const POST = authMiddleware(getOrderDetail);
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await connectDB();
+    const { id } = await params;
+    const body = await request.json();
+
+    const order = mongoose.Types.ObjectId.isValid(id)
+      ? await Order.findById(id)
+      : await Order.findOne({ order_number: id });
+
+    if (!order) {
+      return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+    }
+
+    if (body.status !== undefined) {
+      order.status = Number(body.status);
+      const statusMap: Record<number, string> = {
+        0: 'Order Placed',
+        1: 'Order Confirmed',
+        2: 'Packing',
+        3: 'Out for Delivery',
+        4: 'Delivered',
+        5: 'Cancelled'
+      };
+      if (statusMap[Number(body.status)]) {
+        order.orderStatus = statusMap[Number(body.status)];
+      }
+    }
+
+    if (body.orderStatus) {
+      order.orderStatus = body.orderStatus;
+    }
+
+    if (body.delivery_boy_id) {
+      order.delivery_boy_id = body.delivery_boy_id;
+    }
+
+    await order.save();
+
+    try {
+      const { emitOrderStatusChanged } = await import('@/lib/socketClient');
+      emitOrderStatusChanged({
+        order_id: order._id.toString(),
+        order_number: order.order_number,
+        status: order.status,
+        orderStatus: order.orderStatus
+      });
+    } catch (_) {}
+
+    return NextResponse.json({
+      success: true,
+      message: 'Order updated successfully',
+      data: order
+    });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
 
 export async function DELETE(
   request: NextRequest,
@@ -36,16 +98,16 @@ export async function DELETE(
     await connectDB();
     const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ success: false, error: 'Invalid order ID' }, { status: 400 });
-    }
+    const query = mongoose.Types.ObjectId.isValid(id)
+      ? { _id: id }
+      : { order_number: id };
 
-    const order = await Order.findByIdAndDelete(id);
+    const order = await Order.findOneAndDelete(query);
     if (!order) {
       return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
     }
 
-    await OrderItem.deleteMany({ order_id: id });
+    await OrderItem.deleteMany({ order_id: order._id });
 
     return NextResponse.json({
       success: true,
@@ -55,4 +117,3 @@ export async function DELETE(
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-
