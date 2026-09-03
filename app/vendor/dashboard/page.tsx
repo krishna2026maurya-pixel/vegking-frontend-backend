@@ -1277,17 +1277,17 @@ export default function VendorDashboardPage() {
               type="button"
               onClick={toggleTheme}
               className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition cursor-pointer flex items-center gap-1.5 text-xs font-extrabold shrink-0 shadow-2xs"
-              title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              title={isDarkMode ? "Currently Dark Mode (Click to switch to Light)" : "Currently Light Mode (Click to switch to Dark)"}
             >
               {isDarkMode ? (
                 <>
-                  <Sun className="w-4 h-4 text-amber-400 fill-amber-400" />
-                  <span className="hidden sm:inline">Light</span>
+                  <Moon className="w-4 h-4 text-indigo-400 fill-indigo-400" />
+                  <span className="hidden sm:inline">Dark Mode</span>
                 </>
               ) : (
                 <>
-                  <Moon className="w-4 h-4 text-indigo-600 fill-indigo-600" />
-                  <span className="hidden sm:inline">Dark</span>
+                  <Sun className="w-4 h-4 text-amber-500 fill-amber-500" />
+                  <span className="hidden sm:inline">Light Mode</span>
                 </>
               )}
             </button>
