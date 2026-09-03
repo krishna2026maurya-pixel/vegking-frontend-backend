@@ -1052,11 +1052,11 @@ export default function VendorDashboardPage() {
                   type="button"
                   onClick={() => changeTab(tab.id)}
                   className={`flex w-full items-center gap-3.5 px-4 py-3.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${isActive
-                      ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] text-emerald-700 shadow-xs scale-[1.01]'
-                      : 'text-gray-500 hover:text-emerald-700 hover:bg-[#f6faf7] hover:scale-[1.01]'
+                      ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] dark:from-emerald-950/60 dark:to-emerald-900/40 text-emerald-700 dark:text-emerald-400 shadow-xs scale-[1.01]'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-[#f6faf7] dark:hover:bg-gray-700/50 hover:scale-[1.01]'
                     }`}
                 >
-                  <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-600' : 'text-gray-400'}`} />
+                  <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'}`} />
                   <span>{tab.label}</span>
                   {tab.id === 'orders' && orders.filter(o => o.orderStatus === 'Pending' || o.orderStatus === 'Order Placed').length > 0 && (
                     <span className="ml-auto bg-red-500 text-white text-[9px] font-bold h-5 px-1.5 min-w-5 rounded-full flex items-center justify-center animate-pulse shadow-sm shadow-red-200">
@@ -1072,7 +1072,7 @@ export default function VendorDashboardPage() {
               );
             })}
 
-            <div className="h-px bg-[#f0f6f2] my-6" />
+            <div className="h-px bg-[#f0f6f2] dark:bg-gray-700 my-6" />
 
             {tabs.slice(4).map((tab) => {
               const Icon = tab.icon;
@@ -1083,11 +1083,11 @@ export default function VendorDashboardPage() {
                   type="button"
                   onClick={() => changeTab(tab.id)}
                   className={`flex w-full items-center gap-3.5 px-4 py-3.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${isActive
-                      ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] text-emerald-700 shadow-xs scale-[1.01]'
-                      : 'text-gray-500 hover:text-emerald-700 hover:bg-[#f6faf7] hover:scale-[1.01]'
+                      ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] dark:from-emerald-950/60 dark:to-emerald-900/40 text-emerald-700 dark:text-emerald-400 shadow-xs scale-[1.01]'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-[#f6faf7] dark:hover:bg-gray-700/50 hover:scale-[1.01]'
                     }`}
                 >
-                  <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-600' : 'text-gray-400'}`} />
+                  <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'}`} />
                   <span>{tab.label}</span>
                   {tab.id === 'notifications' && unreadNotifCount > 0 && (
                     <span className="ml-auto bg-red-500 text-white text-[9px] font-black h-5 px-1.5 min-w-5 rounded-full flex items-center justify-center animate-pulse shadow-sm">
@@ -2094,16 +2094,16 @@ export default function VendorDashboardPage() {
           )}
 
           {activeTab === 'customers' && (
-            <section className="border border-[#e9f2eb] rounded-3xl bg-white p-5 sm:p-8 animate-fadeIn space-y-6">
+            <section className="border border-[#e9f2eb] dark:border-gray-700 rounded-3xl bg-white dark:bg-gray-800 p-5 sm:p-8 animate-fadeIn space-y-6">
               <div>
-                <h1 className="text-2xl font-black text-gray-900">My Customers</h1>
-                <p className="mt-1 text-sm font-medium text-gray-500">Customers who have ordered products from your shop.</p>
+                <h1 className="text-2xl font-black text-gray-900 dark:text-white">My Customers</h1>
+                <p className="mt-1 text-sm font-medium text-gray-500 dark:text-gray-300">Customers who have ordered products from your shop.</p>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-left min-w-[650px]">
                   <thead>
-                    <tr className="border-b border-[#f6faf7] text-xs font-extrabold uppercase tracking-wider text-gray-400">
+                    <tr className="border-b border-[#f6faf7] dark:border-gray-700 text-xs font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-400">
                       <th className="py-4">Customer</th>
                       <th className="py-4">Mobile</th>
                       <th className="py-4 text-center">Orders</th>
@@ -2112,36 +2112,36 @@ export default function VendorDashboardPage() {
                       <th className="py-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#f6faf7]">
+                  <tbody className="divide-y divide-[#f6faf7] dark:divide-gray-700/50">
                     {loading ? (
                       Array.from({ length: 5 }).map((_, i) => (
                         <tr key={i} className="animate-pulse">
                           <td className="py-4">
                             <div className="space-y-2">
-                              <div className="h-4 bg-gray-200 rounded-md w-28" />
-                              <div className="h-3 bg-gray-200 rounded-md w-20" />
+                              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-md w-28" />
+                              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-md w-20" />
                             </div>
                           </td>
-                          <td className="py-4"><div className="h-4 bg-gray-200 rounded-md w-24" /></td>
-                          <td className="py-4 text-center"><div className="h-4 bg-gray-200 rounded-md w-8 mx-auto" /></td>
-                          <td className="py-4 text-right"><div className="h-4 bg-gray-200 rounded-md w-16 ml-auto" /></td>
-                          <td className="py-4 text-right"><div className="h-4 bg-gray-200 rounded-md w-20 ml-auto" /></td>
-                          <td className="py-4 text-right"><div className="h-6 bg-gray-200 rounded-md w-16 ml-auto" /></td>
+                          <td className="py-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-md w-24" /></td>
+                          <td className="py-4 text-center"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-md w-8 mx-auto" /></td>
+                          <td className="py-4 text-right"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-md w-16 ml-auto" /></td>
+                          <td className="py-4 text-right"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-md w-20 ml-auto" /></td>
+                          <td className="py-4 text-right"><div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-md w-16 ml-auto" /></td>
                         </tr>
                       ))
                     ) : (
                       vendorCustomers.map((cust) => (
-                        <tr key={cust.user._id} className="text-sm hover:bg-[#fcfdfd]">
+                        <tr key={cust.user._id} className="text-sm hover:bg-[#fcfdfd] dark:hover:bg-gray-700/50">
                           <td className="py-4">
                             <div>
-                              <p className="font-black text-gray-950">{cust.user.name || 'Walk-in'}</p>
+                              <p className="font-black text-gray-950 dark:text-white">{cust.user.name || 'Walk-in'}</p>
                               <p className="text-xs text-gray-400 font-semibold mt-0.5">{cust.user.email || 'No email'}</p>
                             </div>
                           </td>
-                          <td className="py-4 font-semibold text-gray-600">{cust.user.mobile_no || 'N/A'}</td>
-                          <td className="py-4 text-center font-bold text-gray-950">{cust.orderCount}</td>
-                          <td className="py-4 text-right font-black text-[#2bb673]">₹{cust.totalSpend.toFixed(2)}</td>
-                          <td className="py-4 text-right text-xs font-semibold text-gray-500">
+                          <td className="py-4 font-semibold text-gray-600 dark:text-gray-300">{cust.user.mobile_no || 'N/A'}</td>
+                          <td className="py-4 text-center font-bold text-gray-950 dark:text-white">{cust.orderCount}</td>
+                          <td className="py-4 text-right font-black text-[#2bb673] dark:text-emerald-400">₹{cust.totalSpend.toFixed(2)}</td>
+                          <td className="py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400">
                             {new Date(cust.lastOrderDate).toLocaleDateString()}
                           </td>
                           <td className="py-4 text-right">
@@ -2152,7 +2152,7 @@ export default function VendorDashboardPage() {
                                 await fetch(`/api/users/${cust.user._id}`, { method: 'DELETE' });
                                 loadVendorData();
                               }}
-                              className="bg-red-50 hover:bg-red-100 text-red-600 font-extrabold text-xs px-3.5 py-1.5 rounded-lg transition cursor-pointer"
+                              className="bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 font-extrabold text-xs px-3.5 py-1.5 rounded-lg transition cursor-pointer"
                             >
                               Delete
                             </button>
@@ -2163,16 +2163,16 @@ export default function VendorDashboardPage() {
                   </tbody>
                 </table>
                 {vendorCustomers.length === 0 && (
-                  <p className="py-12 text-center text-sm font-bold text-gray-500">No customers found.</p>
+                  <p className="py-12 text-center text-sm font-bold text-gray-500 dark:text-gray-400">No customers found.</p>
                 )}
               </div>
             </section>
           )}
 
           {activeTab === 'riders' && (
-            <section className="border border-[#e9f2eb] rounded-3xl bg-white p-5 sm:p-8 animate-fadeIn space-y-6">
+            <section className="border border-[#e9f2eb] dark:border-gray-700 rounded-3xl bg-white dark:bg-gray-800 p-5 sm:p-8 animate-fadeIn space-y-6">
               <div className="flex justify-between items-center mb-5">
-                <h1 className="text-2xl font-black text-gray-900">My Riders</h1>
+                <h1 className="text-2xl font-black text-gray-900 dark:text-white">My Riders</h1>
                 <button
                   type="button"
                   onClick={() => {
@@ -2182,39 +2182,39 @@ export default function VendorDashboardPage() {
                     }
                     setShowAddRiderModal(!showAddRiderModal);
                   }}
-                  className="bg-[#2bb673] px-4 py-2 text-xs font-extrabold text-white rounded-xl hover:bg-green-600 transition cursor-pointer"
+                  className="bg-[#2bb673] px-4 py-2 text-xs font-extrabold text-white rounded-xl hover:bg-green-600 transition cursor-pointer shadow-xs"
                 >
                   {showAddRiderModal ? 'Close Form' : 'Add Rider'}
                 </button>
               </div>
 
               {showAddRiderModal && (
-                <div className="mb-6 p-6 border border-gray-100 rounded-2xl bg-gray-50 relative animate-fadeIn">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-4">
+                <div className="mb-6 p-6 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700/60 relative animate-fadeIn">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-300 mb-4">
                     {editingRiderId ? 'Edit Rider Details' : 'Register New Rider'}
                   </h3>
                   <form onSubmit={addRider} className="grid gap-4 sm:grid-cols-2">
-                    <input className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Rider Name" value={riderForm.name} onChange={(e) => setRiderForm({ ...riderForm, name: e.target.value })} required />
-                    <input type="email" className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Email Address" value={riderForm.email} onChange={(e) => setRiderForm({ ...riderForm, email: e.target.value })} required />
-                    <input className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Mobile Number" value={riderForm.mobile_number} onChange={(e) => setRiderForm({ ...riderForm, mobile_number: e.target.value })} maxLength={10} required />
+                    <input className="h-12 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 dark:text-white" placeholder="Rider Name" value={riderForm.name} onChange={(e) => setRiderForm({ ...riderForm, name: e.target.value })} required />
+                    <input type="email" className="h-12 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 dark:text-white" placeholder="Email Address" value={riderForm.email} onChange={(e) => setRiderForm({ ...riderForm, email: e.target.value })} required />
+                    <input className="h-12 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 dark:text-white" placeholder="Mobile Number" value={riderForm.mobile_number} onChange={(e) => setRiderForm({ ...riderForm, mobile_number: e.target.value })} maxLength={10} required />
                     <input
                       type="password"
-                      className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]"
+                      className="h-12 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 dark:text-white"
                       placeholder={editingRiderId ? "Password (leave blank to keep current)" : "Password"}
                       value={riderForm.password}
                       onChange={(e) => setRiderForm({ ...riderForm, password: e.target.value })}
                       required={!editingRiderId}
                     />
 
-                    <select className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" value={riderForm.vehicle_type} onChange={(e) => setRiderForm({ ...riderForm, vehicle_type: e.target.value })} required>
-                      <option value="Bike">Bike</option>
-                      <option value="Scooter">Scooter</option>
-                      <option value="Cycle">Cycle</option>
-                      <option value="Van">Van</option>
-                      <option value="Auto">Auto</option>
+                    <select className="h-12 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 dark:text-white cursor-pointer" value={riderForm.vehicle_type} onChange={(e) => setRiderForm({ ...riderForm, vehicle_type: e.target.value })} required>
+                      <option value="Bike" className="text-gray-900 dark:text-white dark:bg-gray-800">Bike</option>
+                      <option value="Scooter" className="text-gray-900 dark:text-white dark:bg-gray-800">Scooter</option>
+                      <option value="Cycle" className="text-gray-900 dark:text-white dark:bg-gray-800">Cycle</option>
+                      <option value="Van" className="text-gray-900 dark:text-white dark:bg-gray-800">Van</option>
+                      <option value="Auto" className="text-gray-900 dark:text-white dark:bg-gray-800">Auto</option>
                     </select>
 
-                    <input className="h-12 border border-gray-200 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Vehicle Number" value={riderForm.vehicle_number} onChange={(e) => setRiderForm({ ...riderForm, vehicle_number: e.target.value })} required />
+                    <input className="h-12 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 dark:text-white" placeholder="Vehicle Number" value={riderForm.vehicle_number} onChange={(e) => setRiderForm({ ...riderForm, vehicle_number: e.target.value })} required />
 
                     <div className="flex gap-3 sm:col-span-2">
                       {editingRiderId && (
@@ -2225,7 +2225,7 @@ export default function VendorDashboardPage() {
                             setRiderForm({ name: '', email: '', mobile_number: '', password: '', vehicle_type: 'Bike', vehicle_number: '' });
                             setShowAddRiderModal(false);
                           }}
-                          className="flex-1 h-12 items-center justify-center bg-gray-200 hover:bg-gray-300 text-sm font-extrabold text-gray-700 rounded-xl transition cursor-pointer"
+                          className="flex-1 h-12 items-center justify-center bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm font-extrabold text-gray-700 dark:text-gray-200 rounded-xl transition cursor-pointer"
                         >
                           Cancel
                         </button>
@@ -2241,34 +2241,34 @@ export default function VendorDashboardPage() {
               <div className="mt-5 grid gap-4">
                 {loading ? (
                   Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="p-4 border border-gray-100 bg-white rounded-xl flex items-center justify-between gap-4 animate-pulse">
+                    <div key={i} className="p-4 border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-between gap-4 animate-pulse">
                       <div className="space-y-2 w-full">
-                        <div className="h-4 bg-gray-200 rounded-md w-1/4 animate-pulse" />
-                        <div className="h-3 bg-gray-200 rounded-md w-1/2 animate-pulse" />
-                        <div className="h-5 bg-gray-200 rounded-full w-12 animate-pulse" />
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-md w-1/4 animate-pulse" />
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-md w-1/2 animate-pulse" />
+                        <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded-full w-12 animate-pulse" />
                       </div>
-                      <div className="h-8 w-16 bg-gray-200 rounded-lg shrink-0 animate-pulse" />
+                      <div className="h-8 w-16 bg-gray-200 dark:bg-gray-700 rounded-lg shrink-0 animate-pulse" />
                     </div>
                   ))
                 ) : (
                   <>
                     {riders.map((rider) => (
-                      <div key={rider._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-gray-100 p-4 bg-white shadow-sm hover:shadow-md transition">
+                      <div key={rider._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-gray-100 dark:border-gray-700 p-4 bg-white dark:bg-gray-750/70 shadow-sm hover:shadow-md transition">
                         <div>
-                          <h2 className="font-black text-gray-950 text-sm sm:text-base">{rider.name}</h2>
-                          <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-500">{rider.mobile_number} &bull; {rider.vehicle_type} ({rider.vehicle_number})</p>
-                          <span className={`inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-semibold ${rider.is_active === '1' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          <h2 className="font-black text-gray-950 dark:text-white text-sm sm:text-base">{rider.name}</h2>
+                          <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-300">{rider.mobile_number} &bull; {rider.vehicle_type} ({rider.vehicle_number})</p>
+                          <span className={`inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-semibold ${rider.is_active === '1' ? 'bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-300' : 'bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-300'}`}>
                             {rider.is_active === '1' ? 'Online' : 'Offline'}
                           </span>
                         </div>
                         <div className="flex gap-2 justify-end sm:justify-start">
-                          <button type="button" onClick={() => setViewingRider(rider)} className="bg-gray-50 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-gray-700 hover:bg-gray-100 transition cursor-pointer">View</button>
-                          <button type="button" onClick={() => editRider(rider)} className="bg-gray-50 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-[#2bb673] hover:bg-[#eaf9f1] transition cursor-pointer">Edit</button>
-                          <button type="button" onClick={() => deleteRider(rider._id, rider.name)} className="bg-red-50 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-red-600 hover:bg-red-100 transition cursor-pointer">Delete</button>
+                          <button type="button" onClick={() => setViewingRider(rider)} className="bg-gray-50 dark:bg-gray-700 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition cursor-pointer">View</button>
+                          <button type="button" onClick={() => editRider(rider)} className="bg-gray-50 dark:bg-gray-700 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-[#2bb673] dark:text-emerald-400 hover:bg-[#eaf9f1] dark:hover:bg-gray-600 transition cursor-pointer">Edit</button>
+                          <button type="button" onClick={() => deleteRider(rider._id, rider.name)} className="bg-red-50 dark:bg-red-950/40 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 transition cursor-pointer">Delete</button>
                         </div>
                       </div>
                     ))}
-                    {riders.length === 0 && <p className="py-10 text-center text-sm font-bold text-gray-500">No riders registered yet.</p>}
+                    {riders.length === 0 && <p className="py-10 text-center text-sm font-bold text-gray-500 dark:text-gray-400">No riders registered yet.</p>}
                   </>
                 )}
               </div>
@@ -2276,11 +2276,11 @@ export default function VendorDashboardPage() {
               {/* View Rider Details Modal */}
               {viewingRider && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                  <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl max-w-md w-full p-6 space-y-6 animate-fadeIn">
+                  <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl max-w-md w-full p-6 space-y-6 animate-fadeIn border border-gray-100 dark:border-gray-700">
                     <div className="flex justify-between items-center pb-4 border-b border-gray-100 dark:border-gray-700">
                       <div>
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white">Rider Details</h3>
-                        <p className="text-xs text-gray-500 font-semibold mt-0.5">ID: {viewingRider._id}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold mt-0.5">ID: {viewingRider._id}</p>
                       </div>
                       <button
                         onClick={() => setViewingRider(null)}
@@ -2312,7 +2312,7 @@ export default function VendorDashboardPage() {
                       <div className="grid grid-cols-3 gap-2">
                         <span className="text-gray-400 font-bold uppercase text-xs">Status:</span>
                         <span className="col-span-2">
-                          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${viewingRider.is_active === '1' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${viewingRider.is_active === '1' ? 'bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-300' : 'bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-300'}`}>
                             {viewingRider.is_active === '1' ? 'Online' : 'Offline'}
                           </span>
                         </span>
@@ -2326,7 +2326,7 @@ export default function VendorDashboardPage() {
                     <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-700">
                       <button
                         onClick={() => setViewingRider(null)}
-                        className="px-6 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-200 transition text-sm font-bold cursor-pointer"
+                        className="px-6 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm font-bold cursor-pointer"
                       >Close</button>
                     </div>
                   </div>
@@ -2336,14 +2336,14 @@ export default function VendorDashboardPage() {
           )}
 
           {activeTab === 'notifications' && (
-            <section className="border border-[#e9f2eb] rounded-3xl bg-white dark:bg-gray-800 p-5 sm:p-8 space-y-6 animate-fadeIn">
+            <section className="border border-[#e9f2eb] dark:border-gray-700 rounded-3xl bg-white dark:bg-gray-800 p-5 sm:p-8 space-y-6 animate-fadeIn">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-700 pb-5">
                 <div>
                   <h1 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2.5">
-                    <Bell className="h-6 w-6 text-emerald-600" />
+                    <Bell className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
                     <span>Alerts & Notifications Center</span>
                   </h1>
-                  <p className="mt-1 text-xs font-semibold text-gray-500">
+                  <p className="mt-1 text-xs font-semibold text-gray-500 dark:text-gray-300">
                     Real-time bulk purchase inquiries, buyer negotiations, order updates, and inventory tracking.
                   </p>
                 </div>
@@ -2351,7 +2351,7 @@ export default function VendorDashboardPage() {
                   <button
                     type="button"
                     onClick={() => markNotificationAsRead(undefined, true)}
-                    className="self-start sm:self-auto px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold text-xs rounded-xl transition cursor-pointer border border-emerald-200"
+                    className="self-start sm:self-auto px-4 py-2 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-extrabold text-xs rounded-xl transition cursor-pointer border border-emerald-200 dark:border-emerald-800"
                   >
                     Mark All As Read ({unreadNotifCount})
                   </button>
@@ -2365,12 +2365,12 @@ export default function VendorDashboardPage() {
                     <div
                       key={item._id || item.id}
                       onClick={() => handleNotificationClick(item)}
-                      className={`py-4 px-3 sm:px-4 flex gap-4 transition rounded-2xl cursor-pointer hover:bg-emerald-50/40 dark:hover:bg-gray-750 ${
-                        !item.isRead ? 'bg-emerald-50/25 border-l-4 border-emerald-500' : 'opacity-85'
+                      className={`py-4 px-3 sm:px-4 flex gap-4 transition rounded-2xl cursor-pointer hover:bg-emerald-50/40 dark:hover:bg-gray-700/60 ${
+                        !item.isRead ? 'bg-emerald-50/25 dark:bg-emerald-950/20 border-l-4 border-emerald-500' : 'opacity-85'
                       }`}
                     >
                       <div className={`h-11 w-11 shrink-0 rounded-2xl flex items-center justify-center ${
-                        isBulk ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-700'
+                        isBulk ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300' : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
                       }`}>
                         {isBulk ? <Scale className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
                       </div>
@@ -2381,7 +2381,7 @@ export default function VendorDashboardPage() {
                               {item.title}
                             </h3>
                             {isBulk && (
-                              <span className="text-[9px] font-black bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-300">
+                              <span className="text-[9px] font-black bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-700">
                                 🌾 Bulk Deal
                               </span>
                             )}
@@ -2389,7 +2389,7 @@ export default function VendorDashboardPage() {
                               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
                             )}
                           </div>
-                          <span className="text-[10px] font-bold text-gray-400">
+                          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400">
                             {item.createdAt ? new Date(item.createdAt).toLocaleString() : (item.time || '')}
                           </span>
                         </div>
