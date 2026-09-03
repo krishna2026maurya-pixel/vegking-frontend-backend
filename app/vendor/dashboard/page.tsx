@@ -29,39 +29,39 @@ const getSafeProductImage = (img: any) => {
 };
 
 const ShimmerProductCard = () => (
-  <div className="border border-gray-100 bg-white rounded-2xl p-3 flex flex-col justify-between animate-pulse">
-    <div className="h-28 w-full bg-gray-200 rounded-xl mb-3" />
+  <div className="border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-2xl p-3 flex flex-col justify-between animate-pulse">
+    <div className="h-28 w-full bg-gray-200 dark:bg-gray-700/80 rounded-xl mb-3" />
     <div className="space-y-2">
-      <div className="h-4 bg-gray-200 rounded-md w-3/4 animate-pulse" />
-      <div className="h-3 bg-gray-200 rounded-md w-1/2 animate-pulse" />
+      <div className="h-4 bg-gray-200 dark:bg-gray-700/80 rounded-md w-3/4 animate-pulse" />
+      <div className="h-3 bg-gray-200 dark:bg-gray-700/80 rounded-md w-1/2 animate-pulse" />
     </div>
-    <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50">
-      <div className="h-4 bg-gray-200 rounded-md w-1/3 animate-pulse" />
-      <div className="h-7 w-7 bg-gray-200 rounded-lg animate-pulse" />
+    <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 dark:border-gray-700">
+      <div className="h-4 bg-gray-200 dark:bg-gray-700/80 rounded-md w-1/3 animate-pulse" />
+      <div className="h-7 w-7 bg-gray-200 dark:bg-gray-700/80 rounded-lg animate-pulse" />
     </div>
   </div>
 );
 
 const ShimmerCategoryCard = () => (
-  <div className="border border-gray-100 bg-white rounded-2xl p-4 flex flex-col gap-4 items-start animate-pulse">
-    <div className="h-8 w-8 bg-gray-200 rounded-xl animate-pulse" />
+  <div className="border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-2xl p-4 flex flex-col gap-4 items-start animate-pulse">
+    <div className="h-8 w-8 bg-gray-200 dark:bg-gray-700/80 rounded-xl animate-pulse" />
     <div className="space-y-1.5 w-full">
-      <div className="h-2.5 bg-gray-200 rounded-md w-1/2 animate-pulse" />
-      <div className="h-4 bg-gray-200 rounded-md w-3/4 animate-pulse" />
+      <div className="h-2.5 bg-gray-200 dark:bg-gray-700/80 rounded-md w-1/2 animate-pulse" />
+      <div className="h-4 bg-gray-200 dark:bg-gray-700/80 rounded-md w-3/4 animate-pulse" />
     </div>
   </div>
 );
 
 const ShimmerListRow = () => (
-  <div className="p-4 border border-gray-100 bg-white rounded-xl flex items-center justify-between gap-4 animate-pulse">
+  <div className="p-4 border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-between gap-4 animate-pulse">
     <div className="flex items-center gap-4 w-full">
-      <div className="h-14 w-14 bg-gray-200 rounded-lg shrink-0 animate-pulse" />
+      <div className="h-14 w-14 bg-gray-200 dark:bg-gray-700/80 rounded-lg shrink-0 animate-pulse" />
       <div className="space-y-2 w-full">
-        <div className="h-4 bg-gray-200 rounded-md w-1/3 animate-pulse" />
-        <div className="h-3 bg-gray-200 rounded-md w-1/2 animate-pulse" />
+        <div className="h-4 bg-gray-200 dark:bg-gray-700/80 rounded-md w-1/3 animate-pulse" />
+        <div className="h-3 bg-gray-200 dark:bg-gray-700/80 rounded-md w-1/2 animate-pulse" />
       </div>
     </div>
-    <div className="h-8 w-16 bg-gray-200 rounded-lg shrink-0 animate-pulse" />
+    <div className="h-8 w-16 bg-gray-200 dark:bg-gray-700/80 rounded-lg shrink-0 animate-pulse" />
   </div>
 );
 
@@ -1650,7 +1650,7 @@ export default function VendorDashboardPage() {
                 ) : (
                   <>
                     {products.map((product) => (
-                      <div key={product._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-gray-100 dark:border-gray-700 p-4 bg-white dark:bg-gray-750/70 shadow-xs">
+                      <div key={product._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-gray-100 dark:border-gray-700 p-4 bg-white dark:bg-gray-700/80 shadow-xs">
                         <div className="flex items-center gap-4">
                           <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0 border border-gray-100 dark:border-gray-600">
                             <img src={getSafeProductImage(product.image)} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
