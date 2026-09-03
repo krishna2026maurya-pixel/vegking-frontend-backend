@@ -80,11 +80,10 @@ const platformHighlights = [
         text: 'We value dependable growers and suppliers, helping good produce reach homes while supporting honest local trade.',
     },
 ];
-
 export default function AboutPage() {
     return (
-        <div className="space-y-16 pb-8 px-4 sm:px-6 md:px-8 md:mx-18 md:my-8">
-            <section className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="mx-auto max-w-[90rem] w-full px-4 sm:px-6 lg:px-8 py-8 space-y-16">
+            <section className="grid items-center gap-10 lg:grid-cols-2">
                 <div className="space-y-7">
                     <div className="inline-flex items-center gap-2 border border-green-200 bg-green-50 px-4 py-2 text-xs font-black uppercase tracking-widest text-green-700">
                         <Sprout className="h-4 w-4" />
