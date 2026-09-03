@@ -234,8 +234,29 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-16 flex justify-center items-center">
-        <div className="w-9 h-9 border-3 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="max-w-[85rem] mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div className="h-4 w-32 bg-gray-200 rounded-lg animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white border border-gray-100 rounded-3xl p-6 shadow-xs">
+          {/* Image Skeleton */}
+          <div className="aspect-square w-full rounded-2xl bg-gray-100 animate-shimmer relative overflow-hidden flex items-center justify-center">
+            <div className="w-24 h-24 rounded-full bg-gray-200/60 animate-pulse" />
+          </div>
+          {/* Details Skeleton */}
+          <div className="flex flex-col gap-4 justify-center">
+            <div className="h-3.5 w-24 bg-gray-200 rounded-md animate-pulse" />
+            <div className="h-8 w-3/4 bg-gray-200 rounded-xl animate-pulse" />
+            <div className="h-9 w-44 bg-gray-200 rounded-xl animate-pulse" />
+            <div className="h-16 w-full bg-gray-100 rounded-2xl border border-gray-100 p-3 space-y-2 animate-pulse">
+              <div className="h-3 w-1/3 bg-gray-200 rounded" />
+              <div className="h-3 w-1/2 bg-gray-200 rounded" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="h-12 w-full bg-gray-200 rounded-2xl animate-shimmer relative overflow-hidden" />
+              <div className="h-12 w-full bg-gray-200 rounded-2xl animate-shimmer relative overflow-hidden" />
+            </div>
+            <div className="h-28 w-full bg-amber-50/60 rounded-2xl border border-amber-100 animate-shimmer relative overflow-hidden" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -548,8 +569,16 @@ export default function ProductDetailPage() {
 
         {/* Similar Products Grid (Responsive: 2-col mobile, 3-col tablet, 4-5 col desktop) */}
         {similarLoading ? (
-          <div className="flex justify-center items-center py-10">
-            <div className="w-8 h-8 border-3 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="bg-white rounded-2xl p-3 border border-gray-100 space-y-3 shadow-xs">
+                <div className="aspect-square w-full rounded-xl bg-gray-100 animate-shimmer relative overflow-hidden" />
+                <div className="h-3 w-1/3 bg-gray-200 rounded animate-pulse" />
+                <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
+                <div className="h-5 w-1/2 bg-gray-200 rounded animate-pulse" />
+                <div className="h-8 w-full bg-gray-100 rounded-xl animate-shimmer relative overflow-hidden" />
+              </div>
+            ))}
           </div>
         ) : similarProducts.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-4">
