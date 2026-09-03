@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import { Search, ShoppingCart, User, LogOut, ShieldCheck, X, Bell, Clock, ShieldAlert, CheckCircle2, XCircle, Menu, ChevronDown, ChevronRight, Package, Store, Scale } from 'lucide-react';
+import { Search, ShoppingCart, User, LogOut, ShieldCheck, X, Bell, Clock, ShieldAlert, CheckCircle2, XCircle, Menu, ChevronDown, ChevronRight, Package, Store, Scale, MapPin, Navigation, Loader2 } from 'lucide-react';
 
 const allProductsCategory = { _id: 'all', name: 'All Products', slug: 'All' };
 const CATEGORY_HIERARCHY: Record<string, string[]> = {
@@ -50,6 +50,53 @@ export default function Navbar() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [navCategories, setNavCategories] = useState([allProductsCategory]);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+
+  const [userLocation, setUserLocation] = useState<string>('Lucknow, UP');
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [customLocationInput, setCustomLocationInput] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('user_current_location');
+      if (saved) setUserLocation(saved);
+    }
+  }, []);
+
+  const detectCurrentLocation = () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
+      return;
+    }
+    setIsDetecting(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+          const data = await res.json();
+          const city = data.address?.city || data.address?.town || data.address?.suburb || data.address?.county || 'Current Location';
+          const state = data.address?.state || '';
+          const formatted = `${city}${state ? ', ' + state : ''}`;
+          setUserLocation(formatted);
+          localStorage.setItem('user_current_location', formatted);
+        } catch (err) {
+          const coordsStr = `${latitude.toFixed(3)}, ${longitude.toFixed(3)}`;
+          setUserLocation(coordsStr);
+          localStorage.setItem('user_current_location', coordsStr);
+        } finally {
+          setIsDetecting(false);
+          setShowLocationModal(false);
+        }
+      },
+      (err) => {
+        console.error(err);
+        setIsDetecting(false);
+        alert('Unable to retrieve location. Please enable location permissions in browser settings.');
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  };
 
   const activeRole = session?.user?.role || 'guest';
   const isApprovedVendor = activeRole === 'vendor' && session?.user?.vendorStatus === 'approved';
@@ -223,13 +270,33 @@ export default function Navbar() {
           {/* TOP ROW: Logo, Search, and Action Controls */}
           <div className="flex items-center justify-between gap-4">
 
-            {/* Logo */}
-            <Link href="/" className="group flex items-center gap-2">
-              <Image src="/logo.png" alt="Organic Vatika" width={55} height={55} priority className="object-contain" />
-              <span className="text-lg sm:text-xl font-extrabold tracking-tight text-text-brand transition-colors duration-200">
-                Veg<span className="text-[#6b4308]  transition-colors duration-200">King</span>
-              </span>
-            </Link>
+            {/* Logo & Location */}
+            <div className="flex items-center gap-3">
+              <Link href="/" className="group flex items-center gap-2">
+                <Image src="/logo.png" alt="Organic Vatika" width={55} height={55} priority className="object-contain" />
+                <span className="text-lg sm:text-xl font-extrabold tracking-tight text-text-brand transition-colors duration-200">
+                  Veg<span className="text-[#6b4308] transition-colors duration-200">King</span>
+                </span>
+              </Link>
+
+              {/* User Current Location Selector */}
+              <button
+                type="button"
+                onClick={() => setShowLocationModal(true)}
+                className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-gray-200 bg-gray-50/80 hover:bg-gray-100 hover:border-primary/40 transition-all text-xs text-left group shrink-0 shadow-xs cursor-pointer"
+              >
+                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+                  <MapPin className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[9px] font-extrabold uppercase tracking-wider text-gray-400 leading-none">Deliver to</span>
+                  <span className="font-extrabold text-gray-900 truncate max-w-[130px] leading-tight mt-0.5">
+                    {userLocation}
+                  </span>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-0.5 group-hover:text-gray-700" />
+              </button>
+            </div>
 
             {/* Search Bar (desktop) */}
             <div className="relative hidden flex-1 max-w-xl mx-2 lg:block" onClick={(e) => e.stopPropagation()}>
@@ -854,6 +921,97 @@ export default function Navbar() {
             </aside>
           </div>
         ), document.body)}
+
+        {/* ── Location Selector Modal ── */}
+        {showLocationModal && typeof window !== 'undefined' && createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-gray-100 relative">
+              <button
+                type="button"
+                onClick={() => setShowLocationModal(false)}
+                className="absolute top-5 right-5 p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-gray-950 text-base">Select Delivery Location</h3>
+                  <p className="text-xs text-gray-500 font-medium">Deliver fresh produce to your doorstep</p>
+                </div>
+              </div>
+
+              {/* Current Active Location Info */}
+              <div className="mb-5 p-3.5 bg-green-50/70 border border-green-200/80 rounded-2xl flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-xs font-bold text-gray-800 truncate">Current: {userLocation}</span>
+                </div>
+              </div>
+
+              {/* Detect Location Button */}
+              <button
+                type="button"
+                onClick={detectCurrentLocation}
+                disabled={isDetecting}
+                className="w-full mb-4 py-3.5 px-4 bg-primary text-white font-extrabold rounded-2xl shadow-md shadow-primary/20 hover:bg-primary-hover transition-all flex items-center justify-center gap-2.5 disabled:opacity-60 cursor-pointer text-xs"
+              >
+                {isDetecting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Detecting location via GPS...</span>
+                  </>
+                ) : (
+                  <>
+                    <Navigation className="w-4 h-4" />
+                    <span>Use Current Location (GPS)</span>
+                  </>
+                )}
+              </button>
+
+              <div className="relative my-4 flex items-center justify-center">
+                <div className="border-t border-gray-200 w-full" />
+                <span className="bg-white px-3 text-[10px] font-extrabold text-gray-400 uppercase tracking-widest absolute">OR</span>
+              </div>
+
+              {/* Type Custom Location */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (customLocationInput.trim()) {
+                    setUserLocation(customLocationInput.trim());
+                    localStorage.setItem('user_current_location', customLocationInput.trim());
+                    setCustomLocationInput('');
+                    setShowLocationModal(false);
+                  }
+                }}
+                className="space-y-3"
+              >
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-700">Enter City, Area, or Pincode</label>
+                  <input
+                    type="text"
+                    value={customLocationInput}
+                    onChange={(e) => setCustomLocationInput(e.target.value)}
+                    placeholder="e.g. Sector 4, Lucknow or 226010"
+                    className="w-full h-11 px-4 text-xs font-semibold bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-primary focus:bg-white transition-all text-gray-900"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={!customLocationInput.trim()}
+                  className="w-full py-3 bg-gray-900 text-white font-bold text-xs rounded-xl hover:bg-gray-800 transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  Set Location
+                </button>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
 
       </div>
     </nav>
