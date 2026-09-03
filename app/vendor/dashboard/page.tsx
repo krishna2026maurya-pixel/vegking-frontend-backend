@@ -91,10 +91,19 @@ export default function VendorDashboardPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('vendor_theme');
-      if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        setIsDarkMode(true);
+      const shouldBeDark = savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      setIsDarkMode(shouldBeDark);
+      if (shouldBeDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
       }
     }
+    return () => {
+      if (typeof window !== 'undefined') {
+        document.documentElement.classList.remove('dark');
+      }
+    };
   }, []);
 
   const toggleTheme = () => {
@@ -102,6 +111,11 @@ export default function VendorDashboardPage() {
       const next = !prev;
       if (typeof window !== 'undefined') {
         localStorage.setItem('vendor_theme', next ? 'dark' : 'light');
+        if (next) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
       }
       return next;
     });
