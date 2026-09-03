@@ -100,7 +100,7 @@ export default function CartPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-4">
-          
+
           {/* Wholesale Bulk Items (if any) */}
           {bulkItems.length > 0 && (
             <div className="space-y-3">
@@ -153,11 +153,10 @@ export default function CartPage() {
                             onClick={() => updateQuantity(item.cartId || item._id, item.cartQuantity - 1)}
                             disabled={isAtMinQty}
                             title={isAtMinQty ? "Minimum bulk order quantity is 5 kg" : "Decrease quantity"}
-                            className={`p-2 rounded-lg transition-colors ${
-                              isAtMinQty
-                                ? 'text-gray-300 cursor-not-allowed'
-                                : 'text-gray-600 hover:bg-gray-100 cursor-pointer'
-                            }`}
+                            className={`p-2 rounded-lg transition-colors ${isAtMinQty
+                              ? 'text-gray-300 cursor-not-allowed'
+                              : 'text-gray-600 hover:bg-gray-100 cursor-pointer'
+                              }`}
                           >
                             <Minus className="w-4 h-4" />
                           </button>
@@ -251,7 +250,7 @@ export default function CartPage() {
         {/* Order Summary Card */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm h-fit sticky top-24 space-y-4">
           <h2 className="text-xl font-bold text-gray-900">Order Summary</h2>
-          
+
           <div className="space-y-3 pb-4 border-b border-gray-100">
             {/* Separate Subtotals */}
             {retailSubtotal > 0 && (

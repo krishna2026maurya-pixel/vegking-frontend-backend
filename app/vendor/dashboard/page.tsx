@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Loader2, LogOut, Package, PackagePlus, ReceiptText, Store, User, X, Bike, Bell, Settings, ShieldCheck, CheckCircle2, AlertTriangle, Landmark, Search, Mail, ChevronDown, Plus, Heart, Filter, MessageSquare, HelpCircle, Sparkles, Download, Eye, ArrowUpDown, Trash2, Scale, Send, Check } from 'lucide-react';
+import { BarChart3, Loader2, LogOut, Package, PackagePlus, ReceiptText, Store, User, X, Bike, Bell, Settings, ShieldCheck, CheckCircle2, AlertTriangle, Landmark, Search, Mail, ChevronDown, Plus, Heart, Filter, MessageSquare, HelpCircle, Sparkles, Download, Eye, ArrowUpDown, Trash2, Scale, Send, Check, Sun, Moon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import DataTable, { Column, Action } from '@/app/admin/components/DataTable';
 
@@ -84,8 +84,27 @@ const emptyProduct = {
 
 export default function VendorDashboardPage() {
   const { data: session, status, signOut } = useAuth();
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState('home');
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('vendor_theme');
+      if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        setIsDarkMode(true);
+      }
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    setIsDarkMode((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('vendor_theme', next ? 'dark' : 'light');
+      }
+      return next;
+    });
+  };
 
   const changeTab = useCallback((tabId: string) => {
     setActiveTab(tabId);
@@ -990,7 +1009,7 @@ export default function VendorDashboardPage() {
 
 
   return (
-    <div className="h-screen overflow-hidden bg-[#f3f8f4] dark:bg-gray-900 flex text-gray-800 dark:text-gray-100 font-sans antialiased">
+    <div className={`h-screen overflow-hidden flex font-sans antialiased transition-colors duration-300 ${isDarkMode ? 'dark bg-[#0f172a] text-gray-100' : 'bg-[#f3f8f4] text-gray-800'}`}>
       {/* Sidebar Layout */}
       <aside className="hidden lg:flex flex-col w-56 bg-white dark:bg-gray-800 border-r border-[#e9f2eb] dark:border-gray-700 px-4 py-6 justify-between shrink-0">
         <div className="space-y-8">
@@ -1234,6 +1253,26 @@ export default function VendorDashboardPage() {
               </div>
             </div>
 
+            {/* Theme Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition cursor-pointer flex items-center gap-1.5 text-xs font-extrabold shrink-0 shadow-2xs"
+              title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {isDarkMode ? (
+                <>
+                  <Sun className="w-4 h-4 text-amber-400 fill-amber-400" />
+                  <span className="hidden sm:inline">Light</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-4 h-4 text-indigo-600 fill-indigo-600" />
+                  <span className="hidden sm:inline">Dark</span>
+                </>
+              )}
+            </button>
+
             <div className="h-8 w-px bg-[#f0f6f2] dark:bg-gray-750" />
 
             {/* Profile Menu */}
@@ -1286,8 +1325,8 @@ export default function VendorDashboardPage() {
                 {/* Categories and Stock */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <h3 className="font-extrabold text-base text-gray-900">Categories and Stock</h3>
-                    <button type="button" className="border border-[#e9f2eb] bg-white text-xs font-bold text-gray-500 px-3.5 py-2 rounded-xl flex items-center gap-2 hover:bg-[#f6faf7] transition">
+                    <h3 className="font-extrabold text-base text-gray-900 dark:text-white">Categories and Stock</h3>
+                    <button type="button" className="border border-[#e9f2eb] dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-bold text-gray-500 dark:text-gray-300 px-3.5 py-2 rounded-xl flex items-center gap-2 hover:bg-[#f6faf7] dark:hover:bg-gray-700 transition">
                       <Filter className="h-3.5 w-3.5" />
                       Filter
                     </button>
@@ -1298,18 +1337,18 @@ export default function VendorDashboardPage() {
                       Array.from({ length: 5 }).map((_, i) => <ShimmerCategoryCard key={i} />)
                     ) : (
                       [
-                        { label: 'Veggies', stock: `${categoryStock.veggies} stock`, bg: 'bg-[#e7f7ee]/60 border-emerald-100 text-emerald-900', iconBg: 'bg-emerald-600 text-white', icon: <Store className="h-4.5 w-4.5" /> },
-                        { label: 'Tubers', stock: `${categoryStock.others} stock`, bg: 'bg-[#eefcf5]/60 border-green-100 text-green-950', iconBg: 'bg-green-600 text-white', icon: <Store className="h-4.5 w-4.5" /> },
-                        { label: 'Grains', stock: `${categoryStock.grains} stock`, bg: 'bg-[#fffbeb]/60 border-amber-100 text-amber-900', iconBg: 'bg-amber-600 text-white', icon: <Store className="h-4.5 w-4.5" /> },
-                        { label: 'Fruits', stock: `${categoryStock.fruits} stock`, bg: 'bg-[#fff5f0]/60 border-orange-100 text-orange-950', iconBg: 'bg-orange-600 text-white', icon: <Store className="h-4.5 w-4.5" /> },
-                        { label: 'Dairy', stock: `${categoryStock.dairy} stock`, bg: 'bg-[#eff6ff]/60 border-blue-100 text-blue-900', iconBg: 'bg-blue-600 text-white', icon: <Store className="h-4.5 w-4.5" /> },
+                        { label: 'Veggies', stock: `${categoryStock.veggies} stock`, bg: 'bg-[#e7f7ee]/60 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/40 text-emerald-900 dark:text-emerald-300', iconBg: 'bg-emerald-600 text-white', icon: <Store className="h-4.5 w-4.5" /> },
+                        { label: 'Tubers', stock: `${categoryStock.others} stock`, bg: 'bg-[#eefcf5]/60 dark:bg-green-950/30 border-green-100 dark:border-green-900/40 text-green-950 dark:text-green-300', iconBg: 'bg-green-600 text-white', icon: <Store className="h-4.5 w-4.5" /> },
+                        { label: 'Grains', stock: `${categoryStock.grains} stock`, bg: 'bg-[#fffbeb]/60 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/40 text-amber-900 dark:text-amber-300', iconBg: 'bg-amber-600 text-white', icon: <Store className="h-4.5 w-4.5" /> },
+                        { label: 'Fruits', stock: `${categoryStock.fruits} stock`, bg: 'bg-[#fff5f0]/60 dark:bg-orange-950/30 border-orange-100 dark:border-orange-900/40 text-orange-950 dark:text-orange-300', iconBg: 'bg-orange-600 text-white', icon: <Store className="h-4.5 w-4.5" /> },
+                        { label: 'Dairy', stock: `${categoryStock.dairy} stock`, bg: 'bg-[#eff6ff]/60 dark:bg-blue-950/30 border-blue-100 dark:border-blue-900/40 text-blue-900 dark:text-blue-300', iconBg: 'bg-blue-600 text-white', icon: <Store className="h-4.5 w-4.5" /> },
                       ].map((cat) => (
-                        <div key={cat.label} className={`border rounded-2xl p-4 flex flex-col gap-4 items-start hover:shadow-md hover:shadow-gray-200/50 hover:scale-[1.03] transition-all duration-300 ${cat.bg}`}>
+                        <div key={cat.label} className={`border rounded-2xl p-4 flex flex-col gap-4 items-start hover:shadow-md hover:scale-[1.03] transition-all duration-300 ${cat.bg}`}>
                           <div className={`h-8 w-8 rounded-xl flex items-center justify-center shadow-xs ${cat.iconBg}`}>
                             {cat.icon}
                           </div>
                           <div>
-                            <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">{cat.stock}</p>
+                            <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">{cat.stock}</p>
                             <p className="text-xs font-extrabold mt-0.5 leading-tight">{cat.label}</p>
                           </div>
                         </div>
@@ -1321,7 +1360,7 @@ export default function VendorDashboardPage() {
                 {/* Popular Product List Grid */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <h3 className="font-extrabold text-base text-gray-900">Popular Product</h3>
+                    <h3 className="font-extrabold text-base text-gray-900 dark:text-white">Popular Product</h3>
                     <button type="button" onClick={() => changeTab('products')} className="text-xs font-bold text-[#2bb673] hover:underline">See All</button>
                   </div>
 
@@ -1333,25 +1372,25 @@ export default function VendorDashboardPage() {
                         {products.slice(0, 4).map((p) => {
                           const isFav = !!favorites[p._id];
                           return (
-                            <div key={p._id} className="border border-gray-100 bg-white rounded-2xl p-3 flex flex-col justify-between hover:shadow-lg hover:shadow-gray-200/40 hover:-translate-y-1 group transition-all duration-300">
-                              <div className="relative h-28 w-full bg-[#f4f7f5] rounded-xl overflow-hidden mb-3">
+                            <div key={p._id} className="border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-2xl p-3 flex flex-col justify-between hover:shadow-lg dark:hover:shadow-gray-950/60 hover:-translate-y-1 group transition-all duration-300">
+                              <div className="relative h-28 w-full bg-[#f4f7f5] dark:bg-gray-700 rounded-xl overflow-hidden mb-3">
                                 <img src={getSafeProductImage(p.image)} alt={p.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                                 <button
                                   type="button"
                                   onClick={() => toggleFavorite(p._id)}
-                                  className="absolute top-2 right-2 h-7 w-7 bg-white/90 backdrop-blur-xs rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 transition-all cursor-pointer"
+                                  className="absolute top-2 right-2 h-7 w-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xs rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 transition-all cursor-pointer"
                                 >
                                   <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : ''}`} />
                                 </button>
                               </div>
 
                               <div className="space-y-1">
-                                <h4 className="font-black text-sm text-gray-900 truncate">{p.name}</h4>
-                                <p className="text-[10px] font-bold text-gray-400">{p.stock} in stock</p>
+                                <h4 className="font-black text-sm text-gray-900 dark:text-white truncate">{p.name}</h4>
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-gray-400">{p.stock} in stock</p>
                               </div>
 
-                              <div className="flex justify-between items-center mt-3 pt-2 border-t border-[#f6faf7]">
-                                <span className="text-sm font-black text-gray-950">₹{Number(p.price).toFixed(2)}<span className="text-[10px] text-gray-400 font-bold">/kg</span></span>
+                              <div className="flex justify-between items-center mt-3 pt-2 border-t border-[#f6faf7] dark:border-gray-700">
+                                <span className="text-sm font-black text-gray-950 dark:text-white">₹{Number(p.price).toFixed(2)}<span className="text-[10px] text-gray-400 font-bold">/kg</span></span>
                                 <button
                                   type="button"
                                   onClick={() => editProduct(p)}
@@ -1364,7 +1403,7 @@ export default function VendorDashboardPage() {
                           );
                         })}
                         {products.length === 0 && (
-                          <div className="col-span-4 py-10 text-center border border-dashed border-[#e9f2eb] rounded-2xl bg-white text-gray-400 text-xs font-semibold">
+                          <div className="col-span-4 py-10 text-center border border-dashed border-[#e9f2eb] dark:border-gray-700 rounded-2xl bg-white dark:bg-gray-800 text-gray-400 text-xs font-semibold">
                             No products added yet. Go to Add Product to create one.
                           </div>
                         )}
@@ -1376,7 +1415,7 @@ export default function VendorDashboardPage() {
                 {/* Top Items Grid */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <h3 className="font-extrabold text-base text-gray-900">Top Items</h3>
+                    <h3 className="font-extrabold text-base text-gray-900 dark:text-white">Top Items</h3>
                     <button type="button" onClick={() => changeTab('products')} className="text-xs font-bold text-[#2bb673] hover:underline">See All</button>
                   </div>
 
@@ -1388,25 +1427,25 @@ export default function VendorDashboardPage() {
                         {products.slice(4, 8).map((p) => {
                           const isFav = !!favorites[p._id];
                           return (
-                            <div key={p._id} className="border border-gray-100 bg-white rounded-2xl p-3 flex flex-col justify-between hover:shadow-lg hover:shadow-gray-200/40 hover:-translate-y-1 group transition-all duration-300">
-                              <div className="relative h-28 w-full bg-[#f4f7f5] rounded-xl overflow-hidden mb-3">
+                            <div key={p._id} className="border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-2xl p-3 flex flex-col justify-between hover:shadow-lg dark:hover:shadow-gray-950/60 hover:-translate-y-1 group transition-all duration-300">
+                              <div className="relative h-28 w-full bg-[#f4f7f5] dark:bg-gray-700 rounded-xl overflow-hidden mb-3">
                                 <img src={getSafeProductImage(p.image)} alt={p.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                                 <button
                                   type="button"
                                   onClick={() => toggleFavorite(p._id)}
-                                  className="absolute top-2 right-2 h-7 w-7 bg-white/90 backdrop-blur-xs rounded-full flex items-center justify-center shadow-sm text-gray-400 hover:text-red-500 transition-all cursor-pointer"
+                                  className="absolute top-2 right-2 h-7 w-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xs rounded-full flex items-center justify-center shadow-sm text-gray-400 hover:text-red-500 transition-all cursor-pointer"
                                 >
                                   <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : ''}`} />
                                 </button>
                               </div>
 
                               <div className="space-y-1">
-                                <h4 className="font-black text-sm text-gray-900 truncate">{p.name}</h4>
-                                <p className="text-[10px] font-bold text-gray-400">{p.stock} in stock</p>
+                                <h4 className="font-black text-sm text-gray-900 dark:text-white truncate">{p.name}</h4>
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-gray-400">{p.stock} in stock</p>
                               </div>
 
-                              <div className="flex justify-between items-center mt-3 pt-2 border-t border-[#f6faf7]">
-                                <span className="text-sm font-black text-gray-950">₹{Number(p.price).toFixed(2)}<span className="text-[10px] text-gray-400 font-bold">/kg</span></span>
+                              <div className="flex justify-between items-center mt-3 pt-2 border-t border-[#f6faf7] dark:border-gray-700">
+                                <span className="text-sm font-black text-gray-950 dark:text-white">₹{Number(p.price).toFixed(2)}<span className="text-[10px] text-gray-400 font-bold">/kg</span></span>
                                 <button
                                   type="button"
                                   onClick={() => editProduct(p)}
@@ -1419,7 +1458,7 @@ export default function VendorDashboardPage() {
                           );
                         })}
                         {products.length < 5 && (
-                          <div className="col-span-4 py-8 text-center border border-dashed border-[#e9f2eb] rounded-2xl bg-white text-gray-400 text-xs font-semibold">
+                          <div className="col-span-4 py-8 text-center border border-dashed border-[#e9f2eb] dark:border-gray-700 rounded-2xl bg-white dark:bg-gray-800 text-gray-400 text-xs font-semibold">
                             Add more products to populate Top Items section.
                           </div>
                         )}
@@ -1434,16 +1473,16 @@ export default function VendorDashboardPage() {
               <div className="space-y-8">
 
                 {/* Income Stat Panel */}
-                <div className="border border-gray-100 bg-white rounded-3xl p-6 space-y-6 shadow-xs">
-                  <h3 className="font-extrabold text-base text-gray-900">Income</h3>
+                <div className="border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-3xl p-6 space-y-6 shadow-xs">
+                  <h3 className="font-extrabold text-base text-gray-900 dark:text-white">Income</h3>
 
                   <div className="grid grid-cols-3 gap-4">
                     {loading ? (
                       Array.from({ length: 3 }).map((_, i) => (
                         <div key={i} className="flex flex-col items-center gap-3 animate-pulse">
-                          <div className="h-14 w-14 rounded-full bg-gray-200" />
-                          <div className="h-3 bg-gray-200 rounded-md w-10 mt-1" />
-                          <div className="h-3 bg-gray-200 rounded-md w-12 mt-1" />
+                          <div className="h-14 w-14 rounded-full bg-gray-200 dark:bg-gray-700" />
+                          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-md w-10 mt-1" />
+                          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-md w-12 mt-1" />
                         </div>
                       ))
                     ) : (
@@ -1456,18 +1495,18 @@ export default function VendorDashboardPage() {
                           {/* Circular Progress Ring */}
                           <div className="relative h-14 w-14 flex items-center justify-center">
                             <svg className="absolute transform -rotate-90 h-full w-full">
-                              <circle cx="28" cy="28" r="22" stroke="#f4fbf7" strokeWidth="3.5" fill="transparent" />
+                              <circle cx="28" cy="28" r="22" stroke="currentColor" strokeWidth="3.5" fill="transparent" className="text-gray-100 dark:text-gray-700" />
                               <circle cx="28" cy="28" r="22" stroke="#10b981" strokeWidth="3.5" strokeLinecap="round" fill="transparent"
                                 strokeDasharray={138}
                                 strokeDashoffset={138 - (138 * inc.pct) / 100}
                                 className="filter drop-shadow-[0_2px_4px_rgba(16,185,129,0.25)]"
                               />
                             </svg>
-                            <span className="text-[10px] font-black text-gray-600">{inc.pct}%</span>
+                            <span className="text-[10px] font-black text-gray-600 dark:text-gray-300">{inc.pct}%</span>
                           </div>
                           <div className="text-center">
-                            <p className="text-[11px] font-black text-gray-900">{inc.val}</p>
-                            <p className="text-[10px] font-bold text-gray-500 mt-0.5">{inc.label}</p>
+                            <p className="text-[11px] font-black text-gray-900 dark:text-white">{inc.val}</p>
+                            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mt-0.5">{inc.label}</p>
                           </div>
                         </div>
                       ))
@@ -1476,17 +1515,17 @@ export default function VendorDashboardPage() {
                 </div>
 
                 {/* Notifications Log panel */}
-                <div className="border border-[#e9f2eb] bg-white rounded-3xl p-6 space-y-5">
-                  <h3 className="font-extrabold text-base text-gray-900">Notification</h3>
+                <div className="border border-[#e9f2eb] dark:border-gray-700 bg-white dark:bg-gray-800 rounded-3xl p-6 space-y-5">
+                  <h3 className="font-extrabold text-base text-gray-900 dark:text-white">Notification</h3>
 
                   <div className="space-y-4">
                     {loading ? (
                       Array.from({ length: 3 }).map((_, i) => (
                         <div key={i} className="flex gap-4 items-center animate-pulse">
-                          <div className="h-9 w-9 bg-gray-200 rounded-xl shrink-0" />
+                          <div className="h-9 w-9 bg-gray-200 dark:bg-gray-700 rounded-xl shrink-0" />
                           <div className="space-y-2 w-full">
-                            <div className="h-3 bg-gray-200 rounded-md w-2/3" />
-                            <div className="h-2 bg-gray-200 rounded-md w-1/4" />
+                            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-md w-2/3" />
+                            <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-md w-1/4" />
                           </div>
                         </div>
                       ))
@@ -1494,8 +1533,8 @@ export default function VendorDashboardPage() {
                       notifications.map((item) => (
                         <div key={item.id} className="flex items-start justify-between gap-3 group cursor-pointer" onClick={() => changeTab('notifications')}>
                           <div>
-                            <p className="text-xs font-bold text-gray-900 group-hover:text-[#2bb673] transition-colors line-clamp-2 leading-snug">{item.message}</p>
-                            <p className="text-[10px] font-semibold text-gray-500 mt-1">{item.time}</p>
+                            <p className="text-xs font-bold text-gray-900 dark:text-gray-100 group-hover:text-[#2bb673] transition-colors line-clamp-2 leading-snug">{item.message}</p>
+                            <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 mt-1">{item.time}</p>
                           </div>
                           <ChevronDown className="h-4 w-4 text-gray-400 transform -rotate-90 shrink-0" />
                         </div>
@@ -1505,18 +1544,18 @@ export default function VendorDashboardPage() {
                 </div>
 
                 {/* Latest Orders Accept Table panel */}
-                <div className="border border-[#e9f2eb] bg-white rounded-3xl p-6 space-y-5">
-                  <h3 className="font-extrabold text-base text-gray-900">Latest order</h3>
+                <div className="border border-[#e9f2eb] dark:border-gray-700 bg-white dark:bg-gray-800 rounded-3xl p-6 space-y-5">
+                  <h3 className="font-extrabold text-base text-gray-900 dark:text-white">Latest order</h3>
 
-                  <div className="divide-y divide-[#f6faf7]">
+                  <div className="divide-y divide-[#f6faf7] dark:divide-gray-700">
                     {loading ? (
                       Array.from({ length: 3 }).map((_, i) => (
                         <div key={i} className="py-3 flex items-center justify-between gap-4 animate-pulse">
                           <div className="space-y-2 w-full">
-                            <div className="h-3.5 bg-gray-200 rounded-md w-1/2" />
-                            <div className="h-2.5 bg-gray-200 rounded-md w-3/4" />
+                            <div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded-md w-1/2" />
+                            <div className="h-2.5 bg-gray-200 dark:bg-gray-700 rounded-md w-3/4" />
                           </div>
-                          <div className="h-6 w-12 bg-gray-200 rounded-lg shrink-0" />
+                          <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded-lg shrink-0" />
                         </div>
                       ))
                     ) : (
@@ -1527,8 +1566,8 @@ export default function VendorDashboardPage() {
                           return (
                             <div key={order._id} className="py-3.5 flex items-center justify-between gap-4 first:pt-0 last:pb-0">
                               <div className="min-w-0">
-                                <p className="text-xs font-black text-gray-900 truncate">{order.userId?.name || 'Customer'}</p>
-                                <p className="text-[10px] font-bold text-gray-400 truncate mt-0.5">{itemsText}</p>
+                                <p className="text-xs font-black text-gray-900 dark:text-white truncate">{order.userId?.name || 'Customer'}</p>
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-gray-400 truncate mt-0.5">{itemsText}</p>
                               </div>
                               {isPending ? (
                                 <button
