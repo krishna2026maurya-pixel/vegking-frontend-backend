@@ -1016,10 +1016,10 @@ export default function VendorDashboardPage() {
         <div className="space-y-8">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 relative shrink-0">
+            <div className="h-10 w-10 relative shrink-0 bg-white dark:bg-white/95 rounded-xl p-1 shadow-2xs border border-gray-100 dark:border-transparent">
               <img src="/logo.png" alt="VegKing Logo" className="w-full h-full object-contain" />
             </div>
-            <span className="font-extrabold text-lg text-gray-900 tracking-tight">VegKing</span>
+            <span className="font-extrabold text-lg text-gray-900 dark:text-white tracking-tight">VegKing</span>
           </div>
 
           {/* Navigation Links */}
