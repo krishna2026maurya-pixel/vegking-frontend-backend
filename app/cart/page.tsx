@@ -7,6 +7,14 @@ import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Scale, Sparkles, ShieldCh
 import { useAuth } from '@/context/AuthContext';
 import DealCountdownTimer from '@/components/DealCountdownTimer';
 
+const defaultProductImage = '/images/product-card-default.jpg';
+function getSafeCartImage(img: any) {
+  if (!img || typeof img !== 'string' || img.trim() === '') {
+    return defaultProductImage;
+  }
+  return img;
+}
+
 export default function CartPage() {
   const { cart, removeFromCart, updateQuantity, clearCart, cartTotal } = useCart();
   const { status } = useAuth();
@@ -111,7 +119,7 @@ export default function CartPage() {
                     className="bg-gradient-to-br from-emerald-50/80 via-green-50/40 to-white p-4 sm:p-5 rounded-3xl flex flex-col sm:flex-row gap-4 sm:items-center border-2 border-emerald-300 shadow-sm relative overflow-hidden"
                   >
                     <div className="relative w-full sm:w-28 h-28 rounded-2xl overflow-hidden shrink-0 bg-white border border-emerald-200">
-                      <Image src={item.image} alt={item.name} fill sizes="(max-width: 640px) 100vw, 112px" className="object-cover" />
+                      <Image src={getSafeCartImage(item.image)} alt={item.name || 'Product'} fill sizes="(max-width: 640px) 100vw, 112px" className="object-cover" />
                       <span className="absolute top-1.5 left-1.5 bg-amber-400 text-gray-950 font-black text-[9px] px-2 py-0.2 rounded uppercase shadow-xs">
                         Min 5 kg
                       </span>
@@ -193,7 +201,7 @@ export default function CartPage() {
                 return (
                   <div key={item.cartId || item._id} className="bg-white p-4 sm:p-5 rounded-3xl flex flex-col sm:flex-row gap-4 sm:items-center border border-gray-100 shadow-sm relative">
                     <div className="relative w-full sm:w-24 h-24 rounded-2xl overflow-hidden shrink-0 bg-gray-50">
-                      <Image src={item.image} alt={item.name} fill sizes="(max-width: 640px) 100vw, 96px" className="object-cover" />
+                      <Image src={getSafeCartImage(item.image)} alt={item.name || 'Product'} fill sizes="(max-width: 640px) 100vw, 96px" className="object-cover" />
                     </div>
 
                     <div className="flex-grow flex flex-col sm:flex-row sm:items-center justify-between w-full">
