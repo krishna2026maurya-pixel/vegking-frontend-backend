@@ -1254,7 +1254,7 @@ export default function VendorDashboardPage() {
                         )}
                       </div>
 
-                      <div className="p-2.5 bg-gray-50 dark:bg-gray-750 border-t border-gray-100 dark:border-gray-700 text-center">
+                      <div className="p-2.5 bg-gray-50 dark:bg-gray-700 border-t border-gray-100 dark:border-gray-700 text-center">
                         <button
                           type="button"
                           onClick={() => {
@@ -1292,7 +1292,7 @@ export default function VendorDashboardPage() {
               )}
             </button>
 
-            <div className="h-8 w-px bg-[#f0f6f2] dark:bg-gray-750" />
+            <div className="h-8 w-px bg-[#f0f6f2] dark:bg-gray-700" />
 
             {/* Profile Menu */}
             <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => changeTab('profile')} title="View Store Profile">
@@ -2253,10 +2253,10 @@ export default function VendorDashboardPage() {
                 ) : (
                   <>
                     {riders.map((rider) => (
-                      <div key={rider._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-gray-100 dark:border-gray-700 p-4 bg-white dark:bg-gray-750/70 shadow-sm hover:shadow-md transition">
+                      <div key={rider._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-gray-100 dark:border-gray-700 p-4 bg-white dark:bg-gray-700/80 shadow-sm hover:shadow-md transition">
                         <div>
-                          <h2 className="font-black text-gray-950 dark:text-white text-sm sm:text-base">{rider.name}</h2>
-                          <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-300">{rider.mobile_number} &bull; {rider.vehicle_type} ({rider.vehicle_number})</p>
+                          <h2 className="font-black text-gray-950 dark:text-white text-sm sm:text-base">{rider.name || rider.mobile_number}</h2>
+                          <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-300">{rider.name ? rider.mobile_number + ' \u2022 ' : ''}{rider.vehicle_type} ({rider.vehicle_number})</p>
                           <span className={`inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-semibold ${rider.is_active === '1' ? 'bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-300' : 'bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-300'}`}>
                             {rider.is_active === '1' ? 'Online' : 'Offline'}
                           </span>
