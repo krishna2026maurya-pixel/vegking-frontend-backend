@@ -1632,13 +1632,13 @@ export default function VendorDashboardPage() {
 
 
           {activeTab === 'products' && (
-            <section className="border border-[#e9f2eb] rounded-3xl bg-white p-5 sm:p-8 animate-fadeIn">
+            <section className="border border-[#e9f2eb] dark:border-gray-700 rounded-3xl bg-white dark:bg-gray-800 p-5 sm:p-8 animate-fadeIn">
               <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-black text-gray-900">My Products</h1>
+                <h1 className="text-2xl font-black text-gray-900 dark:text-white">My Products</h1>
                 <button
                   type="button"
                   onClick={openAddProduct}
-                  className="bg-[#2bb673] px-5 py-2.5 text-xs font-extrabold text-white rounded-xl hover:bg-green-600 transition flex items-center gap-1.5"
+                  className="bg-[#2bb673] px-5 py-2.5 text-xs font-extrabold text-white rounded-xl hover:bg-green-600 transition flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <Plus className="h-4 w-4" />
                   Add Product
@@ -1650,23 +1650,23 @@ export default function VendorDashboardPage() {
                 ) : (
                   <>
                     {products.map((product) => (
-                      <div key={product._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-gray-100 p-4 bg-white shadow-xs">
+                      <div key={product._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-gray-100 dark:border-gray-700 p-4 bg-white dark:bg-gray-750/70 shadow-xs">
                         <div className="flex items-center gap-4">
-                          <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+                          <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0 border border-gray-100 dark:border-gray-600">
                             <img src={getSafeProductImage(product.image)} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
                           </div>
                           <div>
-                            <h2 className="font-black text-gray-950 text-sm sm:text-base">{product.name}</h2>
-                            <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-500">{product.category} &bull; ₹{Number(product.price).toFixed(2)} &bull; {product.stock} in stock</p>
+                            <h2 className="font-black text-gray-950 dark:text-white text-sm sm:text-base">{product.name}</h2>
+                            <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-300">{product.category} &bull; ₹{Number(product.price).toFixed(2)} &bull; {product.stock} in stock</p>
                           </div>
                         </div>
                         <div className="flex gap-2 justify-end sm:justify-start">
-                          <button type="button" onClick={() => editProduct(product)} className="bg-gray-50 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-gray-700 hover:bg-gray-100 transition cursor-pointer">Edit</button>
-                          <button type="button" onClick={() => deleteProduct(product)} className="bg-red-50 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-red-600 hover:bg-red-100 transition cursor-pointer">Delete</button>
+                          <button type="button" onClick={() => editProduct(product)} className="bg-gray-50 dark:bg-gray-700 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition cursor-pointer">Edit</button>
+                          <button type="button" onClick={() => deleteProduct(product)} className="bg-red-50 dark:bg-red-950/40 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 transition cursor-pointer">Delete</button>
                         </div>
                       </div>
                     ))}
-                    {products.length === 0 && <p className="py-10 text-center text-sm font-bold text-gray-500">No products added yet.</p>}
+                    {products.length === 0 && <p className="py-10 text-center text-sm font-bold text-gray-500 dark:text-gray-400">No products added yet.</p>}
                   </>
                 )}
               </div>
