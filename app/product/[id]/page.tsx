@@ -326,7 +326,7 @@ export default function ProductDetailPage() {
         {/* Left: Product Image */}
         <div className="flex items-center justify-center bg-gray-50/70 rounded-xl sm:rounded-2xl p-4 relative aspect-square max-h-[300px] sm:max-h-[340px] mx-auto w-full border border-gray-100">
           {pct > 0 && (
-            <span className="absolute top-3 left-3 z-10 rounded-full bg-red-500 px-2.5 py-0.5 text-[11px] font-extrabold text-white shadow-xs">
+            <span className="absolute top-3 left-3 z-10 rounded-full bg-red-500 px-2.5 py-0.5 text-[11px] font-extrabold text-white shadow-xs animate-shimmer relative overflow-hidden">
               {pct}% OFF
             </span>
           )}
@@ -453,7 +453,7 @@ export default function ProductDetailPage() {
               disabled={!inStock}
               className={`w-full relative group inline-flex items-center justify-center gap-2 py-3 sm:py-3.5 px-4 rounded-2xl text-xs sm:text-sm font-extrabold transition-all duration-200 border-2 shadow-xs active:scale-[0.98] cursor-pointer h-[50px] overflow-hidden ${
                 inStock
-                  ? 'border-emerald-600/40 bg-gradient-to-r from-emerald-50/95 via-green-50/80 to-teal-50/70 hover:from-emerald-100 hover:to-green-100/90 text-emerald-950 hover:border-emerald-600/70 shadow-emerald-700/5'
+                  ? 'border-emerald-600/40 bg-gradient-to-r from-emerald-50/95 via-green-50/80 to-teal-50/70 hover:from-emerald-100 hover:to-green-100/90 text-emerald-950 hover:border-emerald-600/70 shadow-emerald-700/5 animate-shimmer'
                   : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
               }`}
             >
@@ -469,7 +469,7 @@ export default function ProductDetailPage() {
                   <Scale className="w-4 h-4 text-amber-600" />
                   <span>Wholesale & Bulk Inquiries</span>
                 </div>
-                <span className="bg-amber-400 text-gray-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                <span className="bg-amber-400 text-gray-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase animate-shimmer relative overflow-hidden">
                   Min {product?.bulk_min_qty || 5} {product?.bulk_unit || 'kg'}
                 </span>
               </div>
@@ -490,7 +490,7 @@ export default function ProductDetailPage() {
               <button
                 type="button"
                 onClick={() => setIsNegotiateModalOpen(true)}
-                className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-gray-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-2.5 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-gray-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer animate-shimmer relative overflow-hidden"
               >
                 <MessageSquare className="w-4 h-4 text-gray-950" />
                 <span>Negotiate Price with Vendor</span>
