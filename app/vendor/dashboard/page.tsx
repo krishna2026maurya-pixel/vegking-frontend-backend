@@ -932,12 +932,16 @@ export default function VendorDashboardPage() {
 
   const saveProfile = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!session?.user?.id) return;
+    const vId = session?.user?.id || profile?._id || profile?.vendor_id || profile?.id;
+    if (!vId) {
+      setMessage('Unable to identify vendor account. Please re-login.');
+      return;
+    }
     setSaving(true);
     setMessage('');
 
     try {
-      const res = await fetch(`/api/vendors/${session.user.id}`, {
+      const res = await fetch(`/api/vendors/${vId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -951,9 +955,9 @@ export default function VendorDashboardPage() {
       });
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to update profile');
+      if (!res.ok) throw new Error(json.error || json.message || 'Failed to update profile');
 
-      setMessage('Profile updated successfully.');
+      setMessage('Profile updated successfully!');
       await loadVendorData();
     } catch (e: any) {
       setMessage('Unable to update profile: ' + e.message);
@@ -2407,10 +2411,10 @@ export default function VendorDashboardPage() {
             </section>
           )}
           {activeTab === 'profile' && profile && (
-            <section className="border border-[#e9f2eb] rounded-3xl bg-white p-5 sm:p-8 space-y-8 animate-fadeIn">
+            <section className="border border-[#e9f2eb] dark:border-gray-700 rounded-3xl bg-white dark:bg-gray-800 p-5 sm:p-8 space-y-8 animate-fadeIn">
               <div>
-                <h1 className="text-2xl font-black text-gray-900">Store Profile</h1>
-                <p className="mt-1 text-sm font-medium text-gray-500">View and update your registration parameters.</p>
+                <h1 className="text-2xl font-black text-gray-900 dark:text-white">Store Profile</h1>
+                <p className="mt-1 text-sm font-medium text-gray-500 dark:text-gray-300">View and update your registration parameters.</p>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-3">
@@ -2419,53 +2423,53 @@ export default function VendorDashboardPage() {
                   { title: 'FSSAI License Active', val: profile.fssaiLicense },
                   { title: 'PAN Registered', val: profile.panDetails },
                 ].map((doc) => (
-                  <div key={doc.title} className="border border-[#e9f2eb] bg-[#fdfefd] rounded-2xl p-4 flex gap-3 items-start">
-                    <ShieldCheck className="h-5 w-5 text-green-600 shrink-0" />
+                  <div key={doc.title} className="border border-[#e9f2eb] dark:border-gray-700 bg-[#fdfefd] dark:bg-gray-700/60 rounded-2xl p-4 flex gap-3 items-start">
+                    <ShieldCheck className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0" />
                     <div>
-                      <h4 className="text-xs font-extrabold text-gray-900">{doc.title}</h4>
-                      <p className="text-[10px] text-gray-500 font-semibold mt-1">No. {doc.val}</p>
+                      <h4 className="text-xs font-extrabold text-gray-900 dark:text-white">{doc.title}</h4>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold mt-1">No. {doc.val}</p>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <form onSubmit={saveProfile} className="grid gap-4 sm:grid-cols-2 pt-4 border-t border-gray-100">
+              <form onSubmit={saveProfile} className="grid gap-4 sm:grid-cols-2 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500">Proprietor Name</label>
-                  <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] w-full" value={profile.name || ''} onChange={(e) => setProfile({ ...profile, name: e.target.value })} />
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-300">Proprietor Name</label>
+                  <input className="h-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] dark:text-white w-full" value={profile.name || ''} onChange={(e) => setProfile({ ...profile, name: e.target.value })} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500">Store Name</label>
-                  <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] w-full" value={profile.businessName || ''} onChange={(e) => setProfile({ ...profile, businessName: e.target.value })} />
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-300">Store Name</label>
+                  <input className="h-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] dark:text-white w-full" value={profile.businessName || ''} onChange={(e) => setProfile({ ...profile, businessName: e.target.value })} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500">Mobile Phone</label>
-                  <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] w-full" value={profile.phone || ''} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} />
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-300">Mobile Phone</label>
+                  <input className="h-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] dark:text-white w-full" value={profile.phone || ''} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500">GSTIN Registration</label>
-                  <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] w-full" value={profile.gstNumber || ''} onChange={(e) => setProfile({ ...profile, gstNumber: e.target.value })} />
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-300">GSTIN Registration</label>
+                  <input className="h-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] dark:text-white w-full" value={profile.gstNumber || ''} onChange={(e) => setProfile({ ...profile, gstNumber: e.target.value })} />
                 </div>
                 <div className="space-y-1 sm:col-span-2">
-                  <label className="text-xs font-bold text-gray-500">Warehouse Address</label>
-                  <textarea className="min-h-24 border border-gray-200 rounded-xl bg-gray-50 p-4 text-sm font-semibold outline-none focus:border-[#2bb673] w-full" value={profile.address || ''} onChange={(e) => setProfile({ ...profile, address: e.target.value })} />
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-300">Warehouse Address</label>
+                  <textarea className="min-h-24 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 p-4 text-sm font-semibold outline-none focus:border-[#2bb673] dark:text-white w-full" value={profile.address || ''} onChange={(e) => setProfile({ ...profile, address: e.target.value })} />
                 </div>
                 <div className="space-y-1 sm:col-span-2">
-                  <label className="text-xs font-bold text-gray-500">Shop Image</label>
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-300">Shop Image</label>
                   <div className="flex items-center gap-4">
                     {profile.shopImage && (
-                      <div className="h-16 w-16 relative rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                      <div className="h-16 w-16 relative rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
                         <img src={profile.shopImage} alt="Shop" className="absolute inset-0 w-full h-full object-cover" />
                       </div>
                     )}
-                    <label className="flex h-12 items-center justify-center border border-gray-200 border-dashed rounded-xl bg-gray-50 px-4 text-sm font-semibold cursor-pointer hover:bg-gray-100 transition text-gray-500 flex-1">
+                    <label className="flex h-12 items-center justify-center border border-gray-200 dark:border-gray-600 border-dashed rounded-xl bg-gray-50 dark:bg-gray-700 px-4 text-sm font-semibold cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-650 transition text-gray-500 dark:text-gray-300 flex-1">
                       <input type="file" accept="image/*" className="hidden" onChange={handleProfileImageUpload} disabled={saving} />
                       {profile.shopImage ? 'Change Image' : 'Upload Shop Image'}
                     </label>
                   </div>
                 </div>
 
-                <button type="submit" disabled={saving} className="flex h-12 items-center rounded-xl justify-center gap-2 bg-[#2bb673] text-sm font-extrabold text-white disabled:opacity-70 sm:col-span-2 hover:bg-green-600 transition">
+                <button type="submit" disabled={saving} className="flex h-12 items-center rounded-xl justify-center gap-2 bg-[#2bb673] text-sm font-extrabold text-white disabled:opacity-70 sm:col-span-2 hover:bg-green-600 transition cursor-pointer">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Profile Details'}
                 </button>
               </form>
@@ -2473,22 +2477,22 @@ export default function VendorDashboardPage() {
           )}
 
           {activeTab === 'settings' && (
-            <section className="border border-[#e9f2eb] rounded-3xl bg-white p-5 sm:p-8 space-y-6 animate-fadeIn">
+            <section className="border border-[#e9f2eb] dark:border-gray-700 rounded-3xl bg-white dark:bg-gray-800 p-5 sm:p-8 space-y-6 animate-fadeIn">
               <div>
-                <h1 className="text-2xl font-black text-gray-900">Settings</h1>
-                <p className="mt-1 text-sm font-medium text-gray-500">Configure delivery rules, shop hours, and bank accounts.</p>
+                <h1 className="text-2xl font-black text-gray-900 dark:text-white">Settings</h1>
+                <p className="mt-1 text-sm font-medium text-gray-500 dark:text-gray-300">Configure delivery rules, shop hours, and bank accounts.</p>
               </div>
 
               <form onSubmit={saveSettings} className="space-y-6">
-                <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex justify-between items-center">
+                <div className="bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-2xl p-4 flex justify-between items-center">
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900">Store Status (Open/Closed)</h3>
-                    <p className="text-xs text-gray-500">Toggle whether customers can see your products as purchasable.</p>
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white">Store Status (Open/Closed)</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-300">Toggle whether customers can see your products as purchasable.</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setSettingsForm({ ...settingsForm, storeOpen: !settingsForm.storeOpen })}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${settingsForm.storeOpen ? 'bg-[#2bb673]' : 'bg-gray-200'}`}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${settingsForm.storeOpen ? 'bg-[#2bb673]' : 'bg-gray-200 dark:bg-gray-600'}`}
                   >
                     <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${settingsForm.storeOpen ? 'translate-x-5' : 'translate-x-0'}`} />
                   </button>
@@ -2496,34 +2500,34 @@ export default function VendorDashboardPage() {
 
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-700">Minimum Order for Free Delivery (₹)</label>
-                    <input className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" value={settingsForm.minOrderFree} onChange={(e) => setSettingsForm({ ...settingsForm, minOrderFree: e.target.value })} required />
+                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Minimum Order for Free Delivery (₹)</label>
+                    <input className="w-full h-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] dark:text-white" value={settingsForm.minOrderFree} onChange={(e) => setSettingsForm({ ...settingsForm, minOrderFree: e.target.value })} required />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-700">Handling & Packaging Charge (₹)</label>
-                    <input className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" value={settingsForm.handlingCharge} onChange={(e) => setSettingsForm({ ...settingsForm, handlingCharge: e.target.value })} required />
+                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Handling & Packaging Charge (₹)</label>
+                    <input className="w-full h-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] dark:text-white" value={settingsForm.handlingCharge} onChange={(e) => setSettingsForm({ ...settingsForm, handlingCharge: e.target.value })} required />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-700">Open Hours</label>
-                    <input type="time" className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" value={settingsForm.openTime} onChange={(e) => setSettingsForm({ ...settingsForm, openTime: e.target.value })} required />
+                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Open Hours</label>
+                    <input type="time" className="w-full h-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] dark:text-white" value={settingsForm.openTime} onChange={(e) => setSettingsForm({ ...settingsForm, openTime: e.target.value })} required />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-700">Close Hours</label>
-                    <input type="time" className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" value={settingsForm.closeTime} onChange={(e) => setSettingsForm({ ...settingsForm, closeTime: e.target.value })} required />
+                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Close Hours</label>
+                    <input type="time" className="w-full h-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] dark:text-white" value={settingsForm.closeTime} onChange={(e) => setSettingsForm({ ...settingsForm, closeTime: e.target.value })} required />
                   </div>
                 </div>
 
-                <div className="border-t border-gray-100 pt-6 space-y-4">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500">Payout Destination Bank</h3>
+                <div className="border-t border-gray-100 dark:border-gray-700 pt-6 space-y-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-300">Payout Destination Bank</h3>
                   <div className="grid gap-4 sm:grid-cols-3">
-                    <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Bank Name" value={settingsForm.bankName} onChange={(e) => setSettingsForm({ ...settingsForm, bankName: e.target.value })} required />
-                    <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Account Number" value={settingsForm.bankAccNo} onChange={(e) => setSettingsForm({ ...settingsForm, bankAccNo: e.target.value })} required />
-                    <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="IFSC Code" value={settingsForm.bankIfsc} onChange={(e) => setSettingsForm({ ...settingsForm, bankIfsc: e.target.value })} required />
+                    <input className="h-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] dark:text-white" placeholder="Bank Name" value={settingsForm.bankName} onChange={(e) => setSettingsForm({ ...settingsForm, bankName: e.target.value })} required />
+                    <input className="h-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] dark:text-white" placeholder="Account Number" value={settingsForm.bankAccNo} onChange={(e) => setSettingsForm({ ...settingsForm, bankAccNo: e.target.value })} required />
+                    <input className="h-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] dark:text-white" placeholder="IFSC Code" value={settingsForm.bankIfsc} onChange={(e) => setSettingsForm({ ...settingsForm, bankIfsc: e.target.value })} required />
                   </div>
                 </div>
 
-                <button type="submit" disabled={saving} className="flex h-12 items-center justify-center gap-2 bg-[#2bb673] text-sm font-extrabold text-white rounded-xl hover:bg-green-600 transition disabled:opacity-70 w-full">
+                <button type="submit" disabled={saving} className="flex h-12 items-center justify-center gap-2 bg-[#2bb673] text-sm font-extrabold text-white rounded-xl hover:bg-green-600 transition disabled:opacity-70 w-full cursor-pointer">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Settings'}
                 </button>
               </form>
