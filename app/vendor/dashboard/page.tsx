@@ -2633,22 +2633,22 @@ export default function VendorDashboardPage() {
       )}
       {/* Product Form Modal */}
       {showProductModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-2xl border border-[#e9f2eb] relative animate-fadeIn max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-8 w-full max-w-2xl border border-[#e9f2eb] dark:border-gray-700 relative animate-fadeIn max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               onClick={closeModal}
-              className="absolute top-4 right-4 h-9 w-9 bg-[#f4f7f5] hover:bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-700 transition"
+              className="absolute top-4 right-4 h-9 w-9 bg-[#f4f7f5] dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-300 transition cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
 
-            <h2 className="text-xl font-black text-gray-950 mb-6">{editingId ? 'Edit Product' : 'Add Product'}</h2>
+            <h2 className="text-xl font-black text-gray-950 dark:text-white mb-6">{editingId ? 'Edit Product' : 'Add Product'}</h2>
 
             <form onSubmit={saveProduct} className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2 relative">
                 <input
-                  className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 placeholder:text-gray-400 focus:bg-white"
+                  className="w-full h-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 dark:text-white placeholder:text-gray-400 focus:bg-white dark:focus:bg-gray-700"
                   placeholder="Product Name"
                   value={productForm.name}
                   onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
@@ -2656,8 +2656,8 @@ export default function VendorDashboardPage() {
                 />
 
                 {matchingGlobalProducts.length > 0 && (
-                  <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-xl space-y-2 relative z-20">
-                    <p className="text-xs font-bold text-green-800">Similar products found in master catalog. Click one to copy its details:</p>
+                  <div className="mt-2 p-3 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 rounded-xl space-y-2 relative z-20">
+                    <p className="text-xs font-bold text-green-800 dark:text-green-300">Similar products found in master catalog. Click one to copy its details:</p>
                     <div className="flex flex-wrap gap-2">
                       {matchingGlobalProducts.map((p) => (
                         <button
@@ -2673,7 +2673,7 @@ export default function VendorDashboardPage() {
                             });
                             setMatchingGlobalProducts([]);
                           }}
-                          className="bg-white px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-700 border border-gray-200 hover:border-green-500 hover:text-green-700 transition cursor-pointer"
+                          className="bg-white dark:bg-gray-800 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:border-green-500 hover:text-green-700 transition cursor-pointer"
                         >
                           {p.name || p.product_name} ({p.category})
                         </button>
@@ -2684,11 +2684,11 @@ export default function VendorDashboardPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700">Price (₹)</label>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Price (₹)</label>
                 <input
                   type="number"
                   step="0.01"
-                  className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 placeholder:text-gray-400 focus:bg-white"
+                  className="w-full h-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 dark:text-white placeholder:text-gray-400 focus:bg-white dark:focus:bg-gray-700"
                   placeholder="Price"
                   value={productForm.price}
                   onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
@@ -2697,22 +2697,22 @@ export default function VendorDashboardPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700">Category</label>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Category</label>
                 <select
-                  className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 focus:bg-white cursor-pointer"
+                  className="w-full h-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-700 cursor-pointer"
                   value={productForm.categorySlug}
                   onChange={(e) => setProductForm({ ...productForm, categorySlug: e.target.value })}
                   required
                 >
-                  {categories.map((category) => <option key={category._id} value={category.slug} className="text-gray-900">{category.name}</option>)}
+                  {categories.map((category) => <option key={category._id} value={category.slug} className="text-gray-900 dark:text-white dark:bg-gray-800">{category.name}</option>)}
                 </select>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700">Stock Quantity</label>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Stock Quantity</label>
                 <input
                   type="number"
-                  className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 placeholder:text-gray-400 focus:bg-white"
+                  className="w-full h-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 dark:text-white placeholder:text-gray-400 focus:bg-white dark:focus:bg-gray-700"
                   placeholder="Stock"
                   value={productForm.stock}
                   onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
@@ -2721,12 +2721,12 @@ export default function VendorDashboardPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700">Discount %</label>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Discount %</label>
                 <input
                   type="number"
                   max="100"
                   min="0"
-                  className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 placeholder:text-gray-400 focus:bg-white"
+                  className="w-full h-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 dark:text-white placeholder:text-gray-400 focus:bg-white dark:focus:bg-gray-700"
                   placeholder="Discount %"
                   value={productForm.discount}
                   onChange={(e) => setProductForm({ ...productForm, discount: e.target.value })}
@@ -2734,9 +2734,9 @@ export default function VendorDashboardPage() {
               </div>
 
               <div className="sm:col-span-2 space-y-1">
-                <label className="text-xs font-bold text-gray-700">Image URL</label>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Image URL</label>
                 <input
-                  className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 placeholder:text-gray-400 focus:bg-white"
+                  className="w-full h-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 dark:text-white placeholder:text-gray-400 focus:bg-white dark:focus:bg-gray-700"
                   placeholder="Image URL"
                   value={productForm.image}
                   onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
@@ -2744,11 +2744,11 @@ export default function VendorDashboardPage() {
                 />
               </div>
 
-              <div className="sm:col-span-2 p-3 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
+              <div className="sm:col-span-2 p-3 bg-gray-50 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-700 rounded-xl space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold text-gray-900">Enable Bulk / Wholesale Buying</p>
-                    <p className="text-[11px] text-gray-600">Allow customers to negotiate custom bulk rates (Minimum 5 kg)</p>
+                    <p className="text-xs font-bold text-gray-900 dark:text-white">Enable Bulk / Wholesale Buying</p>
+                    <p className="text-[11px] text-gray-600 dark:text-gray-300">Allow customers to negotiate custom bulk rates (Minimum 5 kg)</p>
                   </div>
                   <input
                     type="checkbox"
@@ -2759,50 +2759,50 @@ export default function VendorDashboardPage() {
                 </div>
 
                 {productForm.is_bulk_available && (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-gray-200">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-gray-200 dark:border-gray-600">
                     <div>
-                      <label className="text-[10px] font-bold text-gray-700">Min Bulk Qty (kg) *</label>
+                      <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300">Min Bulk Qty (kg) *</label>
                       <input
                         type="number"
                         min="5"
                         value={productForm.bulk_min_qty}
                         onChange={(e) => setProductForm({ ...productForm, bulk_min_qty: e.target.value })}
-                        className="w-full h-10 border border-gray-200 rounded-lg bg-white px-2 text-xs font-semibold text-gray-900 placeholder:text-gray-400"
+                        className="w-full h-10 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 px-2 text-xs font-semibold text-gray-900 dark:text-white placeholder:text-gray-400"
                         placeholder="5"
                         required
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-gray-700">Wholesale Price (₹)</label>
+                      <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300">Wholesale Price (₹)</label>
                       <input
                         type="number"
                         step="0.01"
                         value={productForm.bulk_base_price}
                         onChange={(e) => setProductForm({ ...productForm, bulk_base_price: e.target.value })}
-                        className="w-full h-10 border border-gray-200 rounded-lg bg-white px-2 text-xs font-semibold text-gray-900 placeholder:text-gray-400"
+                        className="w-full h-10 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 px-2 text-xs font-semibold text-gray-900 dark:text-white placeholder:text-gray-400"
                         placeholder="e.g. 40"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-gray-700">Bulk Unit</label>
+                      <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300">Bulk Unit</label>
                       <select
                         value={productForm.bulk_unit}
                         onChange={(e) => setProductForm({ ...productForm, bulk_unit: e.target.value })}
-                        className="w-full h-10 border border-gray-200 rounded-lg bg-white px-2 text-xs font-semibold text-gray-900 cursor-pointer"
+                        className="w-full h-10 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 px-2 text-xs font-semibold text-gray-900 dark:text-white cursor-pointer"
                       >
-                        <option value="kg" className="text-gray-900">kg</option>
-                        <option value="crate" className="text-gray-900">Crate</option>
-                        <option value="box" className="text-gray-900">Box</option>
-                        <option value="quintal" className="text-gray-900">Quintal</option>
+                        <option value="kg" className="text-gray-900 dark:text-white dark:bg-gray-800">kg</option>
+                        <option value="crate" className="text-gray-900 dark:text-white dark:bg-gray-800">Crate</option>
+                        <option value="box" className="text-gray-900 dark:text-white dark:bg-gray-800">Box</option>
+                        <option value="quintal" className="text-gray-900 dark:text-white dark:bg-gray-800">Quintal</option>
                       </select>
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-gray-700">Bulk Stock</label>
+                      <label className="text-[10px] font-bold text-gray-700 dark:text-gray-300">Bulk Stock</label>
                       <input
                         type="number"
                         value={productForm.bulk_stock}
                         onChange={(e) => setProductForm({ ...productForm, bulk_stock: e.target.value })}
-                        className="w-full h-10 border border-gray-200 rounded-lg bg-white px-2 text-xs font-semibold text-gray-900 placeholder:text-gray-400"
+                        className="w-full h-10 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 px-2 text-xs font-semibold text-gray-900 dark:text-white placeholder:text-gray-400"
                         placeholder="500"
                       />
                     </div>
@@ -2811,9 +2811,9 @@ export default function VendorDashboardPage() {
               </div>
 
               <div className="sm:col-span-2 space-y-1">
-                <label className="text-xs font-bold text-gray-700">Description</label>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Description</label>
                 <textarea
-                  className="w-full min-h-24 border border-gray-200 rounded-xl bg-gray-50 p-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 placeholder:text-gray-400 focus:bg-white"
+                  className="w-full min-h-24 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-700 p-4 text-sm font-semibold outline-none focus:border-[#2bb673] text-gray-900 dark:text-white placeholder:text-gray-400 focus:bg-white dark:focus:bg-gray-700"
                   placeholder="Description"
                   value={productForm.description}
                   onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
@@ -2822,7 +2822,7 @@ export default function VendorDashboardPage() {
               </div>
 
               <div className="flex gap-3 sm:col-span-2 mt-2">
-                <button type="button" onClick={closeModal} className="h-12 flex-1 rounded-xl border border-gray-200 text-sm font-extrabold text-gray-600 hover:bg-gray-50 transition cursor-pointer">Cancel</button>
+                <button type="button" onClick={closeModal} className="h-12 flex-1 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-extrabold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer">Cancel</button>
                 <button type="submit" disabled={saving} className="flex h-12 flex-1 rounded-xl items-center justify-center gap-2 bg-[#2bb673] text-sm font-extrabold text-white hover:bg-green-600 transition disabled:opacity-70 cursor-pointer">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingId ? 'Update Product' : 'Add Product'}
                 </button>
