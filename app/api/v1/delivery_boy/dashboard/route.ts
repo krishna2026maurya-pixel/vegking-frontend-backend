@@ -109,7 +109,7 @@ async function handleDashboard(request: NextRequest) {
         delivery_boy_details: rider ? {
           id: rider._id,
           name: rider.name || 'Rider',
-          phone: rider.mobile_number || rider.mobile || '',
+          phone: rider.mobile_number || (rider as any).mobile || '',
           active_status: rider.is_active === '1' ? 'online' : 'offline'
         } : {
           name: 'Delivery Rider',

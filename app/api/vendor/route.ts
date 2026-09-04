@@ -31,8 +31,8 @@ export async function GET(request: NextRequest) {
       }).select('-password').lean();
     }
 
-    if (!vendor && userObj?.email) {
-      vendor = await Vendor.findOne({ email: userObj.email }).select('-password').lean();
+    if (!vendor && (userObj as any)?.email) {
+      vendor = await Vendor.findOne({ email: (userObj as any).email }).select('-password').lean();
     }
 
     if (!vendor) {
