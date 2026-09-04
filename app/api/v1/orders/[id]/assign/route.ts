@@ -31,9 +31,11 @@ export async function POST(
       rider = await DeliveryBoy.findById(riderId);
     }
     if (!rider) {
-      rider = await DeliveryBoy.findOne({
-        $or: [{ _id: riderId }, { mobile_number: riderId }, { email: riderId }]
-      });
+      const orConditions: any[] = [{ mobile_number: String(riderId) }, { email: String(riderId) }];
+      if (mongoose.Types.ObjectId.isValid(riderId)) {
+        orConditions.push({ _id: riderId });
+      }
+      rider = await DeliveryBoy.findOne({ $or: orConditions });
     }
 
     if (!rider) {
@@ -46,13 +48,15 @@ export async function POST(
       targetOrder = await Order.findById(id);
     }
     if (!targetOrder) {
-      targetOrder = await Order.findOne({
-        $or: [
-          { order_number: id },
-          { order_id: id },
-          { id: id }
-        ]
-      });
+      const orderOrConditions: any[] = [
+        { order_number: String(id) },
+        { order_id: String(id) },
+        { id: String(id) }
+      ];
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        orderOrConditions.push({ _id: id });
+      }
+      targetOrder = await Order.findOne({ $or: orderOrConditions });
     }
 
     if (!targetOrder) {

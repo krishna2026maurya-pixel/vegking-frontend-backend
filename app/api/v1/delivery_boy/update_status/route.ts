@@ -45,6 +45,11 @@ export async function POST(request: NextRequest) {
     let newOrderStatus = targetOrder.orderStatus;
     let numericStatus = targetOrder.status;
 
+    const riderId = body.delivery_boy_id || body.rider_id || body.riderId;
+    if (riderId && mongoose.Types.ObjectId.isValid(riderId)) {
+      targetOrder.delivery_boy_id = riderId;
+    }
+
     if (statusVal === '2' || statusVal.toLowerCase().includes('accept') || statusVal.toLowerCase().includes('confirm')) {
       newOrderStatus = 'Packing';
       numericStatus = 2;
@@ -54,6 +59,14 @@ export async function POST(request: NextRequest) {
     } else if (statusVal === '4' || statusVal.toLowerCase().includes('deliver')) {
       newOrderStatus = 'Delivered';
       numericStatus = 4;
+      targetOrder.payment_status = 'completed';
+
+      // Increment rider wallet balance by delivery charge or ₹50
+      if (riderId && mongoose.Types.ObjectId.isValid(riderId)) {
+        await DeliveryBoy.findByIdAndUpdate(riderId, {
+          $inc: { wallet_balance: targetOrder.delivery_charge || 50 }
+        });
+      }
     }
 
     targetOrder.orderStatus = newOrderStatus;
