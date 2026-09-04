@@ -21,30 +21,49 @@ async function getMyOrders(request: NextRequest, reqUserId: string) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const status = searchParams.get('status') || '';
-    const vendorIdParam = searchParams.get('vendor_id') || '';
+    const vendorIdParam = searchParams.get('vendor_id') || searchParams.get('vendorId') || searchParams.get('email') || '';
 
     const { getUserFromRequest } = await import('@/lib/auth');
     const userObj = await getUserFromRequest(request);
-    const userId = userObj?.id || reqUserId;
+    const userId = userObj?.id !== '64c123456789012345678901' ? userObj?.id : '';
     const role = userObj?.role || 'vendor';
-    const effectiveVendorId = vendorIdParam || userObj?.vendor_id || (role === 'vendor' ? userId : '');
+    const rawVendorId = vendorIdParam || userObj?.vendor_id || (role === 'vendor' ? userId : '');
 
     const query: any = {};
     if (status) query.orderStatus = status;
 
-    if (effectiveVendorId) {
-      const vendorProducts = await Product.find({
-        $or: [
-          { vendor_id: effectiveVendorId },
-          { vendor_id: mongoose.Types.ObjectId.isValid(effectiveVendorId) ? new mongoose.Types.ObjectId(effectiveVendorId) : effectiveVendorId }
-        ]
-      }).select('_id').lean();
-      const vendorProductIds = vendorProducts.map((p: any) => p._id);
+    if (rawVendorId) {
+      const Vendor = (await import('@/lib/models/Vendor')).default;
+      let vendorObj: any = null;
+      if (mongoose.Types.ObjectId.isValid(rawVendorId)) {
+        vendorObj = await Vendor.findById(rawVendorId).lean();
+      }
+      if (!vendorObj) {
+        vendorObj = await Vendor.findOne({
+          $or: [{ email: rawVendorId }, { mobile_number: rawVendorId }]
+        }).lean();
+      }
 
-      if (vendorProductIds.length > 0) {
+      const actualVendorId = vendorObj ? vendorObj._id : (mongoose.Types.ObjectId.isValid(rawVendorId) ? rawVendorId : null);
+
+      if (actualVendorId) {
+        const vendorObjId = new mongoose.Types.ObjectId(actualVendorId.toString());
+        const vendorProducts = await Product.find({
+          $or: [
+            { vendor_id: actualVendorId.toString() },
+            { vendor_id: vendorObjId }
+          ]
+        }).select('_id').lean();
+        const vendorProductIds = vendorProducts.map((p: any) => p._id);
+
         const vendorItems = await OrderItem.find({ product_id: { $in: vendorProductIds } }).select('order_id').lean();
         const vendorOrderIds = vendorItems.map((item: any) => item.order_id);
-        query._id = { $in: vendorOrderIds };
+
+        query.$or = [
+          { _id: { $in: vendorOrderIds } },
+          { vendor_id: actualVendorId.toString() },
+          { vendor_id: vendorObjId }
+        ];
       } else {
         query._id = { $in: [] };
       }

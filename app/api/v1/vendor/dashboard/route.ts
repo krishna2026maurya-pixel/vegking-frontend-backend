@@ -34,40 +34,76 @@ export async function GET(request: NextRequest) {
     let vendor = null;
     if (vendorId && mongoose.Types.ObjectId.isValid(vendorId)) {
       vendor = await Vendor.findById(vendorId).lean();
+    } else if (vendorId) {
+      vendor = await Vendor.findOne({
+        $or: [{ email: vendorId }, { mobile_number: vendorId }]
+      }).lean();
     }
+
     if (!vendor) {
-      vendor = await Vendor.findOne({ is_verified: '1' }).sort({ updatedAt: -1 }).lean();
+      const { getUserFromRequest } = await import('@/lib/auth');
+      const user = await getUserFromRequest(request);
+      if (user?.id && user.id !== '64c123456789012345678901') {
+        if (mongoose.Types.ObjectId.isValid(user.id)) {
+          vendor = await Vendor.findById(user.id).lean();
+        }
+        if (!vendor && (user as any).email) {
+          vendor = await Vendor.findOne({ email: (user as any).email }).lean();
+        }
+      }
     }
 
-    const currentVendorId = vendor ? vendor._id : null;
-
-    // Count products
-    const productQuery: any = { is_active: { $ne: '0' } };
-    if (currentVendorId) {
-      productQuery.$or = [
-        { vendor_id: currentVendorId },
-        { vendor_id: currentVendorId.toString() }
-      ];
+    if (!vendor) {
+      return NextResponse.json({ success: false, error: 'Vendor not found' }, { status: 404 });
     }
+
+    const currentVendorId = vendor._id;
+    const vendorObjId = new mongoose.Types.ObjectId(currentVendorId.toString());
+
+    // Count products for this vendor
+    const productQuery: any = {
+      $or: [
+        { vendor_id: currentVendorId.toString() },
+        { vendor_id: vendorObjId }
+      ]
+    };
     const [totalProducts, allProducts] = await Promise.all([
       Product.countDocuments(productQuery),
       Product.find(productQuery).limit(10).lean()
     ]);
 
-    // Count orders
-    const totalOrders = await Order.countDocuments();
-    const pendingOrders = await Order.countDocuments({
-      orderStatus: { $in: ['Order Placed', 'Packing', 'Pending'] }
-    });
-    const completedOrders = await Order.countDocuments({
-      orderStatus: 'Delivered'
-    });
+    // Find order IDs for this vendor's products
+    const vendorProducts = await Product.find(productQuery).select('_id').lean();
+    const vendorProductIds = vendorProducts.map((p: any) => p._id);
 
-    const recentOrders = await Order.find()
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate('delivery_boy_id', 'name mobile')
-      .lean();
+    const OrderItem = (await import('@/lib/models/OrderItem')).default;
+    const vendorItems = await OrderItem.find({ product_id: { $in: vendorProductIds } }).select('order_id').lean();
+    const vendorOrderIds = vendorItems.map((item: any) => item.order_id);
+
+    const orderQuery: any = {
+      $or: [
+        { _id: { $in: vendorOrderIds } },
+        { vendor_id: currentVendorId.toString() },
+        { vendor_id: vendorObjId }
+      ]
+    };
+
+    const [totalOrders, pendingOrders, completedOrders, recentOrders] = await Promise.all([
+      Order.countDocuments(orderQuery),
+      Order.countDocuments({
+        ...orderQuery,
+        orderStatus: { $in: ['Order Placed', 'Packing', 'Pending', 'Order Confirmed', 'Preparing'] }
+      }),
+      Order.countDocuments({
+        ...orderQuery,
+        orderStatus: { $in: ['Delivered', 'Completed'] }
+      }),
+      Order.find(orderQuery)
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .populate('delivery_boy_id', 'name mobile')
+        .lean()
+    ]);
 
     return NextResponse.json({
       success: true,
