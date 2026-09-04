@@ -20,54 +20,84 @@ export async function PATCH(
     await connectDB();
     const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ success: false, error: 'Invalid order ID' }, { status: 400 });
+    let targetOrder = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      targetOrder = await Order.findById(id);
+    }
+    if (!targetOrder) {
+      targetOrder = await Order.findOne({ order_number: id });
+    }
+
+    if (!targetOrder) {
+      return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
     }
 
     const body = await request.json();
-    const status = body.status || body.orderStatus;
+    const status = body.status !== undefined ? body.status : body.orderStatus;
 
-    if (!status) {
+    if (status === undefined || status === null) {
       return NextResponse.json({ success: false, error: 'Status is required' }, { status: 400 });
     }
 
-    // Map numeric status if sent
+    // Map status string & numeric value
     let numericStatus = 0;
-    if (status === 'Order Placed') numericStatus = 0;
-    else if (status === 'Accepted' || status === 'Packing') numericStatus = 1;
-    else if (status === 'Out for Delivery') numericStatus = 2;
-    else if (status === 'Delivered') numericStatus = 3;
-    else if (status === 'Cancelled') numericStatus = 4;
+    let finalOrderStatus = 'Order Placed';
 
-    const order = await Order.findByIdAndUpdate(
-      id,
-      {
-        $set: {
-          orderStatus: status,
-          status: numericStatus,
-          updatedAt: new Date()
-        },
-        $push: {
-          statusHistory: {
-            status: status,
-            updatedAt: new Date()
-          }
-        }
-      },
-      { new: true }
-    )
+    if (typeof status === 'number') {
+      numericStatus = status;
+      if (status === 0) finalOrderStatus = 'Order Placed';
+      else if (status === 1) finalOrderStatus = 'Packing';
+      else if (status === 2) finalOrderStatus = 'Ready';
+      else if (status === 3) finalOrderStatus = 'Out for Delivery';
+      else if (status === 4) finalOrderStatus = 'Delivered';
+      else if (status === 5) finalOrderStatus = 'Cancelled';
+    } else {
+      const s = String(status).trim();
+      if (s === 'Order Placed' || s === '0') {
+        numericStatus = 0;
+        finalOrderStatus = 'Order Placed';
+      } else if (s === 'Accepted' || s === 'Packing' || s === 'Preparing' || s === '1') {
+        numericStatus = 1;
+        finalOrderStatus = 'Packing';
+      } else if (s === 'Ready' || s === '2') {
+        numericStatus = 2;
+        finalOrderStatus = 'Ready';
+      } else if (s === 'Out for Delivery' || s === '3') {
+        numericStatus = 3;
+        finalOrderStatus = 'Out for Delivery';
+      } else if (s === 'Delivered' || s === 'Completed' || s === '4') {
+        numericStatus = 4;
+        finalOrderStatus = 'Delivered';
+      } else if (s === 'Cancelled' || s === '5') {
+        numericStatus = 5;
+        finalOrderStatus = 'Cancelled';
+      } else {
+        finalOrderStatus = s;
+        numericStatus = 1;
+      }
+    }
+
+    targetOrder.orderStatus = finalOrderStatus;
+    targetOrder.status = numericStatus;
+    if (finalOrderStatus === 'Delivered' || numericStatus === 4) {
+      targetOrder.payment_status = 'completed';
+    }
+    targetOrder.statusHistory.push({
+      status: finalOrderStatus,
+      updatedAt: new Date()
+    });
+
+    await targetOrder.save();
+
+    const populatedOrder = await Order.findById(targetOrder._id)
       .populate('delivery_boy_id', 'name mobile')
       .populate('items')
       .lean();
 
-    if (!order) {
-      return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
-    }
-
     return NextResponse.json({
       success: true,
       message: 'Order status updated successfully',
-      data: order
+      data: populatedOrder
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
