@@ -514,12 +514,19 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
 // ─── Main My Orders Page ──────────────────────────────────────────────────────
 export default function MyOrdersPage() {
   const router = useRouter();
-  const { data: session } = useAuth();
+  const { data: session, status } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [activeFilter, setActiveFilter] = useState<string>('All');
+
+  // If user is not logged in, redirect to login
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login?redirect=/profile/orders');
+    }
+  }, [status, router]);
 
   const FILTERS = [
     'All',
@@ -555,12 +562,13 @@ export default function MyOrdersPage() {
   }, []);
 
   useEffect(() => { 
+    if (status !== 'authenticated') return;
     fetchOrders(true);
     const timer = setInterval(() => {
       fetchOrders(false);
     }, 5000);
     return () => clearInterval(timer);
-  }, [fetchOrders]);
+  }, [fetchOrders, status]);
 
   const filtered = orders.filter((o) => {
     if (activeFilter === 'All') return true;

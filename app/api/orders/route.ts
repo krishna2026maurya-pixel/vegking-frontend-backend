@@ -7,13 +7,61 @@ import { connectDB } from '@/lib/mongodb';
 import Order from '@/lib/models/Order';
 import OrderItem from '@/lib/models/OrderItem';
 import Cart from '@/lib/models/Cart';
+import { verifyToken } from '@/lib/auth';
 import '@/lib/models/DeliveryBoy';
 import '@/lib/models/User';
 
-export async function GET(request: NextRequest) {
+export async function OPTIONS() {
+  return NextResponse.json({}, { status: 200 });
+}
+
+// Helper to authenticate either via NextAuth web session or Bearer token for mobile
+async function getAuthUser(request: NextRequest) {
+  // 1. Check NextAuth session (website)
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
+    if (session?.user) {
+      return session.user as any;
+    }
+  } catch {
+    // NextAuth session lookup failed or not a browser request
+  }
+
+  // 2. Check Bearer token in headers (mobile app)
+  const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    const payload = verifyToken(token);
+    if (payload) {
+      return {
+        id: payload.id || payload.vendor_id,
+        _id: payload.id || payload.vendor_id,
+        vendor_id: payload.vendor_id,
+        role: payload.role || 'vendor',
+        email: payload.email,
+      };
+    }
+  }
+
+  // 3. Check query parameters fallback (?vendor_id=...)
+  const { searchParams } = new URL(request.url);
+  const vendorIdParam = searchParams.get('vendor_id') || searchParams.get('id');
+  if (vendorIdParam) {
+    return {
+      id: vendorIdParam,
+      _id: vendorIdParam,
+      vendor_id: vendorIdParam,
+      role: 'vendor',
+    };
+  }
+
+  return null;
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const user = await getAuthUser(request);
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -36,18 +84,36 @@ export async function GET(request: NextRequest) {
     }
 
     // Role-based filtering
-    if ((session.user as any).role === 'vendor') {
+    const isVendor = user.role === 'vendor' || !!user.vendor_id;
+    const vendorId = user.vendor_id || user.id || user._id;
+
+    let vendorProductIdsSet: Set<string> | null = null;
+
+    if (isVendor && vendorId) {
       const Product = (await import('@/lib/models/Product')).default;
-      const vendorProducts = await Product.find({ vendor_id: (session.user as any).id }).select('_id').lean();
+      const vendorProducts = await Product.find({
+        $or: [
+          { vendor_id: vendorId },
+          { vendor_id: vendorId.toString() },
+          ...(mongoose.isValidObjectId(vendorId) ? [{ vendor_id: new mongoose.Types.ObjectId(vendorId) }] : [])
+        ]
+      }).select('_id').lean();
+      
       const vendorProductIds = vendorProducts.map((p: any) => p._id);
+      vendorProductIdsSet = new Set(vendorProductIds.map((id: any) => id.toString()));
 
-      const vendorItems = await OrderItem.find({ product_id: { $in: vendorProductIds } }).select('order_id').lean();
-      const vendorOrderIds = vendorItems.map((item: any) => item.order_id);
-
-      query._id = { $in: vendorOrderIds };
-    } else if ((session.user as any).role !== 'admin') {
-      const uId = (session.user as any).id || (session.user as any)._id;
-      query.user_id = uId;
+      if (vendorProductIds.length > 0) {
+        const vendorItems = await OrderItem.find({ product_id: { $in: vendorProductIds } }).select('order_id').lean();
+        const vendorOrderIds = vendorItems.map((item: any) => item.order_id);
+        // Only return orders that contain this vendor's items (empty if no items ordered yet)
+        query._id = { $in: vendorOrderIds };
+      } else {
+        // Vendor has NO products uploaded, so they have 0 orders!
+        query._id = { $in: [] };
+      }
+    } else if (user.role !== 'admin') {
+      const uId = user.id || user._id;
+      if (uId) query.user_id = uId;
     }
 
     const [orders, total] = await Promise.all([
@@ -61,14 +127,19 @@ export async function GET(request: NextRequest) {
       Order.countDocuments(query),
     ]);
 
-    // Attach items to each order
+    // Attach items to each order (filtered strictly to this vendor's items if vendor view)
     const orderIds = orders.map((o: any) => o._id);
     const allItems = await OrderItem.find({ order_id: { $in: orderIds } }).lean();
 
     const ordersWithItems = orders.map((order: any) => {
-      const matchingItems = allItems.filter(
+      let matchingItems = allItems.filter(
         (i: any) => i.order_id?.toString() === order._id?.toString()
       );
+      if (vendorProductIdsSet) {
+        matchingItems = matchingItems.filter(
+          (i: any) => i.product_id && vendorProductIdsSet!.has(i.product_id.toString())
+        );
+      }
       return {
         ...order,
         populatedItems: matchingItems,
@@ -89,7 +160,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getAuthUser(request);
     await connectDB();
     const body = await request.json();
     const { items, totalAmount, shippingAddress, delivery_charge } = body;
@@ -101,7 +172,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userId = session?.user ? ((session.user as any).id || (session.user as any)._id) : null;
+    const userId = user ? (user.id || user._id) : null;
     const order_number = `ORD-${Date.now()}`;
 
     // Create the order

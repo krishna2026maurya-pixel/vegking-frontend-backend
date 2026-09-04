@@ -5,33 +5,53 @@ import Vendor from '@/lib/models/Vendor';
 import { hashPassword, signToken } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
+// Handle CORS preflight OPTIONS requests for mobile and web clients
+export async function OPTIONS() {
+  return NextResponse.json({}, { status: 200 });
+}
+
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
-    const body = await request.json();
-    const { mobile_no, email, password } = body;
+    const body = await request.json().catch(() => ({}));
+    
+    // Support various field names sent by mobile apps and frontend clients
+    const identifier = (body.email || body.username || body.mobile_no || body.mobile_number || body.phone || '').toString().trim();
+    const password = body.password ? body.password.toString().trim() : '';
 
-    // ── 1. VENDOR LOGIN VIA EMAIL ──────────────────────────────────────────
-    if (email && password) {
-      const cleanEmail = email.trim().toLowerCase();
-      const vendor = await Vendor.findOne({ email: cleanEmail });
+    if (!identifier || !password) {
+      return NextResponse.json(
+        { error: 'Email (or mobile number) and password are required.' },
+        { status: 400 }
+      );
+    }
 
-      if (!vendor) {
-        return NextResponse.json({ error: 'Vendor not found with this email.' }, { status: 404 });
-      }
+    const cleanEmail = identifier.toLowerCase();
+    const emailRegex = new RegExp(`^${cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
 
-      if (vendor.is_verified !== '1') {
+    // ── 1. CHECK VENDOR LOGIN (by Email or Mobile Number) ─────────────────────
+    const vendor = await Vendor.findOne({
+      $or: [
+        { email: emailRegex },
+        { mobile_number: identifier }
+      ]
+    });
+
+    if (vendor) {
+      // Check verification status (support both string "1" and numeric 1)
+      if (vendor.is_verified && String(vendor.is_verified) !== '1') {
         return NextResponse.json(
           { error: 'Your vendor account is pending verification. Please contact admin.' },
           { status: 403 }
         );
       }
 
-      // Check password using bcrypt, with fallback to direct or sha256 match
+      // Check password using bcrypt (with $2y fallback for legacy hashes), sha256, or direct match
       let isMatch = false;
       if (vendor.password) {
         try {
-          isMatch = await bcrypt.compare(password, vendor.password);
+          const normalizedHash = vendor.password.replace(/^\$2y\$/, '$2a$');
+          isMatch = await bcrypt.compare(password, normalizedHash);
         } catch {
           isMatch = false;
         }
@@ -84,39 +104,53 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // ── 2. CUSTOMER LOGIN VIA MOBILE ───────────────────────────────────────
-    if (!mobile_no || !password) {
-      return NextResponse.json({ error: 'Email (or mobile number) and password are required.' }, { status: 400 });
-    }
-
-    const user = await User.findOne({ mobile_no });
-    if (!user) {
-      return NextResponse.json({ error: 'User not found. Please register.' }, { status: 404 });
-    }
-
-    if (user.is_active === '0') {
-      return NextResponse.json({ error: 'Your account is suspended. Please contact support.' }, { status: 403 });
-    }
-
-    const hashedPassword = hashPassword(password);
-    if (user.password !== hashedPassword && user.password !== password) {
-      return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
-    }
-
-    const token = signToken({ id: user._id.toString(), mobile_no: user.mobile_no, role: 'customer' });
-
-    return NextResponse.json({
-      success: true,
-      message: 'Login successful.',
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        mobile_no: user.mobile_no,
-        email: user.email,
-        wallet_balance: user.wallet_balance || 0
-      }
+    // ── 2. FALLBACK TO CUSTOMER LOGIN (by Mobile No or Email) ─────────────────
+    const user = await User.findOne({
+      $or: [
+        { mobile_no: identifier },
+        { email: emailRegex }
+      ]
     });
+
+    if (user) {
+      if (user.is_active === '0') {
+        return NextResponse.json({ error: 'Your account is suspended. Please contact support.' }, { status: 403 });
+      }
+
+      let isCustomerMatch = false;
+      if (user.password) {
+        try {
+          isCustomerMatch = await bcrypt.compare(password, user.password);
+        } catch {
+          isCustomerMatch = false;
+        }
+        if (!isCustomerMatch) {
+          isCustomerMatch = (user.password === password) || (user.password === hashPassword(password));
+        }
+      }
+
+      if (!isCustomerMatch) {
+        return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
+      }
+
+      const token = signToken({ id: user._id.toString(), mobile_no: user.mobile_no, role: 'customer' });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Login successful.',
+        token,
+        role: 'customer',
+        user: {
+          id: user._id,
+          name: user.name,
+          mobile_no: user.mobile_no,
+          email: user.email,
+          wallet_balance: user.wallet_balance || 0
+        }
+      });
+    }
+
+    return NextResponse.json({ error: 'No account found with these credentials.' }, { status: 404 });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

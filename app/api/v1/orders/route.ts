@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import { connectDB } from '@/lib/mongodb';
 import Order from '@/lib/models/Order';
 import OrderItem from '@/lib/models/OrderItem';
@@ -33,15 +34,23 @@ async function getMyOrders(request: NextRequest, userId: string) {
     const effectiveVendorId = vendorId || (role === 'vendor' ? (tokenVendorId || userId) : '');
 
     if (effectiveVendorId) {
-      const vendorProducts = await Product.find({ vendor_id: effectiveVendorId }).select('_id').lean();
+      const vendorProducts = await Product.find({
+        $or: [
+          { vendor_id: effectiveVendorId },
+          { vendor_id: effectiveVendorId.toString() },
+          ...(mongoose.isValidObjectId(effectiveVendorId) ? [{ vendor_id: new mongoose.Types.ObjectId(effectiveVendorId) }] : [])
+        ]
+      }).select('_id').lean();
       const vendorProductIds = vendorProducts.map((p: any) => p._id);
 
       if (vendorProductIds.length > 0) {
         const vendorItems = await OrderItem.find({ product_id: { $in: vendorProductIds } }).select('order_id').lean();
         const vendorOrderIds = vendorItems.map((item: any) => item.order_id);
         query._id = { $in: vendorOrderIds };
+      } else {
+        // Vendor has no products uploaded -> 0 orders
+        query._id = { $in: [] };
       }
-      // If vendor has no specific products assigned, return recent store orders so they aren't blank
     } else if (userId && role !== 'admin') {
       query.user_id = userId;
     }

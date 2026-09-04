@@ -31,9 +31,20 @@ export const authOptions: AuthOptions = {
           throw new Error("Vendor account not found");
         }
 
-        // Compare password using bcrypt
+        // Compare password using bcrypt with fallback to sha256/plain
         const bcrypt = (await import("bcryptjs")).default;
-        const isMatch = await bcrypt.compare(password, vendor.password);
+        let isMatch = false;
+        try {
+          if (vendor.password && vendor.password.startsWith('$2')) {
+            isMatch = await bcrypt.compare(password, vendor.password);
+          } else {
+            const { hashPassword } = await import("@/lib/auth");
+            isMatch = (vendor.password === password) || (vendor.password === hashPassword(password));
+          }
+        } catch {
+          isMatch = (vendor.password === password);
+        }
+
         if (!isMatch) {
           throw new Error("Invalid credentials");
         }
@@ -141,6 +152,7 @@ export const authOptions: AuthOptions = {
   },
   pages: {
     signIn: '/vendor/login',
+    error: '/vendor/login',
   },
   session: {
     strategy: "jwt",

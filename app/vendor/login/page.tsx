@@ -30,6 +30,14 @@ function VendorLoginForm() {
     if (searchParams.get('registered')) {
       showToast('Application submitted successfully! Please wait for admin approval.', 'success');
     }
+    const err = searchParams.get('error');
+    if (err) {
+      const errorText = err === 'CredentialsSignin'
+        ? 'Invalid email or password. Please verify your credentials.'
+        : `Authentication issue (${err}). Please try again.`;
+      setMessage(errorText);
+      showToast(errorText, 'error');
+    }
   }, [searchParams, showToast]);
 
   const triggerError = (msg: string) => {

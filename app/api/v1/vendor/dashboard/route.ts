@@ -6,6 +6,10 @@ import Vendor from '@/lib/models/Vendor';
 import { verifyToken } from '@/lib/auth';
 import mongoose from 'mongoose';
 
+export async function OPTIONS() {
+  return NextResponse.json({}, { status: 200 });
+}
+
 /**
  * GET /api/v1/vendor/dashboard
  * Returns live statistical metrics for vendor mobile app
@@ -50,16 +54,36 @@ export async function GET(request: NextRequest) {
       Product.find(productQuery).limit(10).lean()
     ]);
 
-    // Count orders
-    const totalOrders = await Order.countDocuments();
+    // Count orders for THIS vendor ONLY
+    let vendorOrderFilter: any = { _id: { $in: [] } };
+    if (currentVendorId) {
+      const vendorProducts = await Product.find({
+        $or: [
+          { vendor_id: currentVendorId },
+          { vendor_id: currentVendorId.toString() },
+          ...(mongoose.isValidObjectId(currentVendorId) ? [{ vendor_id: new mongoose.Types.ObjectId(currentVendorId) }] : [])
+        ]
+      }).select('_id').lean();
+      const vProductIds = vendorProducts.map((p: any) => p._id);
+      if (vProductIds.length > 0) {
+        const OrderItem = (await import('@/lib/models/OrderItem')).default;
+        const vItems = await OrderItem.find({ product_id: { $in: vProductIds } }).select('order_id').lean();
+        const vOrderIds = vItems.map((i: any) => i.order_id);
+        vendorOrderFilter = { _id: { $in: vOrderIds } };
+      }
+    }
+
+    const totalOrders = await Order.countDocuments(vendorOrderFilter);
     const pendingOrders = await Order.countDocuments({
+      ...vendorOrderFilter,
       orderStatus: { $in: ['Order Placed', 'Packing', 'Pending'] }
     });
     const completedOrders = await Order.countDocuments({
+      ...vendorOrderFilter,
       orderStatus: 'Delivered'
     });
 
-    const recentOrders = await Order.find()
+    const recentOrders = await Order.find(vendorOrderFilter)
       .sort({ createdAt: -1 })
       .limit(5)
       .populate('delivery_boy_id', 'name mobile')

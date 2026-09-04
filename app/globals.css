@@ -165,3 +165,12 @@ body {
   scrollbar-width: none;
 }
 
+/* Ensure form controls on light cards always display high-contrast dark text */
+input, textarea, select {
+  color: #111827;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #9ca3af;
+}
+

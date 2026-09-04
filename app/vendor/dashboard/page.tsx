@@ -387,7 +387,7 @@ export default function VendorDashboardPage() {
         fetch(`/api/products?vendor_id=${vendorId}&limit=100`, { cache: 'no-store' }),
         fetch('/api/categories?limit=100', { cache: 'no-store' }),
         fetch(`/api/vendors/${vendorId}`, { cache: 'no-store' }),
-        fetch('/api/orders?limit=100', { cache: 'no-store' }),
+        fetch(`/api/orders?vendor_id=${vendorId}&limit=100`, { cache: 'no-store' }),
         fetch(`/api/delivery-boys?vendor_id=${vendorId}&limit=100`, { cache: 'no-store' }),
       ]);
 
@@ -741,6 +741,7 @@ export default function VendorDashboardPage() {
     setOrderError('');
     try {
       const params = new URLSearchParams({ page: String(orderPage), limit: '10', search: orderSearch });
+      if (session?.user?.id) params.set('vendor_id', session.user.id);
       if (orderFilterStatus !== '') params.set('status', orderFilterStatus);
       const res = await fetch(`/api/orders?${params}`);
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
@@ -753,7 +754,7 @@ export default function VendorDashboardPage() {
     } finally {
       setOrderLoading(false);
     }
-  }, [orderPage, orderSearch, orderFilterStatus]);
+  }, [orderPage, orderSearch, orderFilterStatus, session?.user?.id]);
 
   useEffect(() => {
     if (activeTab === 'orders') {
@@ -1014,11 +1015,11 @@ export default function VendorDashboardPage() {
                   type="button"
                   onClick={() => changeTab(tab.id)}
                   className={`flex w-full items-center gap-3.5 px-4 py-3.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${isActive
-                      ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] text-emerald-700 shadow-xs scale-[1.01]'
-                      : 'text-gray-500 hover:text-emerald-700 hover:bg-[#f6faf7] hover:scale-[1.01]'
+                      ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] dark:from-emerald-950/40 dark:to-gray-700 text-emerald-700 dark:text-emerald-300 shadow-xs scale-[1.01]'
+                      : 'text-gray-600 dark:text-gray-200 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-[#f6faf7] dark:hover:bg-gray-700/60 hover:scale-[1.01]'
                     }`}
                 >
-                  <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-600' : 'text-gray-400'}`} />
+                  <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-300'}`} />
                   <span>{tab.label}</span>
                   {tab.id === 'orders' && orders.filter(o => o.orderStatus === 'Pending' || o.orderStatus === 'Order Placed').length > 0 && (
                     <span className="ml-auto bg-red-500 text-white text-[9px] font-bold h-5 px-1.5 min-w-5 rounded-full flex items-center justify-center animate-pulse shadow-sm shadow-red-200">
@@ -1045,11 +1046,11 @@ export default function VendorDashboardPage() {
                   type="button"
                   onClick={() => changeTab(tab.id)}
                   className={`flex w-full items-center gap-3.5 px-4 py-3.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${isActive
-                      ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] text-emerald-700 shadow-xs scale-[1.01]'
-                      : 'text-gray-500 hover:text-emerald-700 hover:bg-[#f6faf7] hover:scale-[1.01]'
+                      ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] dark:from-emerald-950/40 dark:to-gray-700 text-emerald-700 dark:text-emerald-300 shadow-xs scale-[1.01]'
+                      : 'text-gray-600 dark:text-gray-200 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-[#f6faf7] dark:hover:bg-gray-700/60 hover:scale-[1.01]'
                     }`}
                 >
-                  <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-600' : 'text-gray-400'}`} />
+                  <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-300'}`} />
                   <span>{tab.label}</span>
                   {tab.id === 'notifications' && unreadNotifCount > 0 && (
                     <span className="ml-auto bg-red-500 text-white text-[9px] font-black h-5 px-1.5 min-w-5 rounded-full flex items-center justify-center animate-pulse shadow-sm">
@@ -2391,24 +2392,24 @@ export default function VendorDashboardPage() {
 
               <form onSubmit={saveProfile} className="grid gap-4 sm:grid-cols-2 pt-4 border-t border-gray-100">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500">Proprietor Name</label>
-                  <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] w-full" value={profile.name || ''} onChange={(e) => setProfile({ ...profile, name: e.target.value })} />
+                  <label className="text-xs font-bold text-gray-700">Proprietor Name</label>
+                  <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-bold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#2bb673] focus:bg-white w-full" value={profile.name || ''} onChange={(e) => setProfile({ ...profile, name: e.target.value })} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500">Store Name</label>
-                  <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] w-full" value={profile.businessName || ''} onChange={(e) => setProfile({ ...profile, businessName: e.target.value })} />
+                  <label className="text-xs font-bold text-gray-700">Store Name</label>
+                  <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-bold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#2bb673] focus:bg-white w-full" value={profile.businessName || ''} onChange={(e) => setProfile({ ...profile, businessName: e.target.value })} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500">Mobile Phone</label>
-                  <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] w-full" value={profile.phone || ''} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} />
+                  <label className="text-xs font-bold text-gray-700">Mobile Phone</label>
+                  <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-bold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#2bb673] focus:bg-white w-full" value={profile.phone || ''} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500">GSTIN Registration</label>
-                  <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673] w-full" value={profile.gstNumber || ''} onChange={(e) => setProfile({ ...profile, gstNumber: e.target.value })} />
+                  <label className="text-xs font-bold text-gray-700">GSTIN Registration</label>
+                  <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-bold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#2bb673] focus:bg-white w-full" value={profile.gstNumber || ''} onChange={(e) => setProfile({ ...profile, gstNumber: e.target.value })} />
                 </div>
                 <div className="space-y-1 sm:col-span-2">
-                  <label className="text-xs font-bold text-gray-500">Warehouse Address</label>
-                  <textarea className="min-h-24 border border-gray-200 rounded-xl bg-gray-50 p-4 text-sm font-semibold outline-none focus:border-[#2bb673] w-full" value={profile.address || ''} onChange={(e) => setProfile({ ...profile, address: e.target.value })} />
+                  <label className="text-xs font-bold text-gray-700">Warehouse Address</label>
+                  <textarea className="min-h-24 border border-gray-200 rounded-xl bg-gray-50 p-4 text-sm font-bold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#2bb673] focus:bg-white w-full" value={profile.address || ''} onChange={(e) => setProfile({ ...profile, address: e.target.value })} />
                 </div>
                 <div className="space-y-1 sm:col-span-2">
                   <label className="text-xs font-bold text-gray-500">Shop Image</label>
@@ -2457,29 +2458,29 @@ export default function VendorDashboardPage() {
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-700">Minimum Order for Free Delivery (₹)</label>
-                    <input className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" value={settingsForm.minOrderFree} onChange={(e) => setSettingsForm({ ...settingsForm, minOrderFree: e.target.value })} required />
+                    <input className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-bold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#2bb673] focus:bg-white" value={settingsForm.minOrderFree} onChange={(e) => setSettingsForm({ ...settingsForm, minOrderFree: e.target.value })} required />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-700">Handling & Packaging Charge (₹)</label>
-                    <input className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" value={settingsForm.handlingCharge} onChange={(e) => setSettingsForm({ ...settingsForm, handlingCharge: e.target.value })} required />
+                    <input className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-bold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#2bb673] focus:bg-white" value={settingsForm.handlingCharge} onChange={(e) => setSettingsForm({ ...settingsForm, handlingCharge: e.target.value })} required />
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-700">Open Hours</label>
-                    <input type="time" className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" value={settingsForm.openTime} onChange={(e) => setSettingsForm({ ...settingsForm, openTime: e.target.value })} required />
+                    <input type="time" className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-bold text-gray-900 outline-none focus:border-[#2bb673] focus:bg-white" value={settingsForm.openTime} onChange={(e) => setSettingsForm({ ...settingsForm, openTime: e.target.value })} required />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-700">Close Hours</label>
-                    <input type="time" className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" value={settingsForm.closeTime} onChange={(e) => setSettingsForm({ ...settingsForm, closeTime: e.target.value })} required />
+                    <input type="time" className="w-full h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-bold text-gray-900 outline-none focus:border-[#2bb673] focus:bg-white" value={settingsForm.closeTime} onChange={(e) => setSettingsForm({ ...settingsForm, closeTime: e.target.value })} required />
                   </div>
                 </div>
 
                 <div className="border-t border-gray-100 pt-6 space-y-4">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500">Payout Destination Bank</h3>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-gray-700">Payout Destination Bank</h3>
                   <div className="grid gap-4 sm:grid-cols-3">
-                    <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Bank Name" value={settingsForm.bankName} onChange={(e) => setSettingsForm({ ...settingsForm, bankName: e.target.value })} required />
-                    <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="Account Number" value={settingsForm.bankAccNo} onChange={(e) => setSettingsForm({ ...settingsForm, bankAccNo: e.target.value })} required />
-                    <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-semibold outline-none focus:border-[#2bb673]" placeholder="IFSC Code" value={settingsForm.bankIfsc} onChange={(e) => setSettingsForm({ ...settingsForm, bankIfsc: e.target.value })} required />
+                    <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-bold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#2bb673] focus:bg-white" placeholder="Bank Name" value={settingsForm.bankName} onChange={(e) => setSettingsForm({ ...settingsForm, bankName: e.target.value })} required />
+                    <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-bold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#2bb673] focus:bg-white" placeholder="Account Number" value={settingsForm.bankAccNo} onChange={(e) => setSettingsForm({ ...settingsForm, bankAccNo: e.target.value })} required />
+                    <input className="h-12 border border-gray-200 rounded-xl bg-gray-50 px-4 text-sm font-bold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#2bb673] focus:bg-white" placeholder="IFSC Code" value={settingsForm.bankIfsc} onChange={(e) => setSettingsForm({ ...settingsForm, bankIfsc: e.target.value })} required />
                   </div>
                 </div>
 

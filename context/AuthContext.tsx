@@ -8,9 +8,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const session = useSession();
+  const handleSignOut = (options?: Parameters<typeof signOut>[0]) => {
+    return signOut({ callbackUrl: '/', ...options });
+  };
   return {
     ...session,
     signIn,
-    signOut,
+    signOut: handleSignOut,
   };
 }
