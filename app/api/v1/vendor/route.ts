@@ -20,6 +20,14 @@ export async function GET(request: NextRequest) {
     let vendor = null;
     if (vendorId && mongoose.Types.ObjectId.isValid(vendorId)) {
       vendor = await Vendor.findById(vendorId).lean();
+    } else if (vendorId) {
+      vendor = await Vendor.findOne({
+        $or: [{ email: vendorId }, { mobile_number: vendorId }]
+      }).lean();
+    }
+
+    if (!vendor && (user as any)?.email) {
+      vendor = await Vendor.findOne({ email: (user as any).email }).lean();
     }
 
     if (!vendor && user?.id) {
@@ -28,29 +36,25 @@ export async function GET(request: NextRequest) {
       }).lean();
     }
 
-    // Unauthenticated initial fallback to latest verified vendor (prevents 404 Dio Exceptions)
     if (!vendor) {
-      vendor = await Vendor.findOne({ is_verified: '1' }).sort({ updatedAt: -1 }).lean();
-    }
-
-    if (!vendor) {
-      vendor = await Vendor.findOne().sort({ createdAt: -1 }).lean();
+      return NextResponse.json({ success: false, error: 'Vendor not found' }, { status: 404 });
     }
 
     return NextResponse.json({
       success: true,
-      data: vendor ? {
+      data: {
         id: vendor._id,
-        full_name: vendor.full_name || 'Vendor Owner',
+        _id: vendor._id,
+        full_name: vendor.full_name || vendor.shop_name || 'Vendor Owner',
         shop_name: vendor.shop_name || 'Veggie Mart Store',
         email: vendor.email || '',
-        mobile_number: vendor.mobile_number || '',
-        city: vendor.city || 'Lucknow',
-        state: vendor.state || 'Uttar Pradesh',
-        address: vendor.address || `${vendor.city || 'Lucknow'}, ${vendor.state || 'UP'}`.trim(),
+        mobile_number: vendor.mobile_number || vendor.phone || '',
+        city: vendor.city || '',
+        state: vendor.state || '',
+        address: vendor.address || [vendor.city, vendor.state].filter(Boolean).join(', '),
         wallet_balance: vendor.wallet_balance || 0,
         is_verified: vendor.is_verified || '1'
-      } : null
+      }
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
