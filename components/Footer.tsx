@@ -88,10 +88,10 @@ export default function Footer() {
                 <Phone className="h-4 w-4 text-accent-warm shrink-0" />
                 +91 98765 43210
               </p>
-              <p className="flex items-center gap-3">
+              <a href="mailto:info@vegking.com" className="flex items-center gap-3 hover:text-accent-warm transition-colors">
                 <Mail className="h-4 w-4 text-green-300 shrink-0" />
-                hello@vegking.local
-              </p>
+                info@vegking.com
+              </a>
               <p className="flex items-center gap-3">
                 <MapPin className="h-4 w-4 text-green-300 shrink-0" />
                 Fresh Market Road, India

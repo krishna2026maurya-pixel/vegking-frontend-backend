@@ -1,8 +1,6 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import { Clock, Flame, ShieldAlert } from 'lucide-react';
-
 interface DealCountdownTimerProps {
   expiresAt?: string | Date | null;
   fallbackStartTime?: string | Date | null; // e.g. updatedAt
@@ -10,7 +8,6 @@ interface DealCountdownTimerProps {
   onExpire?: () => void;
   className?: string;
 }
-
 export default function DealCountdownTimer({
   expiresAt,
   fallbackStartTime,
@@ -101,13 +98,12 @@ export default function DealCountdownTimer({
   // 1. Box / Digital Clock Variant (Ideal for Drawer Top Card)
   if (variant === 'box') {
     return (
-      <div className={`p-2.5 rounded-2xl border transition-all duration-500 ${
-        isUrgent 
-          ? 'bg-gradient-to-r from-red-950/90 via-orange-950/80 to-red-950/90 border-red-600/80 text-red-200 animate-pulse' 
-          : isMedium 
-          ? 'bg-gradient-to-r from-amber-950/80 to-yellow-950/80 border-amber-500/60 text-amber-200' 
-          : 'bg-black/40 backdrop-blur-md border-emerald-500/40 text-emerald-100'
-      } ${className}`}>
+      <div className={`p-2.5 rounded-2xl border transition-all duration-500 ${isUrgent
+          ? 'bg-gradient-to-r from-red-950/90 via-orange-950/80 to-red-950/90 border-red-600/80 text-red-200 animate-pulse'
+          : isMedium
+            ? 'bg-gradient-to-r from-amber-950/80 to-yellow-950/80 border-amber-500/60 text-amber-200'
+            : 'bg-black/40 backdrop-blur-md border-emerald-500/40 text-emerald-100'
+        } ${className}`}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             {isUrgent ? (
@@ -145,13 +141,12 @@ export default function DealCountdownTimer({
   // 2. Badge Pill Variant (Ideal for Profile Negotiation Cards & Cart items)
   if (variant === 'badge') {
     return (
-      <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-black tracking-tight transition-all shadow-xs ${
-        isUrgent
+      <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-black tracking-tight transition-all shadow-xs ${isUrgent
           ? 'bg-red-950/80 border-red-700/80 text-red-200 animate-pulse'
           : isMedium
-          ? 'bg-amber-950/70 border-amber-700/70 text-amber-200'
-          : 'bg-emerald-950/70 border-emerald-700/60 text-emerald-200'
-      } ${className}`}>
+            ? 'bg-amber-950/70 border-amber-700/70 text-amber-200'
+            : 'bg-emerald-950/70 border-emerald-700/60 text-emerald-200'
+        } ${className}`}>
         <Clock className={`w-3.5 h-3.5 ${isUrgent ? 'text-red-400' : 'text-amber-400'} shrink-0`} />
         <span>
           Expires in <strong className="font-mono text-white font-extrabold">{pad(timeLeft.hours)}h {pad(timeLeft.minutes)}m {pad(timeLeft.seconds)}s</strong>
@@ -162,11 +157,10 @@ export default function DealCountdownTimer({
 
   // 3. Default Compact inline Pill
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black border font-mono ${
-      isUrgent
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black border font-mono ${isUrgent
         ? 'bg-red-500/20 border-red-500 text-red-300 animate-pulse'
         : 'bg-black/40 border-amber-400/40 text-amber-300'
-    } ${className}`}>
+      } ${className}`}>
       <Clock className="w-3 h-3 text-amber-400 shrink-0" />
       <span>{pad(timeLeft.hours)}h:{pad(timeLeft.minutes)}m:{pad(timeLeft.seconds)}s left</span>
     </span>

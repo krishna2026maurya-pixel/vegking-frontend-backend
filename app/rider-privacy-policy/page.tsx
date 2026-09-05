@@ -159,7 +159,7 @@ export default function RiderPrivacyPolicyPage() {
                 <span>6. Account Deletion & Data Retention</span>
               </div>
               <p className="text-xs sm:text-sm text-gray-600">
-                Riders have the right to request deletion of their account and associated personal data at any time. To request account termination, email our privacy team at <a href="mailto:support@vegking.com" className="text-emerald-700 font-bold underline">support@vegking.com</a> with your registered mobile number. Your personal identification and vehicle data will be purged within 30 days, subject to standard financial accounting compliance requirements.
+                Riders have the right to request deletion of their account and associated personal data at any time. To request account termination, email our privacy team at <a href="mailto:info@vegking.com" className="text-emerald-700 font-bold underline">info@vegking.com</a> with your registered mobile number. Your personal identification and vehicle data will be purged within 30 days, subject to standard financial accounting compliance requirements.
               </p>
             </section>
 
@@ -174,7 +174,7 @@ export default function RiderPrivacyPolicyPage() {
               </p>
               <div className="bg-gray-100/70 p-4 rounded-xl text-xs space-y-1 font-medium text-gray-800">
                 <p><strong>Entity:</strong> VegKing Technologies Pvt. Ltd.</p>
-                <p><strong>Email:</strong> <a href="mailto:support@vegking.com" className="text-emerald-700 font-bold">support@vegking.com</a></p>
+                <p><strong>Email:</strong> <a href="mailto:info@vegking.com" className="text-emerald-700 font-bold">info@vegking.com</a></p>
                 <p><strong>Support Phone:</strong> +91 98765 43210</p>
                 <p><strong>Address:</strong> Lucknow, Uttar Pradesh, India</p>
               </div>

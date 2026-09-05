@@ -1,29 +1,23 @@
 "use client";
-
 import React, { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Upload, X, ArrowLeft, Save, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
-
 function CreateProductForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryVendorId = searchParams.get('vendor_id') || '';
-
   const fileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
-
   // Multiple images state
   const [images, setImages] = useState<string[]>([]);
   const [mainImage, setMainImage] = useState<string | null>(null);
-
   const [uploadingImg, setUploadingImg] = useState(false);
   const [error, setError] = useState('');
   const [categoryTypes, setCategoryTypes] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [subcategories, setSubcategories] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
-
   useEffect(() => {
     fetch(`/api/category-types?limit=100`).then(r => r.json()).then(j => setCategoryTypes(j.data || []));
     fetch(`/api/categories?limit=200`).then(r => r.json()).then(j => setCategories(j.data || []));

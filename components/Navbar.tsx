@@ -681,29 +681,6 @@ export default function Navbar() {
               About
             </Link>
 
-            <Link
-              href="/vendors"
-              className={`px-4 py-2 text-xs font-extrabold transition-all duration-300 ${pathname === '/vendors'
-                ? 'bg-primary text-white shadow-md shadow-primary/10'
-                : 'text-gray-600 hover:text-primary hover:bg-gray-50'
-                }`}
-            >
-              Sellers
-            </Link>
-
-            <Link
-              href="/bulk-products"
-              className={`px-4 py-2 text-xs font-extrabold transition-all duration-300 flex items-center gap-1.5 ${pathname === '/bulk-products'
-                ? 'bg-primary text-white'
-                : 'text-gray-600 hover:text-primary hover:bg-gray-50'
-                }`}
-            >
-              <span className="flex items-center gap-1.5">
-                <span>Buy in Bulk</span>
-                {/* <span className="bg-amber-400 text-gray-950 text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase">5kg+</span> */}
-              </span>
-            </Link>
-
             <div className="relative" onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
@@ -780,8 +757,18 @@ export default function Navbar() {
               )}
             </div>
 
-
-
+            <Link
+              href="/bulk-products"
+              className={`px-4 py-2 text-xs font-extrabold transition-all duration-300 flex items-center gap-1.5 ${pathname === '/bulk-products'
+                ? 'bg-primary text-white'
+                : 'text-gray-600 hover:text-primary hover:bg-gray-50'
+                }`}
+            >
+              <span className="flex items-center gap-1.5">
+                <span>Buy in Bulk</span>
+                {/* <span className="bg-amber-400 text-gray-950 text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase">5kg+</span> */}
+              </span>
+            </Link>
             <Link
               href={isApprovedVendor ? '/vendor/dashboard' : '/partner'}
               className={`px-4 py-2 text-xs font-extrabold transition-all duration-300 flex items-center gap-1.5 ${pathname === '/partner' || (isApprovedVendor && pathname?.startsWith('/vendor'))
@@ -792,6 +779,19 @@ export default function Navbar() {
               <Store className="w-3.5 h-3.5" strokeWidth={2.2} />
               {isApprovedVendor ? 'Vendor Dashboard' : 'Grow With Us'}
             </Link>
+
+            <Link
+              href="/vendors"
+              className={`px-4 py-2 text-xs font-extrabold transition-all duration-300 ${pathname === '/vendors'
+                ? 'bg-primary text-white shadow-md shadow-primary/10'
+                : 'text-gray-600 hover:text-primary hover:bg-gray-50'
+                }`}
+            >
+              Sellers
+            </Link>
+
+
+
 
             <Link
               href="/contact"

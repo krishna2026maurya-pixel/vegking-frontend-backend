@@ -28,9 +28,9 @@ const contactMethods = [
     {
         icon: Mail,
         title: 'Email Support',
-        value: 'hello@vegking.local',
+        value: 'info@vegking.com',
         note: 'Best for detailed questions',
-        href: 'mailto:hello@vegking.local',
+        href: 'mailto:info@vegking.com',
     },
     {
         icon: MessageCircle,

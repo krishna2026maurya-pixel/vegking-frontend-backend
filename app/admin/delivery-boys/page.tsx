@@ -1,10 +1,8 @@
 "use client";
-
 import React, { useEffect, useState, useCallback } from 'react';
 import DataTable, { Column, Action, BulkAction } from '../components/DataTable';
 import { Eye, Trash2, CheckCircle, XCircle, Plus, UserCheck, Bike } from 'lucide-react';
 import Link from 'next/link';
-
 interface DeliveryBoy {
   _id: string;
   name: string;

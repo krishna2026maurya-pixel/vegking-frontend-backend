@@ -12,7 +12,7 @@ export async function sendMail({ to, subject, text, html }: SendMailOptions) {
   const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 587;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM || '"VegKing Support" <noreply@vegking.com>';
+  const from = process.env.SMTP_FROM || '"VegKing Support" <info@vegking.com>';
 
   if (!host || !user || !pass) {
     console.log('====== MOCK EMAIL SENT ======');
@@ -98,7 +98,7 @@ export async function sendVendorWelcomeEmail(vendor: {
       </ol>
 
       <p style="font-size: 14px; color: #4b5563; line-height: 1.6; margin-top: 25px;">
-        If you have any questions or need assistance setting up your store profile, please reach out to our dedicated support team at <a href="mailto:support@vegking.com" style="color: #16a34a; text-decoration: none;">support@vegking.com</a>.
+        If you have any questions or need assistance setting up your store profile, please reach out to our dedicated support team at <a href="mailto:info@vegking.com" style="color: #16a34a; text-decoration: none;">info@vegking.com</a>.
       </p>
 
       <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px; font-size: 13px; color: #9ca3af; text-align: center;">
@@ -236,7 +236,7 @@ export async function sendUserWelcomeEmail(user: { name: string; email: string }
       </ul>
 
       <p style="font-size: 14px; color: #4b5563; line-height: 1.6; margin-top: 25px;">
-        If you have any questions or need assistance, feel free to contact our support team at <a href="mailto:support@organicvatika.com" style="color: #16a34a; text-decoration: none;">support@organicvatika.com</a>.
+        If you have any questions or need assistance, feel free to contact our support team at <a href="mailto:info@vegking.com" style="color: #16a34a; text-decoration: none;">info@vegking.com</a>.
       </p>
 
       <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px; font-size: 13px; color: #9ca3af; text-align: center;">

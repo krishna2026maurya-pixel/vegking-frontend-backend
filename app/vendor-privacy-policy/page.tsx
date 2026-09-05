@@ -140,7 +140,7 @@ export default function VendorPrivacyPolicyPage() {
                 <span>6. Vendor Account Deletion & Data Retention</span>
               </div>
               <p className="text-xs sm:text-sm text-gray-600">
-                Vendors wishing to close their store and delete their data can request account termination by writing to <a href="mailto:vendor-support@vegking.com" className="text-emerald-700 font-bold underline">vendor-support@vegking.com</a> from their registered vendor email. All active listings will be delisted immediately, and account information will be purged following settlement of all pending customer deliveries and financial dues.
+                Vendors wishing to close their store and delete their data can request account termination by writing to <a href="mailto:info@vegking.com" className="text-emerald-700 font-bold underline">info@vegking.com</a> from their registered vendor email. All active listings will be delisted immediately, and account information will be purged following settlement of all pending customer deliveries and financial dues.
               </p>
             </section>
 
@@ -155,7 +155,7 @@ export default function VendorPrivacyPolicyPage() {
               </p>
               <div className="bg-gray-100/70 p-4 rounded-xl text-xs space-y-1 font-medium text-gray-800">
                 <p><strong>Entity:</strong> VegKing Technologies Pvt. Ltd. (Merchant Operations)</p>
-                <p><strong>Merchant Email:</strong> <a href="mailto:vendor-support@vegking.com" className="text-emerald-700 font-bold">vendor-support@vegking.com</a></p>
+                <p><strong>Merchant Email:</strong> <a href="mailto:info@vegking.com" className="text-emerald-700 font-bold">info@vegking.com</a></p>
                 <p><strong>Helpline:</strong> +91 98765 43210</p>
                 <p><strong>Headquarters:</strong> Lucknow, Uttar Pradesh, India</p>
               </div>
