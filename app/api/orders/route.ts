@@ -26,9 +26,21 @@ export async function GET(request: NextRequest) {
 
     const query: any = {};
     if (search) {
+      const User = (await import('@/lib/models/User')).default;
+      const matchedUsers = await User.find({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { mobile_no: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } }
+        ]
+      }).select('_id').lean();
+      const matchedUserIds = matchedUsers.map((u: any) => u._id);
+
       query.$or = [
         { order_number: { $regex: search, $options: 'i' } },
         { customer_mobile: { $regex: search, $options: 'i' } },
+        { customer_name: { $regex: search, $options: 'i' } },
+        { user_id: { $in: matchedUserIds } }
       ];
     }
     if (status !== '') {
@@ -63,14 +75,23 @@ export async function GET(request: NextRequest) {
 
     // Attach items to each order
     const orderIds = orders.map((o: any) => o._id);
-    const allItems = await OrderItem.find({ order_id: { $in: orderIds } }).lean();
+    const allItems = await OrderItem.find({ order_id: { $in: orderIds } }).populate('delivery_boy_id').lean();
 
     const ordersWithItems = orders.map((order: any) => {
       const matchingItems = allItems.filter(
         (i: any) => i.order_id?.toString() === order._id?.toString()
       );
+      const rawName = order.customer_name || order.shippingAddress?.fullName || order.user_id?.name;
+      const custName = (typeof rawName === 'string' && rawName.trim()) ? rawName.trim() : 'Customer';
+      const custMobile = order.customer_mobile || order.shippingAddress?.phone || order.user_id?.mobile_no || order.user_id?.phone || '';
+      const orderDate = order.createdAt || order.created_at;
+
       return {
         ...order,
+        customer_name: custName,
+        customer_mobile: custMobile,
+        createdAt: orderDate,
+        created_at: orderDate,
         populatedItems: matchingItems,
         items: matchingItems,
       };
@@ -87,6 +108,8 @@ export async function GET(request: NextRequest) {
   }
 }
 
+import Product from '@/lib/models/Product';
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -101,13 +124,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Enforce DB product stock limits
+    for (const item of items) {
+      const rawId = item.productId || item._id;
+      if (mongoose.isValidObjectId(rawId)) {
+        const prod = await Product.findById(rawId);
+        if (prod) {
+          const reqQty = Number(item.quantity || 1);
+          const isBulk = Boolean(item.is_bulk_deal);
+          const availableStock = isBulk
+            ? (prod.bulk_stock !== undefined && prod.bulk_stock !== null ? prod.bulk_stock : prod.stock)
+            : (prod.stock !== undefined && prod.stock !== null ? prod.stock : 0);
+
+          if (availableStock !== undefined && reqQty > availableStock) {
+            return NextResponse.json(
+              {
+                success: false,
+                message: `You cannot order more than the product stock limit (${availableStock} available) for "${prod.product_name || item.name}".`
+              },
+              { status: 400 }
+            );
+          }
+        }
+      }
+    }
+
     const userId = session?.user ? ((session.user as any).id || (session.user as any)._id) : null;
     const order_number = `ORD-${Date.now()}`;
+    const custName = shippingAddress?.fullName || session?.user?.name || 'Customer';
+    const custMobile = shippingAddress?.phone || (session?.user as any)?.mobile_no || (session?.user as any)?.mobile_number || '';
 
     // Create the order
     const order = await Order.create({
       order_number,
       user_id: userId,
+      customer_name: custName,
+      customer_mobile: custMobile,
       total_amount: totalAmount,
       delivery_charge: delivery_charge !== undefined ? Number(delivery_charge) : 0,
       payment_method: 'COD',
@@ -136,6 +188,22 @@ export async function POST(request: NextRequest) {
     // Link item ids back to the order
     order.items = createdItems.map((i: any) => i._id);
     await order.save();
+
+    // Decrement DB stock for purchased items
+    for (const item of items) {
+      const rawId = item.productId || item._id;
+      if (mongoose.isValidObjectId(rawId)) {
+        const reqQty = Number(item.quantity || 1);
+        const isBulk = Boolean(item.is_bulk_deal);
+        const incUpdate: any = { stock: -reqQty };
+        if (isBulk) {
+          incUpdate.bulk_stock = -reqQty;
+        }
+        await Product.findByIdAndUpdate(rawId, { $inc: incUpdate }).catch((err: any) =>
+          console.error('Failed to decrement stock for product:', rawId, err)
+        );
+      }
+    }
 
     try {
       const { emitNewOrderPlaced } = await import('@/lib/socketClient');

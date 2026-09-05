@@ -16,6 +16,7 @@ const ProductSchema = new Schema({
   total_amt: Number,
   quantity: String,
   volume: String,
+  stock: { type: Number, default: 10 },
   stock_status: Number,
   product_description: String,
   images: [String],

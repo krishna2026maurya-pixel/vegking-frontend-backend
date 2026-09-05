@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Loader2, Package, Wallet, User as UserIcon, Heart, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { signOut } from 'next-auth/react';
 
 export default function UserDashboard() {
   const [data, setData] = useState<any>(null);
@@ -48,9 +49,9 @@ export default function UserDashboard() {
     fetchDashboard();
   }, [router]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     localStorage.removeItem('token');
-    router.push('/login');
+    await signOut({ callbackUrl: '/' });
   };
 
   if (loading) {

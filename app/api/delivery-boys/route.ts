@@ -10,17 +10,39 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10', 10);
     const search = searchParams.get('search') || '';
     const vendor_id = searchParams.get('vendor_id') || '';
+    const is_active = searchParams.get('is_active');
+    const is_verified = searchParams.get('is_verified');
 
-    const query: any = {};
+    const conditions: any[] = [];
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { mobile_number: { $regex: search, $options: 'i' } },
-      ];
+      conditions.push({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { mobile_number: { $regex: search, $options: 'i' } },
+        ]
+      });
     }
     if (vendor_id) {
-      query.vendor_id = vendor_id;
+      if (searchParams.get('only_vendor') === 'true') {
+        conditions.push({ vendor_id });
+      } else {
+        conditions.push({
+          $or: [
+            { vendor_id: vendor_id },
+            { vendor_id: null },
+            { vendor_id: { $exists: false } }
+          ]
+        });
+      }
     }
+    if (is_active !== null && is_active !== undefined && is_active !== '') {
+      conditions.push({ is_active: String(is_active) });
+    }
+    if (is_verified !== null && is_verified !== undefined && is_verified !== '') {
+      conditions.push({ is_verified: String(is_verified) });
+    }
+
+    const query = conditions.length > 0 ? { $and: conditions } : {};
 
     const Vendor = (await import('@/lib/models/Vendor')).default; // Register model
     const [boys, total] = await Promise.all([

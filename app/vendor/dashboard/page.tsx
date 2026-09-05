@@ -158,7 +158,7 @@ export default function VendorDashboardPage() {
   const [orderLoading, setOrderLoading] = useState(true);
   const [orderError, setOrderError] = useState('');
   const [orderStatusModal, setOrderStatusModal] = useState<{ open: boolean; orderId: string | null; current: string; otp: string }>({ open: false, orderId: null, current: 'Order Placed', otp: '' });
-  const [assignRiderModal, setAssignRiderModal] = useState<{ open: boolean; orderId: string | null; currentRiderId: string }>({ open: false, orderId: null, currentRiderId: '' });
+  const [assignRiderModal, setAssignRiderModal] = useState<{ open: boolean; orderId: string | null; currentRiderId: string; itemId?: string | null; itemName?: string | null }>({ open: false, orderId: null, currentRiderId: '', itemId: null, itemName: null });
   const [viewingOrder, setViewingOrder] = useState<any>(null);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [showMobileMore, setShowMobileMore] = useState(false);
@@ -702,17 +702,48 @@ export default function VendorDashboardPage() {
       key: 'rider',
       label: 'Rider',
       render: (row) => {
-        if (row.delivery_boy_id?.name) {
-          return <span className="font-semibold text-gray-800 dark:text-gray-200">{row.delivery_boy_id.name}</span>;
+        const rider = row.delivery_boy_id;
+        const isOnline = rider?.is_active === '1';
+        const itemRiders = (row.items || row.populatedItems || []).filter((it: any) => it.delivery_boy_id && it.delivery_boy_id._id !== rider?._id);
+
+        if (rider?.name) {
+          return (
+            <div className="flex flex-col gap-1 min-w-[130px]">
+              <div className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-green-500 shadow-xs shadow-green-500/50 animate-pulse' : 'bg-gray-400'}`} />
+                <span className="font-bold text-gray-900 dark:text-white text-xs truncate max-w-[100px]">{rider.name}</span>
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider ${isOnline ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                  {isOnline ? 'Online' : 'Offline'}
+                </span>
+                {rider.mobile_number && (
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">📞 {rider.mobile_number}</span>
+                )}
+              </div>
+              {itemRiders.length > 0 && (
+                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">+{itemRiders.length} product rider(s)</span>
+              )}
+              {!(row.orderStatus === 'Delivered' || row.orderStatus === 'Cancelled') && (
+                <button
+                  type="button"
+                  onClick={() => setAssignRiderModal({ open: true, orderId: row._id, currentRiderId: rider._id, itemId: null, itemName: null })}
+                  className="text-[10px] text-primary hover:underline font-bold text-left cursor-pointer inline-flex items-center gap-0.5"
+                >
+                  <Bike size={11} /> Change Rider
+                </button>
+              )}
+            </div>
+          );
         }
         if (row.orderStatus === 'Delivered' || row.orderStatus === 'Cancelled') {
-          return <span className="text-gray-400">Not Assigned</span>;
+          return <span className="text-gray-400 text-xs font-semibold">Not Assigned</span>;
         }
         return (
           <button
             type="button"
-            onClick={() => setAssignRiderModal({ open: true, orderId: row._id, currentRiderId: '' })}
-            className="inline-flex items-center gap-1 bg-green-50 text-primary border border-green-200 px-2 py-1 text-xs font-bold hover:bg-green-100 transition cursor-pointer rounded-lg"
+            onClick={() => setAssignRiderModal({ open: true, orderId: row._id, currentRiderId: '', itemId: null, itemName: null })}
+            className="inline-flex items-center gap-1 bg-green-50 text-primary border border-green-200 px-2.5 py-1 text-xs font-bold hover:bg-green-100 transition cursor-pointer rounded-lg"
           >
             <Bike size={13} />
             Assign Rider
@@ -835,17 +866,45 @@ export default function VendorDashboardPage() {
   const applyAssignRider = async (riderId: string) => {
     if (!assignRiderModal.orderId) return;
     try {
+      const payload: any = { delivery_boy_id: riderId || null };
+      if (assignRiderModal.itemId) {
+        payload.item_id = assignRiderModal.itemId;
+      }
       const res = await fetch(`/api/orders/${assignRiderModal.orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ delivery_boy_id: riderId || null }),
+        body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error('Failed to assign rider');
+      if (!res.ok) {
+        const errJson = await res.json();
+        throw new Error(errJson.error || 'Failed to assign rider');
+      }
+      const json = await res.json();
+      if (viewingOrder && viewingOrder._id === assignRiderModal.orderId) {
+        setViewingOrder(json.data || null);
+      }
       fetchPaginatedOrders();
+      setMessage(assignRiderModal.itemName ? `Rider assigned for "${assignRiderModal.itemName}" successfully.` : 'Rider assigned to order successfully.');
     } catch (e: any) {
       alert(e.message);
     } finally {
-      setAssignRiderModal({ open: false, orderId: null, currentRiderId: '' });
+      setAssignRiderModal({ open: false, orderId: null, currentRiderId: '', itemId: null, itemName: null });
+    }
+  };
+
+  const toggleRiderActive = async (rider: any) => {
+    try {
+      const newVal = rider.is_active === '1' ? '0' : '1';
+      const res = await fetch(`/api/delivery-boys/${rider._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: newVal }),
+      });
+      if (!res.ok) throw new Error('Failed to update rider status');
+      await loadVendorData();
+      setMessage(`Rider ${rider.name} marked ${newVal === '1' ? 'Online' : 'Offline'}.`);
+    } catch (e: any) {
+      alert(e.message);
     }
   };
 
@@ -1775,30 +1834,41 @@ export default function VendorDashboardPage() {
 
               {/* Assign Rider Modal */}
               {assignRiderModal.open && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-80">
-                    <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Assign Rider</h3>
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-100 dark:border-gray-700">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Bike className="text-primary w-5 h-5" />
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                        {assignRiderModal.itemName ? 'Assign Rider for Product' : 'Assign Order Rider'}
+                      </h3>
+                    </div>
+                    {assignRiderModal.itemName && (
+                      <div className="mb-3 px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/40 text-xs font-semibold text-green-900 dark:text-green-300">
+                        📦 Product: <span className="font-bold">{assignRiderModal.itemName}</span>
+                      </div>
+                    )}
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Select Delivery Boy</label>
                     <select
                       value={assignRiderModal.currentRiderId}
                       onChange={(e) => setAssignRiderModal(m => ({ ...m, currentRiderId: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm mb-4 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                     >
                       <option value="">Unassigned / Select Rider</option>
                       {riders.map((r: any) => (
                         <option key={r._id} value={r._id}>
-                          {r.name} ({r.vehicle_type} - {r.mobile_number})
+                          {r.is_active === '1' ? '🟢 Online' : '⚪ Offline'} | {r.name} ({r.vehicle_type || 'Bike'} - {r.mobile_number})
                         </option>
                       ))}
                     </select>
                     <div className="flex gap-3">
                       <button
-                        onClick={() => setAssignRiderModal({ open: false, orderId: null, currentRiderId: '' })}
-                        className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
+                        onClick={() => setAssignRiderModal({ open: false, orderId: null, currentRiderId: '', itemId: null, itemName: null })}
+                        className="flex-1 px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer font-bold text-gray-700 dark:text-gray-300"
                       >Cancel</button>
                       <button
                         onClick={() => applyAssignRider(assignRiderModal.currentRiderId)}
-                        className="flex-1 px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer"
-                      >Assign</button>
+                        className="flex-1 px-4 py-2 text-sm bg-green-600 text-white rounded-xl hover:bg-green-700 cursor-pointer font-bold shadow-sm"
+                      >Assign Rider</button>
                     </div>
                   </div>
                 </div>
@@ -1837,25 +1907,42 @@ export default function VendorDashboardPage() {
                           <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Order Info</h4>
                           <p className="text-gray-600 dark:text-gray-300 font-semibold mt-1">Date: {new Date(viewingOrder.createdAt).toLocaleString()}</p>
                           <p className="text-gray-600 dark:text-gray-300 font-semibold">Status: <span className="font-bold text-green-600">{viewingOrder.orderStatus}</span></p>
-                          <p className="text-gray-600 dark:text-gray-300 font-semibold">
-                            Rider: <span className="font-bold text-gray-800 dark:text-gray-200">{viewingOrder.delivery_boy_id?.name || 'Not Assigned'}</span>
-                            {!(viewingOrder.orderStatus === 'Delivered' || viewingOrder.orderStatus === 'Cancelled') && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setAssignRiderModal({
-                                    open: true,
-                                    orderId: viewingOrder._id,
-                                    currentRiderId: viewingOrder.delivery_boy_id?._id || viewingOrder.delivery_boy_id || ''
-                                  });
-                                  setViewingOrder(null);
-                                }}
-                                className="text-xs text-primary font-bold hover:underline cursor-pointer inline-flex items-center gap-0.5 ml-2"
-                              >
-                                (<Bike size={12} className="inline animate-bounce" /> {viewingOrder.delivery_boy_id ? 'Change' : 'Assign'})
-                              </button>
-                            )}
-                          </p>
+                          <div className="text-gray-600 dark:text-gray-300 font-semibold flex flex-col gap-1 mt-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span>Order Rider:</span>
+                              {viewingOrder.delivery_boy_id?.name ? (
+                                <>
+                                  <span className={`w-2 h-2 rounded-full shrink-0 ${viewingOrder.delivery_boy_id.is_active === '1' ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+                                  <span className="font-bold text-gray-800 dark:text-gray-200">{viewingOrder.delivery_boy_id.name}</span>
+                                  <span className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase ${viewingOrder.delivery_boy_id.is_active === '1' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700'}`}>
+                                    {viewingOrder.delivery_boy_id.is_active === '1' ? 'Online' : 'Offline'}
+                                  </span>
+                                  {viewingOrder.delivery_boy_id.mobile_number && (
+                                    <span className="text-xs text-gray-500 font-medium">({viewingOrder.delivery_boy_id.mobile_number})</span>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="font-semibold text-gray-400">Not Assigned</span>
+                              )}
+                              {!(viewingOrder.orderStatus === 'Delivered' || viewingOrder.orderStatus === 'Cancelled') && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAssignRiderModal({
+                                      open: true,
+                                      orderId: viewingOrder._id,
+                                      currentRiderId: viewingOrder.delivery_boy_id?._id || viewingOrder.delivery_boy_id || '',
+                                      itemId: null,
+                                      itemName: null
+                                    });
+                                  }}
+                                  className="text-xs text-primary font-bold hover:underline cursor-pointer inline-flex items-center gap-0.5 ml-1"
+                                >
+                                  (<Bike size={12} className="inline" /> {viewingOrder.delivery_boy_id ? 'Change' : 'Assign'})
+                                </button>
+                              )}
+                            </div>
+                          </div>
                           <p className="text-gray-600 dark:text-gray-300 font-semibold">Payment Method: {viewingOrder.payment_method}</p>
                           <p className="text-gray-600 dark:text-gray-300 font-semibold">Payment Status: {viewingOrder.payment_status}</p>
                         </div>
@@ -1863,14 +1950,80 @@ export default function VendorDashboardPage() {
                     </div>
 
                     <div className="space-y-3">
-                      <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Items Ordered</h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Products & Rider Assignment</h4>
+                        <span className="text-[11px] text-gray-500">Assign rider per specific product or order</span>
+                      </div>
                       <div className="divide-y divide-gray-100 dark:divide-gray-700 border border-gray-100 dark:border-gray-700 rounded-2xl px-4 bg-gray-50/50 dark:bg-gray-900/50">
-                        {(viewingOrder.items || []).map((item: any) => (
-                          <div key={item._id} className="py-3 flex justify-between gap-3 text-sm">
-                            <span className="font-semibold text-gray-700 dark:text-gray-300">{(item.product_name || item.name)} <span className="text-xs text-gray-400 font-bold">x {(item.qty || item.quantity)}</span></span>
-                            <span className="font-black text-gray-950 dark:text-white">₹{(Number(item.price) * Number(item.qty || item.quantity)).toFixed(2)}</span>
-                          </div>
-                        ))}
+                        {(viewingOrder.items || viewingOrder.populatedItems || []).map((item: any) => {
+                          const itemRider = item.delivery_boy_id;
+                          const effectiveRider = itemRider || viewingOrder.delivery_boy_id;
+                          const isItemOnline = effectiveRider?.is_active === '1';
+
+                          return (
+                            <div key={item._id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
+                              <div className="flex items-center gap-3">
+                                {item.image && (
+                                  <img
+                                    src={getSafeProductImage(item.image)}
+                                    alt={item.product_name || item.name}
+                                    className="w-11 h-11 rounded-lg object-cover border border-gray-200 dark:border-gray-700 shrink-0"
+                                  />
+                                )}
+                                <div>
+                                  <span className="font-bold text-gray-800 dark:text-gray-200 block">
+                                    {(item.product_name || item.name)}{' '}
+                                    <span className="text-xs text-gray-400 font-bold">x {(item.qty || item.quantity)}</span>
+                                  </span>
+
+                                  {/* Specific Rider Assignment Info */}
+                                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                    {effectiveRider ? (
+                                      <>
+                                        <span className={`w-2 h-2 rounded-full shrink-0 ${isItemOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+                                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                          Rider: <span className="font-bold">{effectiveRider.name}</span>
+                                          {!itemRider && viewingOrder.delivery_boy_id && (
+                                            <span className="text-[10px] text-gray-400 font-normal ml-1">(Default)</span>
+                                          )}
+                                        </span>
+                                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase ${isItemOnline ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700'}`}>
+                                          {isItemOnline ? 'Online' : 'Offline'}
+                                        </span>
+                                        {effectiveRider.mobile_number && (
+                                          <span className="text-[10px] text-gray-400">({effectiveRider.mobile_number})</span>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <span className="text-xs text-gray-400 font-medium">Rider: Unassigned</span>
+                                    )}
+
+                                    {!(viewingOrder.orderStatus === 'Delivered' || viewingOrder.orderStatus === 'Cancelled') && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setAssignRiderModal({
+                                            open: true,
+                                            orderId: viewingOrder._id,
+                                            currentRiderId: itemRider?._id || '',
+                                            itemId: item._id,
+                                            itemName: item.product_name || item.name
+                                          });
+                                        }}
+                                        className="text-xs text-primary font-bold hover:underline cursor-pointer ml-1 inline-flex items-center gap-0.5"
+                                      >
+                                        <Bike size={11} /> {itemRider ? 'Change Rider' : 'Assign Rider'}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <span className="font-black text-gray-950 dark:text-white shrink-0">
+                                ₹{(Number(item.price) * Number(item.qty || item.quantity)).toFixed(2)}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                       <div className="flex justify-between items-center px-4 pt-1">
                         <span className="text-xs font-bold text-gray-500">Total Bill</span>
@@ -2252,22 +2405,40 @@ export default function VendorDashboardPage() {
                   ))
                 ) : (
                   <>
-                    {riders.map((rider) => (
-                      <div key={rider._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-gray-100 dark:border-gray-700 p-4 bg-white dark:bg-gray-700/80 shadow-sm hover:shadow-md transition">
-                        <div>
-                          <h2 className="font-black text-gray-950 dark:text-white text-sm sm:text-base">{rider.name || rider.mobile_number}</h2>
-                          <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-300">{rider.name ? rider.mobile_number + ' \u2022 ' : ''}{rider.vehicle_type} ({rider.vehicle_number})</p>
-                          <span className={`inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-semibold ${rider.is_active === '1' ? 'bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-300' : 'bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-300'}`}>
-                            {rider.is_active === '1' ? 'Online' : 'Offline'}
-                          </span>
+                    {riders.map((rider) => {
+                      const isOnline = rider.is_active === '1';
+                      return (
+                        <div key={rider._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 sm:p-5 bg-white dark:bg-gray-700/80 shadow-xs hover:shadow-md transition">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isOnline ? 'bg-green-500 shadow-xs shadow-green-500/50 animate-pulse' : 'bg-gray-400'}`} />
+                              <h2 className="font-black text-gray-950 dark:text-white text-sm sm:text-base">{rider.name || rider.mobile_number}</h2>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${isOnline ? 'bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300'}`}>
+                                {isOnline ? 'Online' : 'Offline'}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-300">
+                              {rider.name ? rider.mobile_number + ' \u2022 ' : ''}{rider.vehicle_type} ({rider.vehicle_number || 'No plate'})
+                            </p>
+                            <p className="text-[11px] text-gray-400 mt-0.5">
+                              {rider.vendor_id ? 'Dedicated Vendor Rider' : 'Platform / Shared Rider'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 justify-end sm:justify-start flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => toggleRiderActive(rider)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer border ${isOnline ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:bg-amber-100' : 'bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800 hover:bg-green-100'}`}
+                            >
+                              {isOnline ? 'Go Offline' : 'Go Online'}
+                            </button>
+                            <button type="button" onClick={() => setViewingRider(rider)} className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3.5 py-1.5 text-xs font-black text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition cursor-pointer">View</button>
+                            <button type="button" onClick={() => editRider(rider)} className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3.5 py-1.5 text-xs font-black text-[#2bb673] dark:text-emerald-400 hover:bg-[#eaf9f1] dark:hover:bg-gray-600 transition cursor-pointer">Edit</button>
+                            <button type="button" onClick={() => deleteRider(rider._id, rider.name)} className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 rounded-xl px-3.5 py-1.5 text-xs font-black text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 transition cursor-pointer">Delete</button>
+                          </div>
                         </div>
-                        <div className="flex gap-2 justify-end sm:justify-start">
-                          <button type="button" onClick={() => setViewingRider(rider)} className="bg-gray-50 dark:bg-gray-700 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition cursor-pointer">View</button>
-                          <button type="button" onClick={() => editRider(rider)} className="bg-gray-50 dark:bg-gray-700 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-[#2bb673] dark:text-emerald-400 hover:bg-[#eaf9f1] dark:hover:bg-gray-600 transition cursor-pointer">Edit</button>
-                          <button type="button" onClick={() => deleteRider(rider._id, rider.name)} className="bg-red-50 dark:bg-red-950/40 rounded-lg px-4 py-2 text-xs sm:text-sm font-black text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 transition cursor-pointer">Delete</button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     {riders.length === 0 && <p className="py-10 text-center text-sm font-bold text-gray-500 dark:text-gray-400">No riders registered yet.</p>}
                   </>
                 )}

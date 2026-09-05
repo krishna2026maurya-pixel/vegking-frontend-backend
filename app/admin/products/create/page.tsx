@@ -49,7 +49,8 @@ function CreateProductForm() {
     product_description: '',
     add_info_title: '',
     add_info_desc: '',
-    stock_status: '',
+    stock: '25',
+    stock_status: '1',
     description: '',
     // Bulk selling fields
     is_bulk_available: false,
@@ -146,7 +147,8 @@ function CreateProductForm() {
           selling_price: Number(form.selling_price) || 0,
           gst: Number(form.gst) || 0,
           total_amt: Number(form.total_amt) || 0,
-          stock_status: form.stock_status !== '' && !isNaN(Number(form.stock_status)) ? Number(form.stock_status) : 0,
+          stock: form.stock !== '' && !isNaN(Number(form.stock)) ? Number(form.stock) : 25,
+          stock_status: form.stock_status !== '' && !isNaN(Number(form.stock_status)) ? Number(form.stock_status) : 1,
           // Bulk fields
           is_bulk_available: form.is_bulk_available,
           bulk_min_qty: Math.max(5, Number(form.bulk_min_qty) || 5),
@@ -273,10 +275,20 @@ function CreateProductForm() {
         {/* Pricing & Volume Section */}
         <div className={sectionCls}>
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Pricing, Quantity & Volume</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div><label className={labelCls}>Quantity</label><input name="quantity" value={form.quantity} onChange={handleChange} placeholder="e.g. 1" className={inputCls} /></div>
-            <div><label className={labelCls}>Volume</label><input name="volume" value={form.volume} onChange={handleChange} placeholder="e.g. kg, liter" className={inputCls} /></div>
-            <div><label className={labelCls}>Stock Status</label><input name="stock_status" value={form.stock_status} onChange={handleChange} placeholder="e.g. 50" className={inputCls} /></div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div><label className={labelCls}>Quantity (Pack)</label><input name="quantity" value={form.quantity} onChange={handleChange} placeholder="e.g. 1" className={inputCls} /></div>
+            <div><label className={labelCls}>Volume / Unit</label><input name="volume" value={form.volume} onChange={handleChange} placeholder="e.g. kg, liter" className={inputCls} /></div>
+            <div>
+              <label className={labelCls}>Stock (Units in DB) *</label>
+              <input name="stock" type="number" min="0" value={form.stock} onChange={handleChange} placeholder="e.g. 25" required className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Stock Status</label>
+              <select name="stock_status" value={form.stock_status} onChange={handleChange} className={inputCls}>
+                <option value="1">In Stock</option>
+                <option value="0">Out of Stock</option>
+              </select>
+            </div>
             <div><label className={labelCls}>MRP (₹)</label><input name="mrp" type="number" step="0.01" value={form.mrp} onChange={handleChange} className={inputCls} /></div>
             <div><label className={labelCls}>Selling Price (₹)</label><input name="selling_price" type="number" step="0.01" value={form.selling_price} onChange={handleChange} className={inputCls} /></div>
             <div>

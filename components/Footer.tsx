@@ -35,7 +35,7 @@ export default function Footer() {
           {/* Logo & Slogan Column */}
           <div className="space-y-4">
             <Link href="/" className="group inline-flex items-center gap-2.5">
-              <Image src="/logo.png" alt="Organic Vatika" width={44} height={44} priority className="object-contain" />
+              <Image src="/logo.png" alt="VegKing" width={130} height={50} priority unoptimized className="h-10 w-auto object-contain" />
             </Link>
             <p className="max-w-sm text-xs sm:text-sm leading-relaxed text-green-100/80 font-medium">
               Fresh, organic, and locally grown vegetables delivered quickly from trusted farms to your kitchen. Healthy living starts here.
@@ -104,10 +104,18 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Footer Sub-bottom copyrights */}
-        <div className="mt-12 flex flex-col gap-3 border-t border-white/15 pt-6 text-[10px] sm:text-xs font-bold text-green-200/50 sm:flex-row sm:items-center sm:justify-between uppercase tracking-widest">
-          <p>© 2026 Organic Vatika. All rights reserved.</p>
-          <p className="text-accent-warm">Farm fresh vegetables, delivered with care.</p>
+        {/* Footer Sub-bottom copyrights & Policies */}
+        <div className="mt-12 flex flex-col gap-3 border-t border-white/15 pt-6 text-[10px] sm:text-xs font-bold text-green-200/60 sm:flex-row sm:items-center sm:justify-between">
+          <p>© 2026 VegKing. All rights reserved.</p>
+          <div className="flex items-center gap-4 flex-wrap">
+            <Link href="/rider-privacy-policy" className="hover:text-white transition underline-offset-4 hover:underline">
+              Rider Privacy Policy
+            </Link>
+            <span>&bull;</span>
+            <Link href="/vendor-privacy-policy" className="hover:text-white transition underline-offset-4 hover:underline">
+              Vendor Privacy Policy
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

@@ -11,10 +11,13 @@ interface Product {
   brand: string;
   mrp: number;
   selling_price: number;
+  stock?: number;
+  bulk_stock?: number;
   stock_status: number;
   vendor_shop_name: string;
   gst: number;
   product_image?: string;
+  quantity?: string;
 }
 
 interface Vendor {
@@ -83,13 +86,19 @@ export default function ProductsPage() {
     },
     { key: 'product_name', label: 'Product Name' },
     {
-      key: 'stock_status',
+      key: 'stock',
       label: 'Stock',
       render: (row: any) => {
-        const count = Number(row.stock !== undefined ? row.stock : (row.stock_status !== undefined ? row.stock_status : 10));
+        const count = typeof row.stock === 'number'
+          ? row.stock
+          : (row.stock !== undefined && row.stock !== null && !isNaN(Number(row.stock)) ? Number(row.stock) : 0);
         return (
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-            count <= 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-extrabold whitespace-nowrap ${
+            count <= 0
+              ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+              : count <= 5
+                ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                : 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
           }`}>
             {count > 0 ? `${count} In Stock` : 'Out of Stock'}
           </span>
@@ -200,19 +209,14 @@ export default function ProductsPage() {
         bulkActions={bulkActions}
         keyExtractor={(row) => row._id}
         loading={loading}
+        pagination={{
+          page,
+          totalPages,
+          total,
+          limit,
+          onPageChange: setPage,
+        }}
       />
-
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-500">Page {page} of {totalPages}</span>
-          <div className="flex gap-2">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40">← Prev</button>
-            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40">Next →</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

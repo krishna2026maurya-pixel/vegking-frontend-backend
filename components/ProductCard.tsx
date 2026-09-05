@@ -107,10 +107,8 @@ export default function ProductCard({ product }: { product: any }) {
     ? product.stock
     : (product?.stock !== undefined && product?.stock !== null && !isNaN(Number(product.stock)))
       ? Number(product.stock)
-      : (product?.stock_status === 1 || product?.stock_status === '1' ? 10 : 10);
-  const inStock = product?.inStock === false && Number(product?.stock) === 0 && Number(product?.stock_status) === 0
-    ? false
-    : true;
+      : 0;
+  const inStock = stockCount > 0 && product?.stock_status !== 0 && product?.stock_status !== '0';
 
   // Cart quantity for this item
   const cartItem = cart?.find((c: any) => (c.cartId || c._id) === product?._id);
@@ -279,10 +277,17 @@ export default function ProductCard({ product }: { product: any }) {
         {/* Content Section below image */}
         <div className="flex flex-col flex-1 mt-1 px-0.5 justify-between">
           <div>
-            {/* Weight/Unit */}
-            <span className="text-gray-400 text-[10px] font-semibold block truncate">
-              {qty}
-            </span>
+            {/* Weight/Unit & Stock Badge */}
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-gray-400 text-[10px] font-semibold truncate">
+                {qty}
+              </span>
+              {stockCount > 0 && (
+                <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded shrink-0">
+                  {stockCount} in stock
+                </span>
+              )}
+            </div>
 
             {/* Product Name */}
             <Link
@@ -494,10 +499,21 @@ export default function ProductCard({ product }: { product: any }) {
                 />
               </Link>
 
-              {/* Delivery Time Pill */}
-              <div className="mt-1.5 flex items-center gap-1 bg-gray-100/90 text-gray-600 text-[11px] font-bold px-1.5 py-0.5 rounded w-fit">
-                <Clock className="w-3 h-3 text-gray-500" strokeWidth={2.5} />
-                <span>8 MINS</span>
+              {/* Delivery Time & Live Stock Pill */}
+              <div className="mt-1.5 flex items-center justify-between gap-1 w-full">
+                <div className="flex items-center gap-1 bg-gray-100/90 text-gray-600 text-[11px] font-bold px-1.5 py-0.5 rounded w-fit">
+                  <Clock className="w-3 h-3 text-gray-500" strokeWidth={2.5} />
+                  <span>8 MINS</span>
+                </div>
+                {stockCount > 0 ? (
+                  <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
+                    {stockCount} in stock
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-extrabold text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
+                    Out of stock
+                  </span>
+                )}
               </div>
 
               {/* Product Title */}

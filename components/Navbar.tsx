@@ -272,11 +272,17 @@ export default function Navbar() {
 
             {/* Logo & Location */}
             <div className="flex items-center gap-3">
-              <Link href="/" className="group flex items-center gap-2">
-                <Image src="/logo.png" alt="Organic Vatika" width={55} height={55} priority className="object-contain" />
-                <span className="text-lg sm:text-xl font-extrabold tracking-tight text-text-brand transition-colors duration-200">
-                  Veg<span className="text-[#6b4308] transition-colors duration-200">King</span>
-                </span>
+              <Link href="/" className="group flex items-center gap-2 transition-transform duration-200 hover:scale-[1.02] shrink-0">
+                <Image
+                  src="/logo.png"
+                  alt="VegKing"
+                  width={140}
+                  height={54}
+                  priority
+                  unoptimized
+                  className="h-10 sm:h-12 w-auto object-contain"
+                />
+                <span className="sr-only">VegKing</span>
               </Link>
 
               {/* User Current Location Selector with Shimmer Effect */}
@@ -580,7 +586,7 @@ export default function Navbar() {
                       <div className="h-px bg-gray-100 my-1" />
 
                       <button
-                        onClick={() => signOut()}
+                        onClick={() => signOut({ callbackUrl: '/' })}
                         className="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition cursor-pointer"
                       >
                         <LogOut className="w-3.5 h-3.5" />

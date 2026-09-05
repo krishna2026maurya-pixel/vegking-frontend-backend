@@ -93,11 +93,11 @@ export default function ProductDetailPage() {
           discount: item.mrp && item.selling_price ? Math.round(((item.mrp - item.selling_price) / item.mrp) * 100) : 0,
           image: item.product_image || (Array.isArray(item.images) ? item.images[0] : '') || fallbackImage,
           description: item.product_description || item.description || 'Fresh farm produce sourced directly from local growers.',
-          stock: (item.stock_status !== undefined && item.stock_status !== null && !isNaN(Number(item.stock_status)))
-            ? Number(item.stock_status)
-            : (item.stock !== undefined && item.stock !== null && !isNaN(Number(item.stock))
-              ? Number(item.stock)
-              : (item.stock_status === 'in_stock' ? 99 : 0)),
+          stock: (item.stock !== undefined && item.stock !== null && !isNaN(Number(item.stock)))
+            ? Number(item.stock)
+            : (item.stock_status === 0 || item.stock_status === '0' || item.stock_status === 'out_of_stock')
+              ? 0
+              : 10,
           quantity: item.quantity || '1 kg',
           category: item.category || 'Fresh Produce',
           vendor_id: vId,
@@ -391,7 +391,7 @@ export default function ProductDetailPage() {
             <div className="flex items-center gap-3">
               <span className="font-bold text-gray-700 w-20 sm:w-24">Availability:</span>
               <span className={`font-bold ${inStock ? 'text-green-600' : 'text-red-600'}`}>
-                {inStock ? '● In Stock (Farm Fresh)' : '● Out of Stock'}
+                {inStock ? `● In Stock (${product.stock} units available)` : '● Out of Stock'}
               </span>
             </div>
           </div>

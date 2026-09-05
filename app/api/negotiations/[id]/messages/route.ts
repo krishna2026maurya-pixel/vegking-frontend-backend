@@ -31,6 +31,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ success: false, error: 'Bulk quantity must be at least 5 kg' }, { status: 400 });
     }
 
+    if (qty) {
+      const Product = (await import('@/lib/models/Product')).default;
+      const prod = await Product.findById(session.product_id).lean() as any;
+      const maxStock = Number(prod?.bulk_stock ?? prod?.stock ?? 0);
+      if (maxStock > 0 && qty > maxStock) {
+        return NextResponse.json({
+          success: false,
+          error: `You cannot order more than the product stock limit (${maxStock} kg available)`
+        }, { status: 400 });
+      }
+    }
+
     const msgDoc = await NegotiationMessage.create({
       session_id: id,
       sender_id,

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import DataTable, { Column, Action, BulkAction } from '../components/DataTable';
-import { Eye, Trash2, CheckCircle, XCircle, Plus, UserCheck } from 'lucide-react';
+import { Eye, Trash2, CheckCircle, XCircle, Plus, UserCheck, Bike } from 'lucide-react';
 import Link from 'next/link';
 
 interface DeliveryBoy {
@@ -25,6 +25,7 @@ export default function DeliveryBoysPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline' | 'unverified'>('all');
   const [error, setError] = useState('');
   const limit = 10;
 
@@ -33,6 +34,10 @@ export default function DeliveryBoysPage() {
     setError('');
     try {
       const params = new URLSearchParams({ page: String(page), limit: String(limit), search });
+      if (statusFilter === 'online') params.set('is_active', '1');
+      if (statusFilter === 'offline') params.set('is_active', '0');
+      if (statusFilter === 'unverified') params.set('is_verified', '0');
+
       const res = await fetch(`/api/delivery-boys?${params}`);
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const json = await res.json();
@@ -44,7 +49,7 @@ export default function DeliveryBoysPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search]);
+  }, [page, search, statusFilter]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -55,6 +60,18 @@ export default function DeliveryBoysPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_verified: newVal }),
+      });
+      fetchData();
+    } catch (e: any) { alert(e.message); }
+  };
+
+  const toggleActive = async (boy: DeliveryBoy) => {
+    try {
+      const newVal = boy.is_active === '1' ? '0' : '1';
+      await fetch(`/api/delivery-boys/${boy._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: newVal }),
       });
       fetchData();
     } catch (e: any) { alert(e.message); }
@@ -86,10 +103,18 @@ export default function DeliveryBoysPage() {
     },
     {
       key: 'is_active',
-      label: 'Active',
-      render: (row) => row.is_active === '1'
-        ? <CheckCircle size={18} className="text-green-500" />
-        : <XCircle size={18} className="text-red-400" />
+      label: 'Status (Online/Offline)',
+      render: (row) => (
+        <button
+          type="button"
+          onClick={() => toggleActive(row)}
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black transition cursor-pointer border ${row.is_active === '1' ? 'bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300 border-green-200 hover:bg-green-200' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 border-gray-200 hover:bg-gray-200'}`}
+          title="Click to toggle Online/Offline"
+        >
+          <span className={`w-2 h-2 rounded-full shrink-0 ${row.is_active === '1' ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+          {row.is_active === '1' ? 'Online' : 'Offline'}
+        </button>
+      )
     },
     {
       key: 'is_verified',
@@ -102,6 +127,7 @@ export default function DeliveryBoysPage() {
 
   const actions: Action<DeliveryBoy>[] = [
     { label: 'View', icon: <Eye size={15} />, onClick: (row) => window.open(`/admin/delivery-boys/${row._id}`, '_blank'), color: 'default' },
+    { label: 'Toggle Status', icon: <Bike size={15} />, onClick: toggleActive, color: 'primary' },
     { label: 'Toggle Verify', icon: <UserCheck size={15} />, onClick: toggleVerify, color: 'success' },
     {
       label: 'Delete', icon: <Trash2 size={15} />, color: 'danger',
@@ -144,14 +170,34 @@ export default function DeliveryBoysPage() {
         </div>
       )}
 
-      <div className="flex gap-2">
-        <input
-          type="text"
-          placeholder="Search by name, mobile..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="px-4 py-2 border border-gray-300 rounded-lg text-sm w-72 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-        />
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Search by name, mobile..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm w-72 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          />
+        </div>
+
+        {/* Filter Tabs for Online/Offline/Verified */}
+        <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl border border-gray-200 dark:border-gray-700 flex-wrap">
+          {(['all', 'online', 'offline', 'unverified'] as const).map((filterKey) => {
+            const labels = { all: 'All Riders', online: '🟢 Online', offline: '⚪ Offline', unverified: '🟡 Unverified' };
+            const isActive = statusFilter === filterKey;
+            return (
+              <button
+                key={filterKey}
+                type="button"
+                onClick={() => { setStatusFilter(filterKey); setPage(1); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${isActive ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-xs' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
+              >
+                {labels[filterKey]}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <DataTable

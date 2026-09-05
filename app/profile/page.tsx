@@ -165,7 +165,7 @@ export default function ProfilePage() {
           </div>
           
           <button
-            onClick={() => signOut()}
+            onClick={() => signOut({ callbackUrl: '/' })}
             className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-bold text-red-600 transition-all hover:bg-red-50 hover:border-red-100 cursor-pointer self-start sm:self-auto"
           >
             <LogOut className="h-4 w-4" />

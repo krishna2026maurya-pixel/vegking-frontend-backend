@@ -44,9 +44,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       body.vendor_shop_name = '';
     }
 
-    // Ensure stock_status is numeric if provided
+    // Ensure stock and stock_status are numeric if provided
+    if (body.stock !== undefined) {
+      body.stock = Number(body.stock) || 0;
+    }
     if (body.stock_status !== undefined) {
-      body.stock_status = Number(body.stock_status) || 0;
+      body.stock_status = Number(body.stock_status) || (body.stock > 0 ? 1 : 0);
     }
 
     // Bulk fields normalization (min 5 kg enforced)

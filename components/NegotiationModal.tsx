@@ -176,6 +176,12 @@ export default function NegotiationModal({ isOpen, onClose, product }: Negotiati
       return;
     }
 
+    const maxStock = Number((product as any)?.bulk_stock ?? (product as any)?.stock ?? 999999);
+    if (targetQty > maxStock) {
+      setError(`You cannot order more than the product stock limit (${maxStock} ${bulkUnit} available).`);
+      return;
+    }
+
     if (!targetPrice || Number(targetPrice) <= 0) {
       setError('Please enter a valid target price');
       return;
@@ -440,9 +446,19 @@ export default function NegotiationModal({ isOpen, onClose, product }: Negotiati
                       <input
                         type="number"
                         min={5}
+                        max={Number((product as any)?.bulk_stock ?? (product as any)?.stock ?? 999999)}
                         step={1}
                         value={targetQty}
-                        onChange={(e) => setTargetQty(Math.max(5, Number(e.target.value)))}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          const limit = Number((product as any)?.bulk_stock ?? (product as any)?.stock ?? 999999);
+                          if (val > limit) {
+                            setError(`You cannot order more than the product stock limit (${limit} ${bulkUnit} available).`);
+                          } else {
+                            setError('');
+                          }
+                          setTargetQty(val);
+                        }}
                         required
                         className="w-full h-11 px-3 border border-gray-700 rounded-xl text-sm font-black bg-[#0e1726] text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
@@ -451,13 +467,16 @@ export default function NegotiationModal({ isOpen, onClose, product }: Negotiati
                       </span>
                     </div>
 
-                    {/* Quick Quantity Chips (All strictly >= 5) */}
+                    {/* Quick Quantity Chips (Filtered to stock limit) */}
                     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      {[5, 10, 20, 50, 100].map((qtyVal) => (
+                      {[5, 10, 20, 50, 100].filter(q => q <= Number((product as any)?.bulk_stock ?? (product as any)?.stock ?? 999999)).map((qtyVal) => (
                         <button
                           key={qtyVal}
                           type="button"
-                          onClick={() => setTargetQty(qtyVal)}
+                          onClick={() => {
+                            setError('');
+                            setTargetQty(qtyVal);
+                          }}
                           className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition cursor-pointer border ${
                             targetQty === qtyVal
                               ? 'bg-emerald-600 text-white border-emerald-500'

@@ -137,6 +137,11 @@ export const authOptions: AuthOptions = {
         (session.user as any).mobile_no = token.mobile_no;
       }
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      else if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
     }
   },
   pages: {

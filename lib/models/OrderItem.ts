@@ -10,6 +10,8 @@ const OrderItemSchema = new Schema({
   is_bulk_deal: { type: Boolean, default: false },
   negotiation_id: { type: Schema.Types.ObjectId, ref: 'NegotiationSession' },
   unit:         { type: String, default: 'kg' },
+  delivery_boy_id: { type: Schema.Types.ObjectId, ref: 'DeliveryBoy', default: null },
+  item_status:  { type: String, default: 'Pending' },
 }, { timestamps: true });
 
 // Delete cached model so schema changes are picked up on hot-reload

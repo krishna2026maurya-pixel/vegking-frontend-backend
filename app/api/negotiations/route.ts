@@ -78,6 +78,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 });
     }
 
+    const maxStock = Number(product.bulk_stock ?? product.stock ?? 0);
+    if (maxStock > 0 && qty > maxStock) {
+      return NextResponse.json({
+        success: false,
+        error: `You cannot order more than the product stock limit (${maxStock} kg available)`
+      }, { status: 400 });
+    }
+
     if (!product.vendor_id) {
       return NextResponse.json({ success: false, error: 'This product is not linked to any vendor' }, { status: 400 });
     }

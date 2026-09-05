@@ -8,10 +8,25 @@ import {
   ShoppingBag, Package, Truck, CheckCircle2, XCircle,
   ChevronRight, Clock, MapPin, CreditCard, Receipt,
   ArrowLeft, RefreshCw, Loader2, AlertCircle, Box,
-  ClipboardList, ShieldCheck, Scale, Sparkles, X, Store
+  ClipboardList, ShieldCheck, Scale, Sparkles, X, Store,
+  PhoneCall, Bike, Copy, Check, HelpCircle
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+interface RiderInfo {
+  _id?: string;
+  name?: string;
+  full_name?: string;
+  phone?: string;
+  mobile?: string;
+  mobile_no?: string;
+  mobile_number?: string;
+  vehicle_type?: string;
+  vehicle_number?: string;
+  profile_image?: string;
+  is_active?: string | number;
+}
+
 interface OrderItem {
   _id: string;
   product_name: string;
@@ -21,6 +36,7 @@ interface OrderItem {
   is_bulk_deal?: boolean;
   deal_token?: string;
   negotiation_id?: string;
+  delivery_boy_id?: RiderInfo | null;
 }
 
 interface Order {
@@ -33,7 +49,10 @@ interface Order {
   delivery_charge?: number;
   shippingAddress: string;
   createdAt: string;
+  updatedAt?: string;
+  statusHistory?: { status: string; updatedAt: string }[];
   estimated_delivery?: string;
+  delivery_boy_id?: RiderInfo | null;
   populatedItems?: OrderItem[];
   items?: any[];
 }
@@ -119,6 +138,7 @@ function isBulkOrder(order: Order): boolean {
 
 // ─── Compact Vertical Order Detail Modal ──────────────────────────────────────
 function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
   const cfg = STATUS_CONFIG[order.orderStatus] || STATUS_CONFIG['Order Placed'];
   const currentStep = cfg.step;
   const isCancelled = order.orderStatus === 'Cancelled';
@@ -134,7 +154,7 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 
   // Delivery charge calculation:
   // Free delivery if items subtotal is >= 199; otherwise standard ₹40 delivery charge
-  const isFreeDelivery = itemsSubtotal >= 199;
+  const isFreeDelivery = itemsSubtotal >= 199 || Number(order.total_amount || 0) >= 199 || order.delivery_charge === 0;
   const deliveryCharge = order.delivery_charge !== undefined && order.delivery_charge !== null
     ? Number(order.delivery_charge)
     : (order.total_amount && itemsSubtotal > 0 && order.total_amount > itemsSubtotal)
@@ -143,107 +163,209 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 
   const calculatedTotal = itemsSubtotal > 0 ? (itemsSubtotal + (isFreeDelivery ? 0 : deliveryCharge)) : (order.total_amount || 0);
 
+  // Single rider information for the order
+  const anyRider = order.delivery_boy_id || items.find((it) => it.delivery_boy_id)?.delivery_boy_id;
+  const riderName = typeof anyRider === 'object' ? (anyRider?.name || anyRider?.full_name) : undefined;
+  const riderPhone = typeof anyRider === 'object' 
+    ? (anyRider?.mobile || anyRider?.phone || anyRider?.mobile_number || anyRider?.mobile_no) 
+    : undefined;
+  const riderVehicle = typeof anyRider === 'object' ? anyRider?.vehicle_type : undefined;
+  const riderVehicleNo = typeof anyRider === 'object' ? anyRider?.vehicle_number : undefined;
+
+  const outForDeliveryStep = order.statusHistory?.find((s: any) => s.status === 'Out for Delivery');
+  const assignedTime = outForDeliveryStep?.updatedAt 
+    ? `${formatDate(outForDeliveryStep.updatedAt)} at ${formatTime(outForDeliveryStep.updatedAt)}`
+    : order.updatedAt 
+    ? `${formatDate(order.updatedAt)} at ${formatTime(order.updatedAt)}`
+    : `${formatDate(order.createdAt)} at ${formatTime(order.createdAt)}`;
+
+  const isOutForDelivery = order.orderStatus === 'Out for Delivery' || order.orderStatus === 'Delivered';
+
+  const handleCopyOrderId = () => {
+    if (order.order_number) {
+      navigator.clipboard.writeText(order.order_number);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 bg-black/65 backdrop-blur-xs animate-fadeIn overflow-y-auto"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-md overflow-hidden border border-gray-100 animate-scaleUp max-h-[92vh] flex flex-col my-auto">
+      {/* Horizontal Page-Style Modal Container */}
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl lg:max-w-5xl overflow-hidden border border-gray-150 animate-scaleUp my-auto sm:my-6 flex flex-col shrink-0">
         
-        {/* Compact Vertical-First Header */}
-        <div className="px-3.5 py-3 bg-gradient-to-r from-gray-50 via-white to-gray-50 border-b border-gray-100 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
-              <Package className="w-3.5 h-3.5" />
+        {/* Modal Header */}
+        <div className="px-5 py-4 bg-gradient-to-r from-emerald-50/50 via-white to-gray-50/50 border-b border-gray-150 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Package className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h2 className="text-xs sm:text-sm font-black text-gray-950 truncate">{order.order_number}</h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base sm:text-lg font-black text-gray-950 tracking-tight">{order.order_number}</h2>
+                <button
+                  onClick={handleCopyOrderId}
+                  className="p-1 rounded-md text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer flex items-center gap-1 text-[11px] font-bold"
+                  title="Copy Order ID"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="text-emerald-700 font-extrabold">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
                 {hasBulk && (
-                  <span className="bg-amber-400 text-gray-950 text-[9px] font-black px-1.5 py-0.2 rounded uppercase">
-                    🌾 Bulk Deal
+                  <span className="bg-amber-400 text-gray-950 text-[9px] font-black px-2 py-0.5 rounded-full uppercase shadow-2xs">
+                    🌾 Wholesale Deal
                   </span>
                 )}
               </div>
-              <p className="text-[10px] text-gray-400 font-medium">
-                {formatDate(order.createdAt)} at {formatTime(order.createdAt)}
+              <p className="text-[11px] text-gray-500 font-medium">
+                Ordered on {formatDate(order.createdAt)} at {formatTime(order.createdAt)}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black border ${cfg.color} ${cfg.bg}`}>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border shadow-2xs ${cfg.color} ${cfg.bg}`}>
               {cfg.icon}
               <span>{cfg.label}</span>
             </span>
             <button
               onClick={onClose}
-              className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 flex items-center justify-center transition cursor-pointer"
+              className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition shrink-0 cursor-pointer"
+              title="Close modal"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Modal Body (Compact Vertical Flow) */}
-        <div className="p-3 sm:p-3.5 space-y-2.5 overflow-y-auto max-h-[calc(92vh-60px)]">
+        {/* Modal Body */}
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 max-h-[calc(90vh-75px)]">
           
-          {/* Vertical Progress Stepper (Compact & Clean) */}
+          {/* Top Live Order Status Hero Banner (Like Blinkit/Swiggy/Amazon) */}
           {!isCancelled ? (
-            <div className="bg-gray-50/90 rounded-2xl p-2.5 sm:p-3 border border-gray-100">
-              <div className="flex items-center justify-between mb-2 px-0.5">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
-                  Tracking Progress
+            <div className="bg-gradient-to-r from-emerald-50 via-teal-50/50 to-emerald-50 border border-emerald-200/90 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="relative flex items-center justify-center shrink-0">
+                  {order.orderStatus === 'Out for Delivery' && (
+                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+                  )}
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                    {order.orderStatus === 'Out for Delivery' ? (
+                      <Truck className="w-5 h-5 animate-pulse" />
+                    ) : order.orderStatus === 'Delivered' ? (
+                      <CheckCircle2 className="w-5 h-5" />
+                    ) : (
+                      <Clock className="w-5 h-5" />
+                    )}
+                  </div>
+                </div>
+
+                <div className="min-w-0">
+                  <h3 className="text-sm sm:text-base font-black text-gray-950">
+                    {order.orderStatus === 'Out for Delivery'
+                      ? 'Out for Delivery — On the Way!'
+                      : order.orderStatus === 'Delivered'
+                      ? 'Order Delivered Successfully'
+                      : order.orderStatus === 'Packing'
+                      ? 'Packaging Fresh Produce at Warehouse'
+                      : order.orderStatus === 'Order Confirmed'
+                      ? 'Order Confirmed & Preparing for Dispatch'
+                      : 'Order Placed — Processing Your Fresh Veggies'}
+                  </h3>
+                  <p className="text-xs text-gray-600 font-medium mt-0.5 leading-snug">
+                    {order.orderStatus === 'Out for Delivery'
+                      ? 'Your delivery partner has picked up your produce and is on the way.'
+                      : order.orderStatus === 'Delivered'
+                      ? 'Enjoy your farm fresh produce. Rate your experience anytime.'
+                      : 'Quality inspected farm produce packed with care.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                <span className="text-xs font-black text-emerald-800 bg-white/90 border border-emerald-200 px-3 py-1.5 rounded-xl shadow-2xs flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{order.orderStatus === 'Delivered' ? 'Completed' : 'Expected Today'}</span>
                 </span>
-                <span className="text-[10px] font-bold text-emerald-700">
-                  Step {Math.max(1, currentStep + 1)} of {TRACK_STEPS.length}
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-xs font-bold flex items-center gap-2.5">
+              <XCircle className="w-5 h-5 text-red-500 shrink-0" />
+              <div>
+                <strong className="block text-sm">Order Cancelled</strong>
+                <span className="text-gray-600 font-normal">This order has been cancelled and is no longer being processed.</span>
+              </div>
+            </div>
+          )}
+
+          {/* Stepper Tracker Card */}
+          {!isCancelled && (
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-150 shadow-2xs">
+              <div className="flex items-center justify-between mb-3 px-1">
+                <span className="text-[11px] font-black uppercase tracking-wider text-gray-400">
+                  Order Delivery Tracking
+                </span>
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  Step {Math.max(1, currentStep + 1)} of {TRACK_STEPS.length} ({cfg.label})
                 </span>
               </div>
 
-              <div className="space-y-0 relative pl-0.5">
-                {TRACK_STEPS.map((step, idx) => {
-                  const done = currentStep >= idx;
-                  const active = currentStep === idx;
-                  const isLast = idx === TRACK_STEPS.length - 1;
-                  const StepIcon = step.icon;
+              <div className="relative pt-1 pb-1">
+                <div className="absolute top-[16px] left-[10%] right-[10%] h-1.5 bg-gray-100 rounded-full -z-0">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-700 shadow-xs"
+                    style={{
+                      width: `${Math.min(100, Math.max(0, (currentStep / (TRACK_STEPS.length - 1)) * 100))}%`,
+                    }}
+                  />
+                </div>
 
-                  return (
-                    <div key={step.key} className="flex items-start gap-2.5 relative">
-                      {/* Column with Circle and Vertical Line */}
-                      <div className="flex flex-col items-center">
+                <div className="grid grid-cols-5 gap-1 relative z-10">
+                  {TRACK_STEPS.map((step, idx) => {
+                    const done = currentStep >= idx;
+                    const active = currentStep === idx;
+                    const StepIcon = step.icon;
+
+                    return (
+                      <div key={step.key} className="flex flex-col items-center text-center">
                         <div
-                          className={`w-5 h-5 rounded-full flex items-center justify-center transition-all shadow-2xs z-10 shrink-0 ${
+                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-xs shrink-0 ${
                             active
-                              ? 'bg-emerald-600 text-white ring-2 ring-emerald-300 ring-offset-1 scale-105'
+                              ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 scale-105 shadow-emerald-200'
                               : done
-                              ? 'bg-emerald-500 text-white'
-                              : 'bg-white border border-gray-300 text-gray-300'
+                              ? 'bg-emerald-500 text-white shadow-xs'
+                              : 'bg-white border-2 border-gray-200 text-gray-400'
                           }`}
                         >
                           {done ? (
-                            <CheckCircle2 className="w-3 h-3" />
+                            <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
                           ) : (
-                            <StepIcon className="w-2.5 h-2.5" />
+                            <StepIcon className="w-3.5 h-3.5" />
                           )}
                         </div>
 
-                        {!isLast && (
-                          <div
-                            className={`w-0.5 h-3.5 transition-colors my-0.5 ${
-                              currentStep > idx ? 'bg-emerald-500' : 'bg-gray-200'
-                            }`}
-                          />
-                        )}
-                      </div>
-
-                      {/* Step Name & Status */}
-                      <div className="flex items-center justify-between flex-1 min-w-0 pt-0.5 pb-1">
                         <span
-                          className={`text-xs tracking-tight ${
+                          className={`text-[10px] sm:text-[11px] mt-1.5 font-bold tracking-tight block leading-tight ${
                             active
-                              ? 'text-emerald-700 font-extrabold'
+                              ? 'text-emerald-700 font-black'
                               : done
-                              ? 'text-gray-800 font-bold'
+                              ? 'text-gray-900'
                               : 'text-gray-400 font-medium'
                           }`}
                         >
@@ -251,176 +373,303 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
                         </span>
 
                         {active && (
-                          <span className="text-[9px] font-black text-emerald-700 bg-emerald-100/90 px-1.5 py-0.2 rounded-full uppercase">
+                          <span className="text-[8px] font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded uppercase mt-0.5">
                             Current
                           </span>
                         )}
-                        {done && !active && (
-                          <span className="text-[9px] text-gray-400 font-semibold">
-                            Done
-                          </span>
-                        )}
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-bold flex items-center gap-2">
-              <XCircle className="w-4 h-4 text-red-500" />
-              <span>This order was cancelled.</span>
             </div>
           )}
 
-          {/* Compact Items List */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-[11px] font-extrabold text-gray-500 uppercase tracking-wider px-0.5">
-              <span>Items ({items.length})</span>
-              <span>Subtotal</span>
+          {/* 2-Column Dashboard Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            
+            {/* Left Column: Items & Delivery Address */}
+            <div className="lg:col-span-7 space-y-4">
+              {/* Items in this Order */}
+              <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-2xs">
+                <div className="pb-3 border-b border-gray-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-emerald-600" />
+                    <h3 className="text-xs font-black uppercase tracking-wider text-gray-900">
+                      Items in this Order ({items.length})
+                    </h3>
+                  </div>
+                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-200">
+                    Verified Produce
+                  </span>
+                </div>
+
+                <div className="divide-y divide-gray-100 mt-2 max-h-72 overflow-y-auto pr-1">
+                  {items.map((item) => {
+                    const isItemBulk = item.is_bulk_deal || item.product_name?.includes('(Bulk Wholesale)');
+                    const itemTotal = Number(item.price * item.qty).toFixed(2);
+
+                    return (
+                      <div key={item._id} className="py-3 first:pt-2 last:pb-1">
+                        <div className="flex items-center gap-3">
+                          {item.image && typeof item.image === 'string' && item.image.trim() !== '' ? (
+                            <img
+                              src={item.image}
+                              alt={item.product_name || 'Product'}
+                              className="w-14 h-14 rounded-xl object-cover bg-gray-50 border border-gray-200 shrink-0 shadow-2xs"
+                            />
+                          ) : (
+                            <div className="w-14 h-14 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
+                              <Package className="w-6 h-6 text-emerald-600" />
+                            </div>
+                          )}
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <h4 className="font-black text-gray-950 text-sm leading-tight truncate">
+                                  {item.product_name}
+                                </h4>
+                                {isItemBulk && (
+                                  <span className="inline-block mt-0.5 text-[9px] font-black text-amber-800 bg-amber-100 px-1.5 py-0.2 rounded uppercase">
+                                    🌾 Wholesale Deal
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-right shrink-0">
+                                <span className="text-sm font-black text-gray-950">
+                                  ₹{itemTotal}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="mt-1.5 flex items-center justify-between text-xs">
+                              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-700 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-200">
+                                <span>{item.qty} {isItemBulk ? 'kg' : 'units'}</span>
+                                <span className="text-gray-400 font-normal">×</span>
+                                <span>₹{item.price}</span>
+                              </span>
+
+                              {item.deal_token && (
+                                <span className="font-mono font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md text-[10px]">
+                                  Deal: {item.deal_token}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Delivery Address Card */}
+              {order.shippingAddress && (
+                <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-2xs">
+                  <div className="flex items-start gap-3 text-xs">
+                    <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-700 shrink-0 mt-0.5 border border-emerald-100">
+                      <MapPin className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 block">
+                          Delivery Destination
+                        </span>
+                        <span className="text-[10px] text-gray-500 font-bold bg-gray-100 px-2 py-0.5 rounded-md">
+                          Verified Address
+                        </span>
+                      </div>
+                      <p className="text-gray-950 font-bold text-xs leading-relaxed mt-1 break-words">
+                        {order.shippingAddress}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="space-y-1.5 max-h-36 overflow-y-auto pr-0.5">
-              {items.map((item) => {
-                const isItemBulk = item.is_bulk_deal || item.product_name?.includes('(Bulk Wholesale)');
+            {/* Right Column: Delivery Partner & Bill Summary */}
+            <div className="lg:col-span-5 space-y-4">
+              
+              {/* Delivery Partner Card */}
+              {isOutForDelivery && riderName ? (
+                <div className="bg-gradient-to-br from-emerald-50 via-white to-teal-50/40 border border-emerald-200 rounded-2xl p-4 space-y-3 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-emerald-950 font-black text-xs uppercase tracking-wider">
+                      <Truck className="w-4 h-4 text-emerald-600" />
+                      <span>Delivery Partner</span>
+                    </div>
+                    <span className="text-[9px] font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full uppercase border border-emerald-200">
+                      On The Way
+                    </span>
+                  </div>
 
-                return (
-                  <div
-                    key={item._id}
-                    className={`flex items-center justify-between gap-2 p-2 rounded-xl border text-xs ${
-                      isItemBulk ? 'bg-emerald-50/50 border-emerald-200' : 'bg-gray-50/70 border-gray-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      {item.image && typeof item.image === 'string' && item.image.trim() !== '' ? (
-                        <img
-                          src={item.image}
-                          alt={item.product_name || 'Product'}
-                          className="w-7 h-7 rounded-lg object-cover bg-white border border-gray-200 shrink-0"
-                        />
-                      ) : (
-                        <div className="w-7 h-7 rounded-lg bg-emerald-100/60 flex items-center justify-center shrink-0">
-                          <Package className="w-3.5 h-3.5 text-emerald-700" />
+                  <div className="flex items-center justify-between gap-3 bg-white p-3 rounded-xl border border-emerald-100 shadow-2xs">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="relative">
+                        <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-base shrink-0 shadow-xs">
+                          {riderName.charAt(0).toUpperCase()}
                         </div>
-                      )}
+                        <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></span>
+                      </div>
+
                       <div className="min-w-0">
-                        <p className="font-extrabold text-gray-950 text-xs truncate">
-                          {item.product_name}
-                        </p>
-                        <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                          <span>{item.qty} {isItemBulk ? 'kg' : 'units'} @ ₹{item.price}</span>
-                          {item.deal_token && (
-                            <span className="font-mono font-bold text-amber-700 bg-amber-100/80 px-1 rounded text-[9px]">
-                              {item.deal_token}
-                            </span>
-                          )}
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="font-black text-gray-950 text-sm truncate">
+                            {riderName}
+                          </h4>
+                          <span className="text-[10px] text-amber-600 font-black flex items-center">
+                            ★ 4.9
+                          </span>
+                        </div>
+                        {riderPhone && (
+                          <p className="text-xs text-gray-500 font-bold truncate">
+                            {riderPhone}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
+                            <Bike className="w-3 h-3 text-emerald-600" />
+                            <span>{riderVehicle || 'Delivery Bike'}</span>
+                            {riderVehicleNo && <span className="text-emerald-950 font-black">({riderVehicleNo})</span>}
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200/50">
+                            <Clock className="w-3 h-3 text-gray-400" />
+                            <span>Assigned: {assignedTime}</span>
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    <strong className="font-black text-gray-900 shrink-0 text-xs sm:text-sm">
-                      ₹{(item.price * item.qty).toFixed(2)}
-                    </strong>
+                    {riderPhone && (
+                      <a
+                        href={`tel:${riderPhone}`}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-black transition shadow-xs cursor-pointer shrink-0"
+                        title={`Call ${riderName}`}
+                      >
+                        <PhoneCall className="w-3.5 h-3.5" />
+                        <span>Call</span>
+                      </a>
+                    )}
                   </div>
-                );
-              })}
-            </div>
-          </div>
 
-          {/* Vertical Bill Breakdown with Delivery Charges (Below ₹199 vs Free Above ₹199) */}
-          <div className="bg-gray-50/90 rounded-2xl p-3 border border-gray-100 space-y-2 text-xs">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 block">
-              Bill Summary
-            </span>
-
-            <div className="space-y-1.5">
-              {/* Items Subtotal */}
-              <div className="flex items-center justify-between text-gray-600">
-                <span>Items Subtotal ({items.length})</span>
-                <span className="font-bold text-gray-900">₹{itemsSubtotal.toFixed(2)}</span>
-              </div>
-
-              {/* Delivery Charges */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-gray-600">Delivery Charges</span>
-                  {isFreeDelivery ? (
-                    <span className="text-[9px] font-black uppercase text-emerald-700 bg-emerald-100/90 px-1.5 py-0.2 rounded">
-                      Free (Above ₹199)
-                    </span>
-                  ) : (
-                    <span className="text-[9px] font-semibold text-gray-500 bg-gray-200/80 px-1.5 py-0.2 rounded">
-                      Below ₹199
-                    </span>
-                  )}
-                </div>
-
-                <div>
-                  {isFreeDelivery ? (
-                    <div className="text-right flex items-center gap-1">
-                      <span className="line-through text-gray-400 text-[10px]">₹40.00</span>
-                      <strong className="text-emerald-600 font-black">FREE</strong>
-                    </div>
-                  ) : (
-                    <strong className="text-gray-900 font-bold">
-                      ₹{deliveryCharge.toFixed(2)}
-                    </strong>
-                  )}
-                </div>
-              </div>
-
-              {/* Delivery info notice */}
-              {isFreeDelivery ? (
-                <div className="text-[10px] text-emerald-800 font-medium bg-emerald-50 rounded-lg px-2 py-1 border border-emerald-200/60 flex items-center gap-1">
-                  <span>🎉</span>
-                  <span>Free delivery applied! Your order is ₹199 or above.</span>
+                  <div className="flex items-center gap-1.5 text-[10px] text-gray-500 font-medium px-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Vaccinated & verified delivery partner • Contactless delivery</span>
+                  </div>
                 </div>
               ) : (
-                <div className="text-[10px] text-amber-800 font-medium bg-amber-50 rounded-lg px-2 py-1 border border-amber-200/60">
-                  Delivery charges ₹{deliveryCharge.toFixed(2)} applied for orders below ₹199. Free delivery on orders ₹199+.
+                <div className="bg-gray-50/90 rounded-2xl p-4 border border-gray-150 flex items-center gap-3 text-xs text-gray-500">
+                  <div className="p-2.5 rounded-xl bg-white border border-gray-200 shrink-0 text-gray-400 shadow-2xs">
+                    <Clock className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="font-bold text-gray-800 text-xs block">Delivery Partner Assignment</span>
+                    <p className="text-[11px] text-gray-500 leading-tight mt-0.5">
+                      A dedicated rider will be assigned and live contact details will appear here once the order is <strong>Out for Delivery</strong>.
+                    </p>
+                  </div>
                 </div>
               )}
 
-              {/* Total Bill */}
-              <div className="border-t border-gray-200/80 pt-1.5 flex items-center justify-between">
-                <div>
-                  <span className="font-black text-gray-950 text-xs sm:text-sm block">Total Bill</span>
-                  <span className="text-[9px] text-gray-400 font-medium">Inclusive of delivery & taxes</span>
+              {/* Bill Details Summary Card */}
+              <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-150 space-y-3 text-xs shadow-2xs">
+                <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
+                  <div className="flex items-center gap-1.5">
+                    <Receipt className="w-4 h-4 text-emerald-600" />
+                    <span className="text-xs font-black uppercase tracking-wider text-gray-900">
+                      Bill Summary
+                    </span>
+                  </div>
+                  <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase border ${
+                    order.payment_status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-800 border-amber-200'
+                  }`}>
+                    {order.payment_status === 'completed' ? 'Paid' : 'Payment: Pending'}
+                  </span>
                 </div>
-                <span className="text-base sm:text-lg font-black text-emerald-700">
-                  ₹{Number(order.total_amount || calculatedTotal).toFixed(2)}
-                </span>
-              </div>
-            </div>
-          </div>
 
-          {/* Vertical Details: Payment & Shipping Address */}
-          <div className="space-y-1.5 text-xs">
-            {/* Payment Method Card */}
-            <div className="p-2.5 bg-gray-50/80 rounded-xl border border-gray-100 flex items-center justify-between">
-              <div>
-                <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block">Payment Method</span>
-                <strong className="font-black text-gray-900">{order.payment_method}</strong>
-              </div>
-              <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${
-                order.payment_status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'
-              }`}>
-                {order.payment_status}
-              </span>
-            </div>
+                <div className="space-y-2.5">
+                  {/* Items Subtotal */}
+                  <div className="flex items-center justify-between text-gray-600">
+                    <span className="font-medium">Item Subtotal</span>
+                    <span className="font-bold text-gray-900">₹{itemsSubtotal.toFixed(2)}</span>
+                  </div>
 
-            {/* Shipping Address Card */}
-            {order.shippingAddress && (
-              <div className="p-2.5 bg-gray-50/80 rounded-xl border border-gray-100 flex items-start gap-2 text-xs">
-                <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block">Deliver To:</span>
-                  <p className="text-gray-800 font-semibold text-[11px] leading-tight break-words">
-                    {order.shippingAddress}
-                  </p>
+                  {/* Delivery Charges with Strikethrough if Free */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-600 font-medium">Delivery Partner Fee</span>
+                      <span className="text-[10px] text-gray-400">(&gt;₹199 free)</span>
+                    </div>
+                    {isFreeDelivery ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-400 line-through">₹40.00</span>
+                        <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                          FREE
+                        </span>
+                      </div>
+                    ) : (
+                      <strong className="text-gray-900 font-bold">
+                        ₹{deliveryCharge.toFixed(2)}
+                      </strong>
+                    )}
+                  </div>
+
+                  {/* Handling Fee */}
+                  <div className="flex items-center justify-between text-gray-600">
+                    <span className="font-medium">Packaging & Handling</span>
+                    <span className="font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 text-xs">
+                      FREE
+                    </span>
+                  </div>
+
+                  {/* Savings Card */}
+                  {isFreeDelivery && (
+                    <div className="text-[10px] text-emerald-800 font-bold bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-2.5 border border-emerald-200 flex items-center gap-2">
+                      <span className="text-sm">🎉</span>
+                      <span>Yay! You saved <strong>₹40.00</strong> on delivery fee with this order.</span>
+                    </div>
+                  )}
+
+                  {/* Payment Method Line */}
+                  <div className="flex items-center justify-between pt-1 text-gray-600">
+                    <span className="font-medium">Payment Mode</span>
+                    <span className="font-black text-gray-900 bg-gray-100 px-2.5 py-0.5 rounded-md">
+                      {order.payment_method === 'COD' ? 'Cash on Delivery (COD)' : order.payment_method}
+                    </span>
+                  </div>
+
+                  {/* Single Final Order Amount */}
+                  <div className="border-t border-gray-200 pt-3 flex items-center justify-between">
+                    <div>
+                      <span className="font-black text-gray-950 text-sm block">Total To Pay</span>
+                      <span className="text-[10px] text-gray-400 font-medium">Single final amount (all taxes incl.)</span>
+                    </div>
+                    <span className="text-xl sm:text-2xl font-black text-emerald-700">
+                      ₹{Number(order.total_amount || calculatedTotal).toFixed(2)}
+                    </span>
+                  </div>
                 </div>
               </div>
-            )}
+
+              {/* Guarantee & Support Card */}
+              <div className="bg-gray-50/80 rounded-2xl p-3 border border-gray-150 flex items-center justify-between text-xs text-gray-500">
+                <div className="flex items-center gap-1.5 text-[11px] font-medium">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>100% Quality & Freshness Guaranteed</span>
+                </div>
+                <a
+                  href="tel:1800123456"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 font-bold transition text-[11px]"
+                >
+                  <HelpCircle className="w-3 h-3 text-emerald-600" />
+                  <span>Support</span>
+                </a>
+              </div>
+
+            </div>
+
           </div>
 
         </div>
@@ -433,9 +682,17 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
   const cfg = STATUS_CONFIG[order.orderStatus] || STATUS_CONFIG['Order Placed'];
   const hasBulk = isBulkOrder(order);
-  const items = order.populatedItems || [];
+  const items = (order.populatedItems && order.populatedItems.length > 0)
+    ? order.populatedItems
+    : (order.items || []);
   const firstItem = items[0];
   const moreCount = items.length > 1 ? items.length - 1 : 0;
+
+  const itemsSubtotal = items.reduce(
+    (acc: number, item: any) => acc + (Number(item.price || 0) * Number(item.qty || item.quantity || 1)),
+    0
+  );
+  const isFreeDelivery = itemsSubtotal >= 199 || Number(order.total_amount || 0) >= 199 || order.delivery_charge === 0;
 
   return (
     <button
@@ -446,7 +703,7 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
     >
       {/* Top row: Order Number + Status */}
       <div className="flex items-center justify-between gap-2 w-full">
-        <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
           <div className={`w-2 h-2 rounded-full ${
             order.orderStatus === 'Delivered' ? 'bg-green-500' :
             order.orderStatus === 'Cancelled' ? 'bg-red-500' :
@@ -457,6 +714,12 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
           {hasBulk && (
             <span className="bg-amber-400 text-gray-950 text-[9px] font-black px-1.5 py-0.2 rounded uppercase shrink-0">
               🌾 Bulk Deal
+            </span>
+          )}
+          {isFreeDelivery && (
+            <span className="bg-emerald-100 text-emerald-800 border border-emerald-200 text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase shrink-0 flex items-center gap-0.5">
+              <span>🎉</span>
+              <span>Free Delivery</span>
             </span>
           )}
         </div>
@@ -494,12 +757,19 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
 
       {/* Bottom row: Total amount & View details arrow */}
       <div className="flex items-center justify-between pt-1.5 border-t border-gray-100 w-full text-xs">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] uppercase font-bold text-gray-400">Total:</span>
-          <strong className="text-xs sm:text-sm font-black text-emerald-800">
-            ₹{Number(order.total_amount || 0).toFixed(2)}
-          </strong>
-          <span className="text-[10px] text-gray-400">({order.payment_method})</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] uppercase font-bold text-gray-400">Total:</span>
+            <strong className="text-xs sm:text-sm font-black text-emerald-800">
+              ₹{Number(order.total_amount || 0).toFixed(2)}
+            </strong>
+            <span className="text-[10px] text-gray-400">({order.payment_method})</span>
+          </div>
+          {isFreeDelivery && (
+            <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">
+              Free Delivery
+            </span>
+          )}
         </div>
 
         <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 group-hover:text-emerald-800">

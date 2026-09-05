@@ -69,9 +69,20 @@ async function handleCart(request: NextRequest, userId: string) {
         }
         new_cart_count = 0;
       } else {
+        const product: any = await Product.findById(product_id).select('selling_price mrp is_active price stock bulk_stock').lean();
+        if (!product) {
+          return NextResponse.json({ success: false, error: 'Product not found.' }, { status: 404 });
+        }
+        const maxStock = typeof product.stock === 'number' ? product.stock : 999999;
+        if (targetQty > maxStock) {
+          return NextResponse.json({
+            success: false,
+            error: `You cannot order more than the product stock limit (${maxStock} available).`
+          }, { status: 400 });
+        }
+
+        const price = product?.selling_price || product?.price || product?.mrp || 0;
         if (idx === -1) {
-          const product: any = await Product.findById(product_id).select('selling_price mrp is_active price').lean();
-          const price = product?.selling_price || product?.price || product?.mrp || 0;
           cart.items.push({ product_id, qty: targetQty, price });
         } else {
           cart.items[idx].qty = targetQty;
@@ -79,12 +90,20 @@ async function handleCart(request: NextRequest, userId: string) {
         new_cart_count = targetQty;
       }
     } else if (status === 'add') {
-      // Validate product exists (only on first add)
+      const product: any = await Product.findById(product_id).select('selling_price mrp is_active price stock bulk_stock').lean();
+      if (!product) {
+        return NextResponse.json({ success: false, error: 'Product not found.' }, { status: 404 });
+      }
+      const maxStock = typeof product.stock === 'number' ? product.stock : 999999;
+      const nextQty = idx === -1 ? 1 : cart.items[idx].qty + 1;
+      if (nextQty > maxStock) {
+        return NextResponse.json({
+          success: false,
+          error: `You cannot order more than the product stock limit (${maxStock} available).`
+        }, { status: 400 });
+      }
+
       if (idx === -1) {
-        const product: any = await Product.findById(product_id).select('selling_price mrp is_active price').lean();
-        if (!product) {
-          return NextResponse.json({ success: false, error: 'Product not found.' }, { status: 404 });
-        }
         const price = product.selling_price || product.price || product.mrp || 0;
         cart.items.push({ product_id, qty: 1, price });
         new_cart_count = 1;

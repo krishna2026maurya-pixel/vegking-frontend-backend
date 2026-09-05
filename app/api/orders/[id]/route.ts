@@ -12,12 +12,28 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params;
   try {
     await connectDB();
-    const order = await Order.findById(id).populate('delivery_boy_id').lean();
+    const order = await Order.findById(id).populate('delivery_boy_id').populate('user_id').lean();
     if (!order) return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
 
-    // Fetch order items separately
-    const items = await OrderItem.find({ order_id: id }).lean();
-    return NextResponse.json({ success: true, data: { ...order, populatedItems: items } });
+    // Fetch order items separately with populated delivery boy
+    const items = await OrderItem.find({ order_id: id }).populate('delivery_boy_id').lean();
+
+    const custName = (order as any).customer_name || (order as any).shippingAddress?.fullName || (order as any).user_id?.name || 'Customer';
+    const custMobile = (order as any).customer_mobile || (order as any).shippingAddress?.phone || (order as any).user_id?.mobile_no || (order as any).user_id?.phone || '';
+    const orderDate = (order as any).createdAt || (order as any).created_at;
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...order,
+        customer_name: custName,
+        customer_mobile: custMobile,
+        createdAt: orderDate,
+        created_at: orderDate,
+        populatedItems: items,
+        items
+      }
+    });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -74,11 +90,41 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       }
     }
 
+    // Handle item-level rider assignment
+    if (body.item_id && body.delivery_boy_id !== undefined) {
+      await OrderItem.findByIdAndUpdate(body.item_id, {
+        delivery_boy_id: body.delivery_boy_id || null,
+        ...(body.item_status ? { item_status: body.item_status } : {})
+      });
+    }
+
+    if (Array.isArray(body.items)) {
+      for (const it of body.items) {
+        const itemId = it._id || it.itemId || it.id;
+        if (itemId && (it.delivery_boy_id !== undefined || it.item_status !== undefined)) {
+          await OrderItem.findByIdAndUpdate(itemId, {
+            ...(it.delivery_boy_id !== undefined ? { delivery_boy_id: it.delivery_boy_id || null } : {}),
+            ...(it.item_status !== undefined ? { item_status: it.item_status } : {})
+          });
+        }
+      }
+    }
+
+    // If order-level delivery_boy_id is assigned, also assign to items that don't have a rider
+    if (body.delivery_boy_id !== undefined && !body.item_id) {
+      await OrderItem.updateMany(
+        { order_id: order._id, $or: [{ delivery_boy_id: null }, { delivery_boy_id: { $exists: false } }] },
+        { delivery_boy_id: body.delivery_boy_id || null }
+      );
+    }
+
     // Apply other updates
     const updateData = { ...body };
     delete updateData.otp;
     delete updateData.isAdmin;
     delete updateData.statusHistory;
+    delete updateData.item_id;
+    delete updateData.items;
     Object.assign(order, updateData);
 
     if (order.orderStatus === 'Delivered') {
@@ -92,7 +138,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       await sendOrderStatusNotification(order, body.orderStatus);
     }
 
-    return NextResponse.json({ success: true, data: order });
+    const populatedOrder = await Order.findById(order._id).populate('delivery_boy_id').lean();
+    const updatedItems = await OrderItem.find({ order_id: order._id }).populate('delivery_boy_id').lean();
+
+    return NextResponse.json({
+      success: true,
+      data: { ...populatedOrder, items: updatedItems, populatedItems: updatedItems }
+    });
   } catch (error: any) {
     console.error(`\x1b[31m[API ERROR] PATCH /api/orders/${id} failed:\x1b[0m`, error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

@@ -39,6 +39,8 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
               quantity: p.cart_count,
               cartQuantity: p.cart_count,
               unit: p.quantity_unit,
+              stock: typeof p.stock === 'number' ? p.stock : (p.stock != null && !isNaN(Number(p.stock)) ? Number(p.stock) : 10),
+              bulk_stock: typeof p.bulk_stock === 'number' ? p.bulk_stock : undefined,
             }));
             setCart(mappedProducts);
             setCartTotal(data.data.pricing?.subtotal || calculateTotal(mappedProducts));
@@ -195,19 +197,37 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     const id = product.cartId || product._id;
     if (!id) return;
 
+    const existingIndex = cart.findIndex((c) => (c.cartId || c._id) === id);
+    const currentQty = existingIndex > -1 ? (cart[existingIndex].cartQuantity || cart[existingIndex].quantity || 1) : 0;
+
+    // Check product stock limit from db
+    const parseStockNumber = (val: any) => {
+      if (typeof val === 'number' && !isNaN(val)) return val;
+      if (val !== undefined && val !== null && val !== '' && !isNaN(Number(val))) return Number(val);
+      return null;
+    };
+    const pStock = parseStockNumber(product.stock);
+    const existingStock = existingIndex > -1 ? parseStockNumber(cart[existingIndex].stock) : null;
+    const availableStock = pStock !== null ? pStock : (existingStock !== null ? existingStock : 999999);
+
+    if (currentQty + 1 > availableStock) {
+      alert(`You cannot order more than the product stock limit (${availableStock} available).`);
+      return;
+    }
+
     const imgUrl = product.image || product.product_image || '';
     triggerFlyToCart(eventOrElement, imgUrl);
 
     // 1. Instantly update UI and LocalStorage
     let updatedCart: any[];
-    const existingIndex = cart.findIndex((c) => (c.cartId || c._id) === id);
     if (existingIndex > -1) {
       updatedCart = cart.map((item, idx) =>
         idx === existingIndex
           ? {
               ...item,
-              cartQuantity: (item.cartQuantity || item.quantity || 1) + 1,
-              quantity: (item.cartQuantity || item.quantity || 1) + 1,
+              stock: availableStock,
+              cartQuantity: currentQty + 1,
+              quantity: currentQty + 1,
             }
           : item
       );
@@ -221,6 +241,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         quantity: 1,
         cartQuantity: 1,
         unit: product.unit || product.quantity || '1 unit',
+        stock: availableStock,
       };
       updatedCart = [...cart, newItem];
     }
@@ -249,7 +270,18 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     agreed_qty: number;
     unit?: string;
     deal_token?: string;
+    stock?: number;
+    bulk_stock?: number;
   }, eventOrElement?: any) => {
+    const dealStock = typeof deal.bulk_stock === 'number' 
+      ? deal.bulk_stock 
+      : (typeof deal.stock === 'number' ? deal.stock : 999999);
+
+    if (deal.agreed_qty > dealStock) {
+      alert(`You cannot order more than the product stock limit (${dealStock} available).`);
+      return;
+    }
+
     const dealCartId = `bulk_${deal.negotiation_id || deal.product_id}`;
     triggerFlyToCart(eventOrElement, deal.product_image);
 
@@ -265,6 +297,8 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       is_bulk_deal: true,
       negotiation_id: deal.negotiation_id,
       deal_token: deal.deal_token,
+      stock: dealStock,
+      bulk_stock: dealStock,
     };
 
     const existingIndex = cart.findIndex((c) => (c.cartId || c._id) === dealCartId);
@@ -312,6 +346,23 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (quantity <= 0) {
       removeFromCart(id);
+      return;
+    }
+
+    // Check stock limit
+    const parseStockNum = (val: any) => {
+      if (typeof val === 'number' && !isNaN(val)) return val;
+      if (val !== undefined && val !== null && val !== '' && !isNaN(Number(val))) return Number(val);
+      return null;
+    };
+    const sStock = parseStockNum(existing?.stock);
+    const bStock = parseStockNum(existing?.bulk_stock);
+    const availableStock = existing?.is_bulk_deal
+      ? (bStock !== null ? bStock : (sStock !== null ? sStock : 999999))
+      : (sStock !== null ? sStock : 999999);
+
+    if (quantity > availableStock) {
+      alert(`You cannot order more than the product stock limit (${availableStock} available).`);
       return;
     }
 

@@ -40,13 +40,13 @@ export default function AdminClientShell({ children, sessionUser }: AdminClientS
       <Link 
         href={href} 
         onClick={closeSidebar}
-        className={`flex items-center px-3 py-2.5 text-xs font-semibold rounded-xl transition-all duration-200 ${
+        className={`flex items-center px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${
           active 
-            ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] text-emerald-700 dark:from-emerald-950/20 dark:to-green-950/10 dark:text-emerald-400 shadow-xs scale-[1.01]' 
+            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 font-bold shadow-2xs' 
             : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800/40 dark:hover:text-white'
         }`}
       >
-        <span className={`mr-3 flex-shrink-0 transition-colors ${active ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
+        <span className={`mr-2.5 flex-shrink-0 transition-colors ${active ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
           {icon}
         </span>
         <span className="truncate">{label}</span>
@@ -56,44 +56,44 @@ export default function AdminClientShell({ children, sessionUser }: AdminClientS
 
   const sidebarContent = (
     <>
-      <div className="h-16 flex items-center justify-between px-6 border-b border-gray-100 dark:border-gray-800 shrink-0">
+      <div className="h-14 flex items-center justify-between px-3.5 border-b border-gray-100 dark:border-gray-800 shrink-0">
         <div className="flex items-center gap-2">
           <div className="h-6 w-6 relative shrink-0">
             <img src="/logo.png" alt="VegKing Logo" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-lg font-black tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
-            VegKing <span className="text-gray-400 dark:text-gray-500 font-bold text-[10px] uppercase tracking-widest ml-1">Admin</span>
+          <h1 className="text-base font-black tracking-tight bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
+            VegKing <span className="text-gray-400 dark:text-gray-500 font-bold text-[9px] uppercase tracking-widest ml-1">Admin</span>
           </h1>
         </div>
         <button 
           onClick={closeSidebar}
-          className="lg:hidden p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+          className="lg:hidden p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
         >
-          <X size={18} />
+          <X size={16} />
         </button>
       </div>
       
-      <div className="p-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
+      <div className="p-2 border-b border-gray-100 dark:border-gray-800 shrink-0">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" size={13} />
           <input 
             type="text" 
-            placeholder="Search dashboard..." 
-            className="w-full pl-9 pr-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-xs focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all placeholder-gray-400"
+            placeholder="Search..." 
+            className="w-full pl-8 pr-2.5 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg text-xs focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all placeholder-gray-400"
           />
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
+      <nav className="flex-1 overflow-y-auto py-2.5 px-2 space-y-4">
         {/* Dashboard */}
-        <div className="space-y-1">
-          <SidebarItem href="/admin" icon={<LayoutDashboard size={18} />} label="Dashboard" />
+        <div className="space-y-0.5">
+          <SidebarItem href="/admin" icon={<LayoutDashboard size={16} />} label="Dashboard" />
         </div>
 
         {/* Categories */}
         <div>
-          <div className="px-3 mb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Categories</div>
-          <div className="space-y-1">
+          <div className="px-2 mb-1 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Categories</div>
+          <div className="space-y-0.5">
             <SidebarItem href="/admin/category-types" icon={<ListTree size={18} />} label="Category Types" />
             <SidebarItem href="/admin/categories" icon={<ListTree size={18} />} label="Categories" />
             <SidebarItem href="/admin/subcategories" icon={<ListTree size={18} />} label="Subcategories" />
@@ -182,22 +182,22 @@ export default function AdminClientShell({ children, sessionUser }: AdminClientS
         </div>
       </nav>
 
-      <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 flex items-center justify-between gap-2 shrink-0">
+      <div className="p-2.5 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 flex items-center justify-between gap-1.5 shrink-0">
         <div className="flex items-center min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-100 to-[#e7f7ee] dark:from-emerald-950/40 dark:to-green-950/20 flex items-center justify-center text-green-700 dark:text-green-400 font-bold shrink-0 shadow-xs">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-100 to-[#e7f7ee] dark:from-emerald-950/40 dark:to-green-950/20 flex items-center justify-center text-green-700 dark:text-green-400 font-bold shrink-0 text-xs">
             {sessionUser?.name?.charAt(0) || 'A'}
           </div>
-          <div className="ml-3 min-w-0">
-            <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">{sessionUser?.name || 'Admin User'}</p>
-            <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 truncate mt-0.5">{sessionUser?.email || 'admin@vegking.com'}</p>
+          <div className="ml-2 min-w-0">
+            <p className="text-[11px] font-bold text-gray-800 dark:text-gray-200 truncate">{sessionUser?.name || 'Admin User'}</p>
+            <p className="text-[9px] font-semibold text-gray-400 dark:text-gray-500 truncate">{sessionUser?.email || 'admin@vegking.com'}</p>
           </div>
         </div>
         <button 
           onClick={() => signOut({ callbackUrl: '/admin-login' })}
-          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors shrink-0"
+          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-md transition-colors shrink-0"
           title="Sign Out"
         >
-          <LogOut size={16} />
+          <LogOut size={15} />
         </button>
       </div>
     </>
@@ -205,8 +205,8 @@ export default function AdminClientShell({ children, sessionUser }: AdminClientS
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden animate-fadeIn">
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex lg:w-72 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-col shrink-0">
+      {/* Desktop Sidebar - Compact w-56 */}
+      <aside className="hidden lg:flex lg:w-56 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-col shrink-0">
         {sidebarContent}
       </aside>
 
@@ -218,7 +218,7 @@ export default function AdminClientShell({ children, sessionUser }: AdminClientS
         />
       )}
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col lg:hidden transform transition-transform duration-300 ease-in-out ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col lg:hidden transform transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -228,27 +228,27 @@ export default function AdminClientShell({ children, sessionUser }: AdminClientS
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header Bar */}
-        <header className="h-16 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 flex items-center justify-between lg:justify-end px-6 shadow-xs shrink-0 z-10">
+        <header className="h-14 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 flex items-center justify-between lg:justify-end px-5 shadow-xs shrink-0 z-10">
           {/* Hamburger Menu on Mobile */}
           <button 
             onClick={toggleSidebar}
-            className="lg:hidden p-2 -ml-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors"
+            className="lg:hidden p-1.5 -ml-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
-            <Menu size={22} />
+            <Menu size={20} />
           </button>
 
           {/* Mobile Page Title */}
-          <div className="lg:hidden font-extrabold text-sm text-green-600 dark:text-green-500 uppercase tracking-widest">
+          <div className="lg:hidden font-extrabold text-xs text-green-600 dark:text-green-500 uppercase tracking-widest">
             VegKing Admin
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
             <div className="relative">
               <button 
                 onClick={() => setShowNotificationDropdown(!showNotificationDropdown)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors relative cursor-pointer"
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors relative cursor-pointer"
               >
-                <Bell size={18} />
+                <Bell size={17} />
                 <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
               </button>
 
@@ -281,15 +281,15 @@ export default function AdminClientShell({ children, sessionUser }: AdminClientS
             </div>
             <Link 
               href="/admin/settings"
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors cursor-pointer"
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
             >
-              <Settings size={18} />
+              <Settings size={17} />
             </Link>
           </div>
         </header>
 
-        {/* Page Children Container */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        {/* Page Children Container with proper top spacing */}
+        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
           {children}
         </main>
       </div>

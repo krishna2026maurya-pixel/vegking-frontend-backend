@@ -5,6 +5,8 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { connectDB } from '@/lib/mongodb';
 import Order from '@/lib/models/Order';
 import OrderItem from '@/lib/models/OrderItem';
+import Product from '@/lib/models/Product';
+import mongoose from 'mongoose';
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || 'dummy_key',
@@ -30,6 +32,30 @@ export async function POST(request: NextRequest) {
         { message: 'Missing required order fields.' },
         { status: 400 }
       );
+    }
+
+    // Enforce DB product stock limits
+    for (const item of items) {
+      const rawId = item.productId || item._id;
+      if (mongoose.isValidObjectId(rawId)) {
+        const prod = await Product.findById(rawId);
+        if (prod) {
+          const reqQty = Number(item.quantity || 1);
+          const isBulk = Boolean(item.is_bulk_deal);
+          const availableStock = isBulk
+            ? (prod.bulk_stock !== undefined && prod.bulk_stock !== null ? prod.bulk_stock : prod.stock)
+            : (prod.stock !== undefined && prod.stock !== null ? prod.stock : 0);
+
+          if (availableStock !== undefined && reqQty > availableStock) {
+            return NextResponse.json(
+              {
+                message: `You cannot order more than the product stock limit (${availableStock} available) for "${prod.product_name || item.name}".`
+              },
+              { status: 400 }
+            );
+          }
+        }
+      }
     }
 
     // Generate order number

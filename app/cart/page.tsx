@@ -163,12 +163,20 @@ export default function CartPage() {
                           <span className="w-12 text-center font-extrabold text-xs text-gray-900">
                             {item.cartQuantity} kg
                           </span>
-                          <button
-                            onClick={() => updateQuantity(item.cartId || item._id, item.cartQuantity + 1)}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 cursor-pointer"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
+                          {(() => {
+                            const maxStock = typeof item.bulk_stock === 'number' ? item.bulk_stock : (typeof item.stock === 'number' ? item.stock : 999999);
+                            const isAtMax = Number(item.cartQuantity || 0) >= maxStock;
+                            return (
+                              <button
+                                onClick={() => updateQuantity(item.cartId || item._id, item.cartQuantity + 1)}
+                                disabled={isAtMax}
+                                title={isAtMax ? `You cannot order more than the product stock limit (${maxStock} kg available)` : "Increase quantity"}
+                                className={`p-2 rounded-lg transition-colors ${isAtMax ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100 cursor-pointer'}`}
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
+                            );
+                          })()}
                         </div>
                         <button
                           onClick={() => removeFromCart(item.cartId || item._id)}
@@ -223,12 +231,20 @@ export default function CartPage() {
                             <Minus className="w-4 h-4" />
                           </button>
                           <span className="w-10 text-center font-bold text-gray-900 text-xs">{item.cartQuantity}</span>
-                          <button
-                            onClick={() => updateQuantity(item.cartId || item._id, item.cartQuantity + 1)}
-                            className="p-2 hover:bg-white rounded-lg transition-colors text-gray-600 shadow-sm cursor-pointer"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
+                          {(() => {
+                            const maxStock = typeof item.stock === 'number' ? item.stock : 999999;
+                            const isAtMax = Number(item.cartQuantity || 0) >= maxStock;
+                            return (
+                              <button
+                                onClick={() => updateQuantity(item.cartId || item._id, item.cartQuantity + 1)}
+                                disabled={isAtMax}
+                                title={isAtMax ? `You cannot order more than the product stock limit (${maxStock} available)` : "Increase quantity"}
+                                className={`p-2 rounded-lg transition-colors shadow-sm cursor-pointer ${isAtMax ? 'text-gray-300 cursor-not-allowed bg-transparent' : 'text-gray-600 hover:bg-white'}`}
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
+                            );
+                          })()}
                         </div>
                         <button
                           onClick={() => removeFromCart(item.cartId || item._id)}
