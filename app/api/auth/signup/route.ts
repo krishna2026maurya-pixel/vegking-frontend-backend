@@ -44,6 +44,14 @@ export async function POST(req: NextRequest) {
       wallet_balance: 0,
     });
 
+    // Trigger real-time notification for Admin
+    try {
+      const { notifyNewUserRegistration } = await import('@/lib/realtimeNotifications');
+      await notifyNewUserRegistration(newUser);
+    } catch (err) {
+      console.error('Failed to notify customer signup:', err);
+    }
+
     // Send welcome email (asynchronously so it doesn't block the user signup response)
     sendUserWelcomeEmail({ name, email }).catch((err) => {
       console.error('Failed to send welcome email to customer:', err);

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Loader2, LogOut, Package, PackagePlus, ReceiptText, Store, User, X, Bike, Bell, Settings, ShieldCheck, CheckCircle2, AlertTriangle, Landmark, Search, Mail, ChevronDown, Plus, Heart, Filter, MessageSquare, HelpCircle, Sparkles, Download, Eye, ArrowUpDown, Trash2, Scale, Send, Check, Sun, Moon } from 'lucide-react';
+import { BarChart3, Loader2, LogOut, Package, PackagePlus, ReceiptText, Store, User, X, Bike, Bell, Settings, ShieldCheck, CheckCircle2, AlertTriangle, Landmark, Search, Mail, ChevronDown, Plus, Heart, Filter, MessageSquare, HelpCircle, Sparkles, Download, Eye, ArrowUpDown, Trash2, Scale, Send, Check, Sun, Moon, RotateCw } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import DataTable, { Column, Action } from '@/app/admin/components/DataTable';
 
@@ -444,10 +444,20 @@ export default function VendorDashboardPage() {
         price: Number(p.selling_price) || Number(p.price) || 0,
         mrp: Number(p.mrp) || 0,
         discount: Number(p.discount) || 0,
-        stock: Number(p.stock_status) || Number(p.stock) || 0,
+        stock: (p.stock !== undefined && p.stock !== null && !isNaN(Number(p.stock)))
+          ? Number(p.stock)
+          : (p.stock_status !== undefined && p.stock_status !== null && !isNaN(Number(p.stock_status)) && Number(p.stock_status) > 1
+            ? Number(p.stock_status)
+            : (p.stock_status === 0 || p.stock_status === '0' ? 0 : 10)),
+        stock_status: typeof p.stock_status === 'number' ? p.stock_status : (Number(p.stock) > 0 ? 1 : 0),
         image: p.product_image || p.image || '',
         description: p.product_description || p.description || '',
         weightOptions: p.weightOptions || [],
+        is_bulk_available: Boolean(p.is_bulk_available),
+        bulk_min_qty: p.bulk_min_qty || 5,
+        bulk_base_price: p.bulk_base_price !== undefined && p.bulk_base_price !== null ? p.bulk_base_price : p.selling_price,
+        bulk_unit: p.bulk_unit || 'kg',
+        bulk_stock: p.bulk_stock !== undefined && p.bulk_stock !== null ? p.bulk_stock : p.stock,
       }));
       setProducts(loadedProducts);
 
@@ -556,7 +566,7 @@ export default function VendorDashboardPage() {
         selling_price: sellingPrice,
         mrp,
         stock: productForm.stock !== '' ? Number(productForm.stock) : 10,
-        stock_status: Number(productForm.stock) > 0 ? 1 : 1,
+        stock_status: Number(productForm.stock) > 0 ? 1 : 0,
         description: productForm.description,
         product_description: productForm.description,
         product_image: productForm.image,
@@ -793,9 +803,18 @@ export default function VendorDashboardPage() {
       label: 'Delete',
       icon: <Trash2 size={15} />,
       onClick: async (row) => {
-        if (!confirm(`Order ${row.order_number} delete करें?`)) return;
-        await fetch(`/api/orders/${row._id}`, { method: 'DELETE' });
-        fetchPaginatedOrders();
+        if (!confirm(`Are you sure you want to permanently delete order #${row.order_number}? This will delete it from database and customer's My Orders.`)) return;
+        try {
+          const res = await fetch(`/api/orders/${row._id}`, { method: 'DELETE' });
+          const json = await res.json();
+          if (!res.ok || !json.success) {
+            alert(json.error || 'Failed to delete order.');
+            return;
+          }
+          fetchPaginatedOrders();
+        } catch (err: any) {
+          alert('Delete failed: ' + err.message);
+        }
       },
       color: 'danger'
     }
@@ -1204,7 +1223,23 @@ export default function VendorDashboardPage() {
               <Search className="absolute left-3.5 top-3 h-4 w-4 text-gray-400" />
             </div>
 
-            <div className="flex items-center gap-4 text-gray-400">
+            <div className="flex items-center gap-3 text-gray-400">
+              {/* Global Refresh Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  loadVendorData();
+                  fetchPaginatedOrders();
+                  fetchVendorNotifications();
+                }}
+                disabled={loading || orderLoading}
+                className="p-2 hover:bg-[#f6faf7] dark:hover:bg-gray-700/50 hover:text-[#2bb673] text-gray-500 dark:text-gray-400 rounded-xl transition cursor-pointer active:scale-95 disabled:opacity-50 flex items-center gap-1.5 text-xs font-bold"
+                title="Refresh Store (Orders, Products & Notifications)"
+              >
+                <RotateCw className={`h-4 w-4 ${loading || orderLoading ? 'animate-spin text-[#2bb673]' : ''}`} />
+                <span className="hidden sm:inline text-gray-600 dark:text-gray-300">Refresh</span>
+              </button>
+
               <button 
                 type="button" 
                 onClick={() => changeTab('negotiations')}
@@ -1694,14 +1729,26 @@ export default function VendorDashboardPage() {
             <section className="border border-[#e9f2eb] dark:border-gray-700 rounded-3xl bg-white dark:bg-gray-800 p-5 sm:p-8 animate-fadeIn">
               <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-black text-gray-900 dark:text-white">My Products</h1>
-                <button
-                  type="button"
-                  onClick={openAddProduct}
-                  className="bg-[#2bb673] px-5 py-2.5 text-xs font-extrabold text-white rounded-xl hover:bg-green-600 transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Product
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => loadVendorData()}
+                    disabled={loading}
+                    className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-gray-700 dark:text-gray-200 hover:text-emerald-700 dark:hover:text-emerald-300 px-3.5 py-2.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50"
+                    title="Refresh products list"
+                  >
+                    <RotateCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin text-emerald-600' : ''}`} />
+                    <span>Refresh</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openAddProduct}
+                    className="bg-[#2bb673] px-5 py-2.5 text-xs font-extrabold text-white rounded-xl hover:bg-green-600 transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Product
+                  </button>
+                </div>
               </div>
               <div className="grid gap-4">
                 {loading ? (
@@ -1748,24 +1795,37 @@ export default function VendorDashboardPage() {
               )}
 
               {/* Filters */}
-              <div className="flex flex-wrap gap-2">
-                <input
-                  type="text"
-                  placeholder="Search order no..."
-                  value={orderSearch}
-                  onChange={(e) => { setOrderSearch(e.target.value); setOrderPage(1); }}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs w-52 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-                <select
-                  value={orderFilterStatus}
-                  onChange={(e) => { setOrderFilterStatus(e.target.value); setOrderPage(1); }}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              <div className="flex flex-wrap gap-2 items-center justify-between">
+                <div className="flex flex-wrap gap-2 items-center">
+                  <input
+                    type="text"
+                    placeholder="Search order no..."
+                    value={orderSearch}
+                    onChange={(e) => { setOrderSearch(e.target.value); setOrderPage(1); }}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs w-52 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                  <select
+                    value={orderFilterStatus}
+                    onChange={(e) => { setOrderFilterStatus(e.target.value); setOrderPage(1); }}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  >
+                    <option value="">All Status</option>
+                    {Object.entries(orderStatusMap).map(([val, s]) => (
+                      <option key={val} value={val}>{s.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => fetchPaginatedOrders()}
+                  disabled={orderLoading}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 rounded-lg text-xs font-black transition-all duration-150 shadow-2xs cursor-pointer active:scale-95 disabled:opacity-50"
+                  title="Refresh orders to see newly ordered products"
                 >
-                  <option value="">All Status</option>
-                  {Object.entries(orderStatusMap).map(([val, s]) => (
-                    <option key={val} value={val}>{s.label}</option>
-                  ))}
-                </select>
+                  <RotateCw size={13} className={orderLoading ? "animate-spin text-emerald-600" : ""} />
+                  <span>Refresh Orders</span>
+                </button>
               </div>
 
               <DataTable

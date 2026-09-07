@@ -33,7 +33,7 @@ export default function VendorsPage() {
     setError('');
     try {
       const params = new URLSearchParams({ page: String(page), limit: String(limit), search });
-      const res = await fetch(`/api/vendors?${params}`);
+      const res = await fetch(`/api/vendors?${params}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const json = await res.json();
       setVendors(json.data || []);
@@ -47,6 +47,9 @@ export default function VendorsPage() {
   }, [page, search]);
 
   useEffect(() => { fetchVendors(); }, [fetchVendors]);
+
+  const [editingVendor, setEditingVendor] = useState<any | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const toggleVerify = async (vendor: Vendor) => {
     try {
@@ -64,13 +67,43 @@ export default function VendorsPage() {
   };
 
   const deleteVendor = async (vendor: Vendor) => {
-    if (!confirm(`"${vendor.shop_name}" को delete करें?`)) return;
+    if (!confirm(`Are you sure you want to delete "${vendor.shop_name}"?`)) return;
     try {
       const res = await fetch(`/api/vendors/${vendor._id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Delete failed');
       fetchVendors();
     } catch (e: any) {
       alert(e.message);
+    }
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingVendor) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/vendors/${editingVendor._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: editingVendor.full_name,
+          shop_name: editingVendor.shop_name,
+          mobile_number: editingVendor.mobile_number,
+          mobile_no: editingVendor.mobile_number,
+          email: editingVendor.email,
+          city: editingVendor.city,
+          wallet_balance: Number(editingVendor.wallet_balance || 0),
+          is_verified: editingVendor.is_verified,
+          is_bestseller: editingVendor.is_bestseller,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to update vendor');
+      setEditingVendor(null);
+      fetchVendors();
+    } catch (err: any) {
+      alert(err.message || 'Error updating vendor');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -85,9 +118,17 @@ export default function VendorsPage() {
       )
     },
     { key: 'full_name', label: 'Full Name' },
-    { key: 'mobile_number', label: 'Mobile' },
+    {
+      key: 'mobile_number',
+      label: 'Mobile',
+      render: (row) => <span>{row.mobile_number || (row as any).mobile_no || '-'}</span>
+    },
     { key: 'shop_name', label: 'Shop Name' },
-    { key: 'city', label: 'City' },
+    {
+      key: 'city',
+      label: 'City',
+      render: (row) => <span>{row.city || (row as any).address || '-'}</span>
+    },
     {
       key: 'wallet_balance',
       label: 'Wallet',
@@ -111,9 +152,15 @@ export default function VendorsPage() {
 
   const actions: Action<Vendor>[] = [
     {
-      label: 'View',
+      label: 'View Details',
       icon: <Eye size={15} />,
       onClick: (row) => window.open(`/admin/vendors/${row._id}`, '_blank'),
+      color: 'default'
+    },
+    {
+      label: 'Edit',
+      icon: <Edit size={15} />,
+      onClick: (row) => setEditingVendor({ ...row }),
       color: 'default'
     },
     {
@@ -135,7 +182,7 @@ export default function VendorsPage() {
       label: 'Delete Selected',
       icon: <Trash2 size={14} />,
       onClick: async (ids) => {
-        if (!confirm(`${ids.length} vendors delete करें?`)) return;
+        if (!confirm(`Delete ${ids.length} vendors?`)) return;
         await Promise.all(ids.map(id => fetch(`/api/vendors/${id}`, { method: 'DELETE' })));
         fetchVendors();
       },
@@ -148,19 +195,28 @@ export default function VendorsPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Vendors</h1>
-          <p className="text-sm text-gray-500 mt-1">Total: {total} vendors</p>
+          <p className="text-sm text-gray-500 mt-1">Total: {total} vendors in database</p>
         </div>
-        <Link href="/admin/vendors/create">
-          <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm font-medium">
-            <Plus size={16} />
-            New Vendor
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={fetchVendors}
+            className="px-3.5 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition shadow-xs"
+          >
+            ↻ Refresh
           </button>
-        </Link>
+          <Link href="/admin/vendors/create">
+            <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm font-medium">
+              <Plus size={16} />
+              New Vendor
+            </button>
+          </Link>
+        </div>
       </div>
 
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-          ⚠️ {error} — <button onClick={fetchVendors} className="underline">Retry</button>
+          ⚠️ {error} — <button onClick={fetchVendors} className="underline font-bold">Retry</button>
         </div>
       )}
 
@@ -168,10 +224,10 @@ export default function VendorsPage() {
       <div className="flex gap-2">
         <input
           type="text"
-          placeholder="Search by name, mobile, shop..."
+          placeholder="Search by name, mobile, shop, city..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="px-4 py-2 border border-gray-300 rounded-lg text-sm w-72 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          className="px-4 py-2 border border-gray-300 rounded-lg text-sm w-80 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white shadow-xs"
         />
       </div>
 
@@ -203,6 +259,132 @@ export default function VendorsPage() {
             >
               Next →
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Edit Modal */}
+      {editingVendor && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full p-6 shadow-xl border border-gray-200 dark:border-gray-700 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white">Edit Vendor: {editingVendor.shop_name}</h3>
+              <button
+                type="button"
+                onClick={() => setEditingVendor(null)}
+                className="text-gray-400 hover:text-gray-600 text-xl font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    value={editingVendor.full_name || ''}
+                    onChange={(e) => setEditingVendor({ ...editingVendor, full_name: e.target.value })}
+                    className="w-full px-3 py-1.5 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Shop Name</label>
+                  <input
+                    type="text"
+                    value={editingVendor.shop_name || ''}
+                    onChange={(e) => setEditingVendor({ ...editingVendor, shop_name: e.target.value })}
+                    className="w-full px-3 py-1.5 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Mobile</label>
+                  <input
+                    type="text"
+                    value={editingVendor.mobile_number || editingVendor.mobile_no || ''}
+                    onChange={(e) => setEditingVendor({ ...editingVendor, mobile_number: e.target.value, mobile_no: e.target.value })}
+                    className="w-full px-3 py-1.5 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={editingVendor.email || ''}
+                    onChange={(e) => setEditingVendor({ ...editingVendor, email: e.target.value })}
+                    className="w-full px-3 py-1.5 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">City</label>
+                  <input
+                    type="text"
+                    value={editingVendor.city || ''}
+                    onChange={(e) => setEditingVendor({ ...editingVendor, city: e.target.value })}
+                    className="w-full px-3 py-1.5 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Wallet Balance (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editingVendor.wallet_balance ?? 0}
+                    onChange={(e) => setEditingVendor({ ...editingVendor, wallet_balance: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-1.5 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editingVendor.is_verified === '1'}
+                    onChange={(e) => setEditingVendor({ ...editingVendor, is_verified: e.target.checked ? '1' : '0' })}
+                    className="rounded text-green-600 focus:ring-green-500"
+                  />
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Verified Vendor</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editingVendor.is_bestseller === '1'}
+                    onChange={(e) => setEditingVendor({ ...editingVendor, is_bestseller: e.target.checked ? '1' : '0' })}
+                    className="rounded text-green-600 focus:ring-green-500"
+                  />
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Bestseller Badge</span>
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setEditingVendor(null)}
+                  className="px-4 py-2 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="px-4 py-2 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition shadow-sm disabled:opacity-50"
+                >
+                  {savingEdit ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

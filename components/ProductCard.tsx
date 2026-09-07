@@ -505,7 +505,7 @@ export default function ProductCard({ product }: { product: any }) {
                   <Clock className="w-3 h-3 text-gray-500" strokeWidth={2.5} />
                   <span>8 MINS</span>
                 </div>
-                {stockCount > 0 ? (
+                {inStock && stockCount > 0 ? (
                   <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
                     {stockCount} in stock
                   </span>

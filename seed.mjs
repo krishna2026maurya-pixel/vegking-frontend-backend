@@ -142,6 +142,26 @@ const insertedCats = await db.collection('categories').insertMany(categories);
 console.log(`✅ ${categories.length} Categories inserted`);
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 3b. SUBCATEGORIES (9)
+// ─────────────────────────────────────────────────────────────────────────────
+const subcatList = [
+  'Vegetables', 'Root Vegetables', 'Leafy Greens', 'Exotic Vegetables',
+  'Fruits', 'Herbs & Spices', 'Dairy & Eggs', 'Organic Daals', 'Seeds'
+];
+const subcategories = subcatList.map(name => {
+  const foundCat = categories.find(c => c.name === name);
+  return {
+    category_name: name,
+    cat_id: foundCat ? foundCat._id.toString() : '',
+    description: `Fresh ${name} sourced directly from farms`,
+    is_active: '1',
+    created_at: daysAgo(randInt(30, 300)).toISOString(),
+  };
+});
+await db.collection('subcategories').insertMany(subcategories);
+console.log(`✅ ${subcategories.length} Subcategories inserted`);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 4. BRANDS (6)
 // ─────────────────────────────────────────────────────────────────────────────
 const brandNames = ['Farm Fresh', 'Organic India', 'Nature\'s Best', 'Green Leaf', 'Pure Harvest', 'Golden Fields'];
@@ -313,7 +333,8 @@ const products = productList.map((p, i) => {
     selling_price: p.sp,
     total_amt: p.sp,
     gst: rand([0, 5, 12]),
-    stock_status: 1, // Set to 1 so that products are mapped as In-Stock (stock = 99) in Next.js API
+    stock: randInt(15, 60),
+    stock_status: 1,
     product_image: imgUrl,
     images: [imgUrl],
     is_active: '1',

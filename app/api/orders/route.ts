@@ -59,7 +59,27 @@ export async function GET(request: NextRequest) {
       query._id = { $in: vendorOrderIds };
     } else if ((session.user as any).role !== 'admin') {
       const uId = (session.user as any).id || (session.user as any)._id;
-      query.user_id = uId;
+      const userPhone = (session.user as any)?.mobile_no || (session.user as any)?.phone;
+      const userEmail = session.user?.email;
+
+      const userConditions: any[] = [];
+      if (uId) {
+        userConditions.push({ user_id: uId });
+        if (mongoose.isValidObjectId(uId)) {
+          userConditions.push({ user_id: new mongoose.Types.ObjectId(uId) });
+        }
+      }
+      if (userPhone) {
+        userConditions.push({ customer_mobile: userPhone });
+        userConditions.push({ 'shippingAddress.phone': userPhone });
+      }
+      if (userEmail) {
+        userConditions.push({ 'shippingAddress.email': userEmail });
+      }
+
+      if (userConditions.length > 0) {
+        query.$or = userConditions;
+      }
     }
 
     const [orders, total] = await Promise.all([
@@ -219,6 +239,14 @@ export async function POST(request: NextRequest) {
       // Ignore socket emit failure
     }
 
+    // Trigger real-time notification for Admin and Vendors
+    try {
+      const { notifyNewOrder } = await import('@/lib/realtimeNotifications');
+      await notifyNewOrder(order, items);
+    } catch (notifErr) {
+      console.error('Failed to dispatch real-time order notification:', notifErr);
+    }
+
     // Mark any linked negotiation sessions as ordered
     const negotiationIds = items
       .map((i: any) => i.negotiation_id)
@@ -242,11 +270,88 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: true, _id: order._id.toString().toUpperCase(), order_number, data: order },
+      { success: true, _id: order._id.toString(), id: order._id.toString(), order_number, data: order },
       { status: 201 }
     );
   } catch (error: any) {
     console.error(`\x1b[31m[API ERROR] POST /api/orders failed:\x1b[0m`, error.message);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+  }
+}
+
+// DELETE /api/orders - Bulk or single order deletion by admin or vendor
+export async function DELETE(request: NextRequest) {
+  try {
+    await connectDB();
+    const body = await request.json().catch(() => ({}));
+    const { ids, id } = body;
+    const targetIds: string[] = Array.isArray(ids) ? ids : (id ? [id] : []);
+
+    if (!targetIds.length) {
+      return NextResponse.json({ success: false, error: 'No order IDs provided for deletion.' }, { status: 400 });
+    }
+
+    let deletedCount = 0;
+    for (const rawId of targetIds) {
+      if (!rawId) continue;
+      const query = mongoose.Types.ObjectId.isValid(rawId)
+        ? { $or: [{ _id: new mongoose.Types.ObjectId(rawId) }, { order_number: rawId }] }
+        : { order_number: rawId };
+
+      const order = await Order.findOne(query);
+      if (order) {
+        const orderId = order._id;
+        const orderNumber = order.order_number;
+
+        // 1. Delete Order from DB
+        await Order.deleteOne({ _id: orderId });
+
+        // 2. Delete all related OrderItem records
+        await OrderItem.deleteMany({
+          $or: [
+            { order_id: orderId },
+            { order_id: orderId.toString() },
+            ...(order.items && order.items.length > 0 ? [{ _id: { $in: order.items } }] : [])
+          ]
+        });
+
+        // 3. Delete any related notifications
+        try {
+          const Notification = (await import('@/lib/models/Notification')).default;
+          await Notification.deleteMany({
+            $or: [
+              { link: { $regex: orderId.toString(), $options: 'i' } },
+              { message: { $regex: orderNumber, $options: 'i' } },
+              { title: { $regex: orderNumber, $options: 'i' } }
+            ]
+          });
+        } catch (_) {}
+
+        // 4. Unlink negotiation sessions
+        try {
+          const NegotiationSession = (await import('@/lib/models/NegotiationSession')).default;
+          await NegotiationSession.updateMany(
+            { order_id: orderId },
+            { $unset: { order_id: 1 }, $set: { is_ordered: false } }
+          );
+        } catch (_) {}
+
+        // 5. Emit socket event
+        try {
+          const { emitOrderDeleted } = await import('@/lib/socketClient');
+          emitOrderDeleted({ order_id: orderId.toString(), order_number: orderNumber });
+        } catch (_) {}
+
+        deletedCount++;
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Successfully deleted ${deletedCount} order(s) permanently from database and user orders.`
+    });
+  } catch (error: any) {
+    console.error(`\x1b[31m[API ERROR] DELETE /api/orders failed:\x1b[0m`, error.message);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

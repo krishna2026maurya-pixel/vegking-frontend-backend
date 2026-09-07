@@ -24,12 +24,14 @@ export default function EditProductPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [subcategories, setSubcategories] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
 
   useEffect(() => {
     fetch(`/api/category-types?limit=100`).then(r => r.json()).then(j => setCategoryTypes(j.data || []));
     fetch(`/api/categories?limit=200`).then(r => r.json()).then(j => setCategories(j.data || []));
     fetch(`/api/subcategories?limit=200`).then(r => r.json()).then(j => setSubcategories(j.data || []));
     fetch(`/api/vendors?limit=100`).then(r => r.json()).then(j => setVendors(j.data || []));
+    fetch(`/api/brands?limit=100`).then(r => r.json()).then(j => setBrands(j.data || []));
   }, []);
 
   const [form, setForm] = useState({
@@ -65,7 +67,7 @@ export default function EditProductPage() {
     if (!id) return;
     const load = async () => {
       try {
-        const res = await fetch(`/api/products/${id}`);
+        const res = await fetch(`/api/products/${id}`, { cache: 'no-store' });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error);
         if (json.data) {
@@ -92,8 +94,8 @@ export default function EditProductPage() {
             product_description: d.product_description || '',
             add_info_title: d.add_info_title || '',
             add_info_desc: d.add_info_desc || '',
-            stock: d.stock !== undefined && d.stock !== null ? d.stock.toString() : (d.stock_status !== undefined && d.stock_status !== null ? d.stock_status.toString() : '20'),
-            stock_status: d.stock_status !== undefined && d.stock_status !== null ? d.stock_status.toString() : '1',
+            stock: d.stock !== undefined && d.stock !== null ? d.stock.toString() : '20',
+            stock_status: d.stock_status !== undefined && d.stock_status !== null ? d.stock_status.toString() : (Number(d.stock) > 0 ? '1' : '0'),
             description: d.description || '',
             // Bulk fields
             is_bulk_available: Boolean(d.is_bulk_available),
@@ -130,7 +132,26 @@ export default function EditProductPage() {
       const checked = (target as HTMLInputElement).checked;
       setForm(prev => ({ ...prev, [target.name]: checked }));
     } else {
-      setForm(prev => ({ ...prev, [target.name]: target.value }));
+      const name = target.name;
+      const value = target.value;
+      setForm(prev => {
+        const next = { ...prev, [name]: value };
+        if (name === 'stock') {
+          const numStock = Number(value);
+          if (value !== '' && !isNaN(numStock)) {
+            if (numStock <= 0) next.stock_status = '0';
+            else if (prev.stock_status === '0') next.stock_status = '1';
+          }
+        }
+        if (name === 'selling_price' || name === 'gst') {
+          const sp = parseFloat(name === 'selling_price' ? value : next.selling_price) || 0;
+          const gst = parseFloat(name === 'gst' ? value : next.gst) || 0;
+          if (sp > 0) {
+            next.total_amt = (sp * (1 + gst / 100)).toFixed(2);
+          }
+        }
+        return next;
+      });
     }
   };
 
@@ -177,31 +198,35 @@ export default function EditProductPage() {
     setSaving(true);
     setError('');
     try {
+      const payload = {
+        ...form,
+        vendor_id: form.vendor_id || null,
+        images: images,
+        product_image: mainImage || (images.length > 0 ? images[0] : null),
+        product_images: JSON.stringify(images),
+        mrp: Number(form.mrp) || 0,
+        selling_price: Number(form.selling_price) || 0,
+        gst: Number(form.gst) || 0,
+        total_amt: Number(form.total_amt) || 0,
+        stock: form.stock !== '' && !isNaN(Number(form.stock)) ? Number(form.stock) : 0,
+        stock_status: form.stock_status !== '' && !isNaN(Number(form.stock_status)) ? Number(form.stock_status) : (Number(form.stock) > 0 ? 1 : 0),
+        // Bulk fields
+        is_bulk_available: form.is_bulk_available,
+        bulk_min_qty: Math.max(5, Number(form.bulk_min_qty) || 5),
+        bulk_base_price: form.bulk_base_price !== '' ? Number(form.bulk_base_price) : Number(form.selling_price) || 0,
+        bulk_unit: form.bulk_unit || 'kg',
+        bulk_stock: form.bulk_stock !== '' ? Number(form.bulk_stock) : 0,
+      };
+
       const res = await fetch(`/api/products/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          vendor_id: form.vendor_id || null,
-          images: images,
-          product_image: mainImage || (images.length > 0 ? images[0] : null),
-          product_images: JSON.stringify(images),
-          mrp: Number(form.mrp) || 0,
-          selling_price: Number(form.selling_price) || 0,
-          gst: Number(form.gst) || 0,
-          total_amt: Number(form.total_amt) || 0,
-          stock: form.stock !== '' && !isNaN(Number(form.stock)) ? Number(form.stock) : 0,
-          stock_status: form.stock_status !== '' && !isNaN(Number(form.stock_status)) ? Number(form.stock_status) : (Number(form.stock) > 0 ? 1 : 0),
-          // Bulk fields
-          is_bulk_available: form.is_bulk_available,
-          bulk_min_qty: Math.max(5, Number(form.bulk_min_qty) || 5),
-          bulk_base_price: form.bulk_base_price !== '' ? Number(form.bulk_base_price) : Number(form.selling_price) || 0,
-          bulk_unit: form.bulk_unit || 'kg',
-          bulk_stock: form.bulk_stock !== '' ? Number(form.bulk_stock) : 0,
-        }),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error);
+      if (!res.ok) throw new Error(json.error || 'Failed to save product');
+
+      router.refresh();
       router.push('/admin/products');
     } catch (e: any) { setError(e.message); }
     finally { setSaving(false); }
@@ -278,7 +303,22 @@ export default function EditProductPage() {
                 {vendors.map(v => <option key={v._id} value={v._id}>{v.shop_name}</option>)}
               </select>
             </div>
-            <div><label className={labelCls}>Brand</label><input name="brand" value={form.brand} onChange={handleChange} className={inputCls} /></div>
+            <div>
+              <label className={labelCls}>Brand</label>
+              <input
+                list="brand-options"
+                name="brand"
+                value={form.brand}
+                onChange={handleChange}
+                placeholder="Select or enter brand..."
+                className={inputCls}
+              />
+              <datalist id="brand-options">
+                {brands.map((b: any) => (
+                  <option key={b._id} value={b.name} />
+                ))}
+              </datalist>
+            </div>
             <div><label className={labelCls}>Product Label</label><input name="product_label" value={form.product_label} onChange={handleChange} placeholder="e.g. Inclusive of all taxes" className={inputCls} /></div>
           </div>
         </div>
@@ -291,6 +331,9 @@ export default function EditProductPage() {
               <label className={labelCls}>Category Type</label>
               <select name="cat_type_id" value={form.cat_type_id} onChange={handleChange} className={inputCls}>
                 <option value="">Select Category Type...</option>
+                {form.cat_type_id && !categoryTypes.some(ct => ct._id === form.cat_type_id) && (
+                  <option value={form.cat_type_id}>{form.cat_type_id}</option>
+                )}
                 {categoryTypes.map(ct => <option key={ct._id} value={ct._id}>{ct.name}</option>)}
               </select>
             </div>
@@ -298,6 +341,9 @@ export default function EditProductPage() {
               <label className={labelCls}>Category</label>
               <select name="category" value={form.category} onChange={handleChange} className={inputCls}>
                 <option value="">Select Category...</option>
+                {form.category && !categories.some(c => (c.name || c._id) === form.category) && (
+                  <option value={form.category}>{form.category}</option>
+                )}
                 {categories.map(c => <option key={c._id} value={c.name || c._id}>{c.name}</option>)}
               </select>
             </div>
@@ -305,6 +351,9 @@ export default function EditProductPage() {
               <label className={labelCls}>Subcategory</label>
               <select name="subcategory" value={form.subcategory} onChange={handleChange} className={inputCls}>
                 <option value="">Select Subcategory...</option>
+                {form.subcategory && !subcategories.some(s => (s.category_name || s.name || s._id) === form.subcategory) && (
+                  <option value={form.subcategory}>{form.subcategory}</option>
+                )}
                 {subcategories.map(s => <option key={s._id} value={s.category_name || s.name || s._id}>{s.category_name || s.name}</option>)}
               </select>
             </div>

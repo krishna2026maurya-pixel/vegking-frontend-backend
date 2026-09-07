@@ -18,11 +18,13 @@ function CreateProductForm() {
   const [categories, setCategories] = useState<any[]>([]);
   const [subcategories, setSubcategories] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
   useEffect(() => {
     fetch(`/api/category-types?limit=100`).then(r => r.json()).then(j => setCategoryTypes(j.data || []));
     fetch(`/api/categories?limit=200`).then(r => r.json()).then(j => setCategories(j.data || []));
     fetch(`/api/subcategories?limit=200`).then(r => r.json()).then(j => setSubcategories(j.data || []));
     fetch(`/api/vendors?limit=100`).then(r => r.json()).then(j => setVendors(j.data || []));
+    fetch(`/api/brands?limit=100`).then(r => r.json()).then(j => setBrands(j.data || []));
   }, []);
 
   const [form, setForm] = useState({
@@ -153,6 +155,7 @@ function CreateProductForm() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
+      router.refresh();
       router.push('/admin/products');
     } catch (e: any) { setError(e.message); }
     finally { setSaving(false); }
@@ -232,7 +235,22 @@ function CreateProductForm() {
                 </select>
               </div>
             )}
-            <div><label className={labelCls}>Brand</label><input name="brand" value={form.brand} onChange={handleChange} className={inputCls} /></div>
+            <div>
+              <label className={labelCls}>Brand</label>
+              <input
+                list="create-brand-options"
+                name="brand"
+                value={form.brand}
+                onChange={handleChange}
+                placeholder="Select or enter brand..."
+                className={inputCls}
+              />
+              <datalist id="create-brand-options">
+                {brands.map((b: any) => (
+                  <option key={b._id} value={b.name} />
+                ))}
+              </datalist>
+            </div>
             <div><label className={labelCls}>Product Label</label><input name="product_label" value={form.product_label} onChange={handleChange} placeholder="e.g. Inclusive of all taxes" className={inputCls} /></div>
           </div>
         </div>

@@ -81,8 +81,12 @@ export async function GET(request: NextRequest) {
       const price = Number(p.selling_price) || Number(p.total_amt) || 0;
       const discount = mrp > 0 && price > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
 
-      const stockQty = typeof p.stock === 'number' ? p.stock : (!isNaN(Number(p.stock)) ? Number(p.stock) : 0);
-      const stockStatus = typeof p.stock_status === 'number' ? p.stock_status : (!isNaN(Number(p.stock_status)) ? Number(p.stock_status) : (stockQty > 0 ? 1 : 0));
+      const stockQty = typeof p.stock === 'number' && !isNaN(p.stock)
+        ? p.stock
+        : (p.stock !== undefined && p.stock !== null && !isNaN(Number(p.stock)) ? Number(p.stock) : 20);
+      const stockStatus = typeof p.stock_status === 'number' && !isNaN(p.stock_status)
+        ? p.stock_status
+        : (p.stock_status !== undefined && p.stock_status !== null && !isNaN(Number(p.stock_status)) ? Number(p.stock_status) : (stockQty > 0 ? 1 : 0));
       const inStock = stockStatus === 1 && stockQty > 0;
 
       const vendorObj = typeof p.vendor_id === 'object' && p.vendor_id !== null ? p.vendor_id : null;
@@ -123,7 +127,10 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ success: true, data: products, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } });
+    return NextResponse.json(
+      { success: true, data: products, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } },
+      { headers: { 'Cache-Control': 'no-store, max-age=0' } }
+    );
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -146,11 +153,15 @@ export async function POST(request: NextRequest) {
       body.vendor_shop_name = '';
     }
 
-    if (body.stock !== undefined) {
-      body.stock = Number(body.stock) || 0;
+    if (body.stock !== undefined && body.stock !== null && body.stock !== '') {
+      body.stock = Number(body.stock);
+    } else {
+      body.stock = 20;
     }
-    if (body.stock_status !== undefined) {
-      body.stock_status = Number(body.stock_status) || (body.stock > 0 ? 1 : 0);
+    if (body.stock_status !== undefined && body.stock_status !== null && body.stock_status !== '') {
+      body.stock_status = Number(body.stock_status);
+    } else {
+      body.stock_status = body.stock > 0 ? 1 : 0;
     }
 
     // Bulk fields normalization (min 5 kg enforced)
@@ -172,6 +183,15 @@ export async function POST(request: NextRequest) {
     }
 
     const product = await Product.create(body);
+
+    // Trigger real-time notification for Admin and Vendor
+    try {
+      const { notifyProductAdded } = await import('@/lib/realtimeNotifications');
+      await notifyProductAdded(product, body.vendor_shop_name || 'Admin');
+    } catch (notifErr) {
+      console.error('Failed to dispatch real-time product notification:', notifErr);
+    }
+
     return NextResponse.json({ success: true, data: product }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

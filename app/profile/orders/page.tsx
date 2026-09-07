@@ -811,11 +811,11 @@ export default function MyOrdersPage() {
       const orderList = json.data || [];
       setOrders(orderList);
 
-      // Keep open modal synced with latest status in real time
+      // Keep open modal synced with latest status in real time (or close if order was deleted)
       setSelectedOrder((prev) => {
         if (!prev) return null;
         const matching = orderList.find((o: any) => o._id === prev._id);
-        return matching ? { ...prev, ...matching } : prev;
+        return matching ? { ...prev, ...matching } : null;
       });
     } catch (e: any) {
       if (isInitial) setError(e.message || 'Something went wrong.');

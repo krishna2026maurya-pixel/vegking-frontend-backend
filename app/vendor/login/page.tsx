@@ -24,7 +24,13 @@ function VendorLoginForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { signIn } = useAuth();
+  const { signIn, data: session, status } = useAuth();
+
+  useEffect(() => {
+    if (status === 'authenticated' && (session?.user as any)?.role === 'vendor') {
+      router.replace('/vendor/dashboard');
+    }
+  }, [status, session, router]);
 
   useEffect(() => {
     if (searchParams.get('registered')) {

@@ -111,26 +111,95 @@ export function Toggle({ label, name, value, onChange, helperText }: ToggleProps
   );
 }
 
-interface FileUploadProps { label: string; name: string; accept?: string; helperText?: string; required?: boolean; }
+interface FileUploadProps {
+  label: string;
+  name: string;
+  accept?: string;
+  helperText?: string;
+  required?: boolean;
+  value?: string;
+  onChange?: (name: string, value: string) => void;
+}
 
-export function FileUpload({ label, name, accept = 'image/*', helperText, required }: FileUploadProps) {
-  const [preview, setPreview] = useState<string | null>(null);
+export function FileUpload({ label, name, accept = 'image/*', helperText, required, value, onChange }: FileUploadProps) {
+  const [preview, setPreview] = useState<string | null>(value || null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Show local preview immediately
+    const localUrl = URL.createObjectURL(file);
+    setPreview(localUrl);
+
+    if (!onChange) return;
+
+    // Attempt upload to /api/upload
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const json = await res.json();
+      if (res.ok && (json.url || json.data?.url)) {
+        const uploadedUrl = json.url || json.data?.url;
+        setPreview(uploadedUrl);
+        onChange(name, uploadedUrl);
+        return;
+      }
+    } catch {
+      // ignore, fall back to base64
+    } finally {
+      setUploading(false);
+    }
+
+    // Fallback: Read as base64 DataURL
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      setPreview(base64);
+      onChange(name, base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemove = () => {
+    setPreview(null);
+    if (onChange) onChange(name, '');
+  };
+
+  const displaySrc = preview || value;
+
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
-      {preview && (
-        <div className="relative mb-2">
-          <img src={preview} alt="Preview" className="w-full max-h-40 object-contain rounded-lg border border-gray-200" />
-          <button type="button" onClick={() => setPreview(null)} className="absolute top-1 right-1 text-xs bg-red-600 text-white px-2 py-0.5 rounded">Remove</button>
+      {displaySrc && (
+        <div className="relative mb-2 inline-block">
+          <img src={displaySrc} alt="Preview" className="max-h-36 max-w-full rounded-lg border border-gray-200 object-cover shadow-xs" />
+          {uploading && (
+            <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center text-white text-xs font-semibold">
+              Uploading...
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={handleRemove}
+            className="absolute top-1 right-1 text-[11px] bg-red-600 hover:bg-red-700 text-white px-2 py-0.5 rounded shadow-sm"
+          >
+            Remove
+          </button>
         </div>
       )}
       <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600 transition">
-        <svg className="w-6 h-6 mb-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-        <p className="text-xs text-gray-500">Click to upload</p>
+        <svg className="w-6 h-6 mb-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+        <p className="text-xs text-gray-500">{uploading ? 'Uploading...' : 'Click to upload'}</p>
         {helperText && <p className="text-xs text-gray-400">{helperText}</p>}
-        <input type="file" name={name} accept={accept} onChange={(e) => { const f = e.target.files?.[0]; if (f) setPreview(URL.createObjectURL(f)); }} className="hidden" />
+        <input type="file" name={name} accept={accept} onChange={handleFile} className="hidden" />
       </label>
     </div>
   );

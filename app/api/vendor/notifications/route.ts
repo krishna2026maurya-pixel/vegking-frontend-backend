@@ -29,18 +29,19 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const query: any = {};
-    if (vendorId && mongoose.isValidObjectId(vendorId)) {
-      query.$or = [
-        { vendor_id: new mongoose.Types.ObjectId(vendorId) },
-        { userId: new mongoose.Types.ObjectId(vendorId) },
-      ];
-    } else if (vendorId) {
-      query.$or = [
-        { vendor_id: vendorId },
-        { userId: vendorId },
-      ];
+    if (!vendorId) {
+      return NextResponse.json({ success: true, data: [], unreadCount: 0 });
     }
+
+    const vendorIdObj = mongoose.isValidObjectId(vendorId) ? new mongoose.Types.ObjectId(vendorId) : null;
+    const vendorIds = vendorIdObj ? [vendorId, vendorIdObj] : [vendorId];
+    const query: any = {
+      $or: [
+        { vendor_id: { $in: vendorIds } },
+        { userId: { $in: vendorIds } },
+      ],
+      isAdmin: false,
+    };
 
     const notifications = await Notification.find(query)
       .sort({ createdAt: -1 })

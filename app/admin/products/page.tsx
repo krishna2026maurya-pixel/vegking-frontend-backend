@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import DataTable, { Column, Action, BulkAction } from '../components/DataTable';
-import { Eye, Trash2, Plus, Pencil, Filter } from 'lucide-react';
+import { Eye, Trash2, Plus, Pencil, Filter, RotateCw } from 'lucide-react';
 import Link from 'next/link';
 
 interface Product {
@@ -55,7 +55,7 @@ export default function ProductsPage() {
         search,
         vendor_id: vendorId
       });
-      const res = await fetch(`/api/products?${params}`);
+      const res = await fetch(`/api/products?${params}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const json = await res.json();
       setProducts(json.data || []);
@@ -92,15 +92,16 @@ export default function ProductsPage() {
         const count = typeof row.stock === 'number'
           ? row.stock
           : (row.stock !== undefined && row.stock !== null && !isNaN(Number(row.stock)) ? Number(row.stock) : 0);
+        const isAvailable = count > 0 && row.stock_status !== 0 && row.stock_status !== '0';
         return (
           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-extrabold whitespace-nowrap ${
-            count <= 0
+            !isAvailable || count <= 0
               ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
               : count <= 5
                 ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
                 : 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
           }`}>
-            {count > 0 ? `${count} In Stock` : 'Out of Stock'}
+            {isAvailable ? `${count} In Stock` : 'Out of Stock'}
           </span>
         );
       }
@@ -174,32 +175,46 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-4 items-center">
-        {/* Search */}
-        <div className="relative">
-           <input
-            type="text"
-            placeholder="Search products..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="pl-4 pr-4 py-2 border border-gray-300 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-          />
+      <div className="flex flex-wrap gap-4 items-center justify-between">
+        <div className="flex flex-wrap gap-4 items-center">
+          {/* Search */}
+          <div className="relative">
+             <input
+              type="text"
+              placeholder="Search products..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="pl-4 pr-4 py-2 border border-gray-300 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+          </div>
+
+          {/* Vendor Filter */}
+          <div className="flex items-center gap-2">
+            <Filter size={16} className="text-gray-400" />
+            <select
+              value={vendorId}
+              onChange={(e) => { setVendorId(e.target.value); setPage(1); }}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 min-w-[200px]"
+            >
+              <option value="">All Vendors</option>
+              {vendors.map(v => (
+                <option key={v._id} value={v._id}>{v.shop_name}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Vendor Filter */}
-        <div className="flex items-center gap-2">
-          <Filter size={16} className="text-gray-400" />
-          <select
-            value={vendorId}
-            onChange={(e) => { setVendorId(e.target.value); setPage(1); }}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 min-w-[200px]"
-          >
-            <option value="">All Vendors</option>
-            {vendors.map(v => (
-              <option key={v._id} value={v._id}>{v.shop_name}</option>
-            ))}
-          </select>
-        </div>
+        {/* Refresh Button */}
+        <button
+          type="button"
+          onClick={() => fetchData()}
+          disabled={loading}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 rounded-lg text-xs font-black transition-all duration-150 shadow-2xs cursor-pointer active:scale-95 disabled:opacity-50"
+          title="Refresh products list"
+        >
+          <RotateCw size={14} className={loading ? "animate-spin text-emerald-600" : ""} />
+          <span>Refresh</span>
+        </button>
       </div>
 
       <DataTable

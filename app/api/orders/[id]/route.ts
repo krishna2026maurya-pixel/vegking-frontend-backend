@@ -155,8 +155,66 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const { id } = await params;
   try {
     await connectDB();
-    await Order.findByIdAndDelete(id);
-    return NextResponse.json({ success: true });
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'Order ID is required' }, { status: 400 });
+    }
+
+    // Resolve order by either MongoDB ObjectId or human-readable order_number
+    const query = mongoose.Types.ObjectId.isValid(id)
+      ? { $or: [{ _id: new mongoose.Types.ObjectId(id) }, { order_number: id }] }
+      : { order_number: id };
+
+    const order = await Order.findOne(query);
+    if (!order) {
+      return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+    }
+
+    const orderId = order._id;
+    const orderNumber = order.order_number;
+
+    // 1. Permanently delete Order document from database
+    await Order.deleteOne({ _id: orderId });
+
+    // 2. Permanently delete all associated OrderItem records
+    await OrderItem.deleteMany({
+      $or: [
+        { order_id: orderId },
+        { order_id: orderId.toString() },
+        ...(order.items && order.items.length > 0 ? [{ _id: { $in: order.items } }] : [])
+      ]
+    });
+
+    // 3. Delete any notifications referencing this order
+    try {
+      const Notification = (await import('@/lib/models/Notification')).default;
+      await Notification.deleteMany({
+        $or: [
+          { link: { $regex: orderId.toString(), $options: 'i' } },
+          { message: { $regex: orderNumber, $options: 'i' } },
+          { title: { $regex: orderNumber, $options: 'i' } }
+        ]
+      });
+    } catch (_) {}
+
+    // 4. Unlink any negotiation sessions
+    try {
+      const NegotiationSession = (await import('@/lib/models/NegotiationSession')).default;
+      await NegotiationSession.updateMany(
+        { order_id: orderId },
+        { $unset: { order_id: 1 }, $set: { is_ordered: false } }
+      );
+    } catch (_) {}
+
+    // 5. Emit socket event for real-time removal across connected clients
+    try {
+      const { emitOrderDeleted } = await import('@/lib/socketClient');
+      emitOrderDeleted({ order_id: orderId.toString(), order_number: orderNumber });
+    } catch (_) {}
+
+    return NextResponse.json({
+      success: true,
+      message: `Order #${orderNumber} deleted permanently from DB and user orders.`
+    });
   } catch (error: any) {
     console.error(`\x1b[31m[API ERROR] DELETE /api/orders/${id} failed:\x1b[0m`, error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

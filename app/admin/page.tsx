@@ -70,11 +70,33 @@ export default function AdminDashboard() {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [liveTime, setLiveTime] = useState<string>('');
+
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      setLiveTime(
+        now.toLocaleString('en-IN', {
+          weekday: 'short',
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        })
+      );
+    };
+    updateClock();
+    const timer = setInterval(updateClock, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const fetchDashboardData = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      const res = await fetch('/api/admin/dashboard');
+      const res = await fetch('/api/admin/dashboard', { cache: 'no-store' });
       const json = await res.json();
       if (json.success && json.data) {
         setMetrics(json.data.metrics);
@@ -118,10 +140,29 @@ export default function AdminDashboard() {
     document.body.removeChild(link);
   };
 
-  const formatTimeAgo = (dateString?: string) => {
+  const formatDateTime = (dateString?: string | Date) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      return date.toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch {
+      return '';
+    }
+  };
+
+  const formatTimeAgo = (dateString?: string | Date) => {
     if (!dateString) return 'Recent';
     try {
       const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Recent';
       const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
       if (seconds < 60) return 'Just now';
       const minutes = Math.floor(seconds / 60);
@@ -146,13 +187,18 @@ export default function AdminDashboard() {
       {/* Top Header Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-xs">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
               Admin Command Center
             </h1>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>DB Connected</span>
+              {liveTime && <span className="text-gray-600 dark:text-gray-300 font-semibold ml-1">• {liveTime}</span>}
+            </div>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            Real-time analytics, freshly added inventory, users, vendors, and incoming orders.
+            Real-time analytics, live inventory, users, vendors, and incoming orders.
           </p>
         </div>
 
@@ -545,6 +591,10 @@ export default function AdminDashboard() {
                           <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
                             {item.description}
                           </p>
+                          <span className="text-[9px] text-gray-400 flex items-center gap-1 mt-0.5 font-medium">
+                            <Clock size={9} className="shrink-0 text-gray-400" />
+                            <span>{formatDateTime(item.timestamp)}</span>
+                          </span>
                         </div>
                       </div>
 
@@ -655,6 +705,10 @@ export default function AdminDashboard() {
                           <span className="text-[10px] text-gray-400 truncate block">
                             ₹{p.selling_price} • {p.vendor_shop_name || p.category || 'Fresh'}
                           </span>
+                          <span className="text-[9px] text-gray-400 flex items-center gap-1 mt-0.5">
+                            <Clock className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            {formatDateTime(p.createdAt || p.created_at)}
+                          </span>
                         </div>
                       </div>
 
@@ -705,6 +759,10 @@ export default function AdminDashboard() {
                         <span className="text-[10px] text-gray-400 truncate block">
                           {o.user_id?.name || o.customer_name || 'Customer'} • ₹{o.total_amount?.toLocaleString('en-IN')}
                         </span>
+                        <span className="text-[9px] text-gray-400 flex items-center gap-1 mt-0.5">
+                          <Clock className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                          {formatDateTime(o.createdAt || o.created_at)}
+                        </span>
                       </div>
 
                       <div className="text-right shrink-0">
@@ -712,7 +770,7 @@ export default function AdminDashboard() {
                           {o.orderStatus || 'Placed'}
                         </span>
                         <span className="text-[9px] text-gray-400 block mt-0.5">
-                          {formatTimeAgo(o.createdAt)}
+                          {formatTimeAgo(o.createdAt || o.created_at)}
                         </span>
                       </div>
                     </div>
@@ -758,6 +816,10 @@ export default function AdminDashboard() {
                         </p>
                         <span className="text-[10px] text-gray-400 truncate block">
                           {v.full_name} • {v.mobile_no || v.email || 'Vendor'}
+                        </span>
+                        <span className="text-[9px] text-gray-400 flex items-center gap-1 mt-0.5">
+                          <Clock className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                          {formatDateTime(v.createdAt || v.created_at)}
                         </span>
                       </div>
 
@@ -810,6 +872,10 @@ export default function AdminDashboard() {
                         </p>
                         <span className="text-[10px] text-gray-400 truncate block">
                           {u.mobile_no || u.email || 'Active Account'}
+                        </span>
+                        <span className="text-[9px] text-gray-400 flex items-center gap-1 mt-0.5">
+                          <Clock className="w-2.5 h-2.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
+                          {formatDateTime(u.createdAt || u.created_at)}
                         </span>
                       </div>
 

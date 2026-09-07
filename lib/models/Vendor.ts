@@ -27,10 +27,13 @@ const VendorSchema = new Schema({
   is_verified: { type: String, default: '0' },
   is_bestseller: { type: String, default: '0' },
   wallet_balance: { type: Number, default: 0 },
+  mobile_no: String,
+  is_active: { type: String, default: '1' },
   fiberbase_token: String,
   handling_charge: Number,
   gst_certificate: String,
   pan_card: String,
+  created_at: String,
   welcome_email_sent: { type: Boolean, default: false },
 }, { timestamps: true });
 

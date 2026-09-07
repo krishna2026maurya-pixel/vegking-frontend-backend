@@ -14,6 +14,7 @@ import {
   CheckCircle,
   AlertCircle,
   ShoppingBag,
+  Trash2,
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -91,6 +92,26 @@ export default function AdminOrderDetailPage() {
     }
   };
 
+  const handleDeleteOrder = async () => {
+    const orderNum = order?.order_number || id;
+    if (!confirm(`Are you sure you want to permanently delete order #${orderNum}? This will delete it from the database and the customer's My Orders section.`)) {
+      return;
+    }
+    setUpdating(true);
+    try {
+      const res = await fetch(`/api/orders/${order?._id || id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Failed to delete order.');
+      }
+      alert(`Order #${orderNum} deleted successfully.`);
+      router.push('/admin/orders');
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete order.');
+      setUpdating(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-24">
@@ -162,6 +183,17 @@ export default function AdminOrderDetailPage() {
             className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
           >
             {updating ? 'Updating...' : 'Update Status'}
+          </button>
+
+          <button
+            type="button"
+            disabled={updating}
+            onClick={handleDeleteOrder}
+            className="px-3.5 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            title="Permanently delete this order"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Delete Order</span>
           </button>
         </div>
       </div>

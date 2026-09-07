@@ -22,7 +22,39 @@ interface AdminClientShellProps {
 export default function AdminClientShell({ children, sessionUser }: AdminClientShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
+  const [feedNotifications, setFeedNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const pathname = usePathname();
+
+  const fetchFeedNotifications = async () => {
+    try {
+      const res = await fetch('/api/notifications/feed?role=admin', { cache: 'no-store' });
+      if (!res.ok) return;
+      const json = await res.json();
+      if (json.data) {
+        setFeedNotifications(json.data);
+        setUnreadCount(json.unreadCount || 0);
+      }
+    } catch {}
+  };
+
+  React.useEffect(() => {
+    fetchFeedNotifications();
+    const interval = setInterval(fetchFeedNotifications, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const markAllFeedRead = async () => {
+    try {
+      await fetch('/api/notifications/feed', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mark_all: true, role: 'admin' }),
+      });
+      setUnreadCount(0);
+      setFeedNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    } catch {}
+  };
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const closeSidebar = () => setIsSidebarOpen(false);
@@ -245,11 +277,19 @@ export default function AdminClientShell({ children, sessionUser }: AdminClientS
           <div className="flex items-center space-x-3">
             <div className="relative">
               <button 
-                onClick={() => setShowNotificationDropdown(!showNotificationDropdown)}
+                onClick={() => {
+                  setShowNotificationDropdown(!showNotificationDropdown);
+                  fetchFeedNotifications();
+                }}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors relative cursor-pointer"
+                title="Notifications"
               >
                 <Bell size={17} />
-                <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] bg-red-500 text-white rounded-full text-[9px] font-black flex items-center justify-center px-1 animate-pulse">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </button>
 
               {showNotificationDropdown && (
@@ -258,21 +298,94 @@ export default function AdminClientShell({ children, sessionUser }: AdminClientS
                     className="fixed inset-0 z-30" 
                     onClick={() => setShowNotificationDropdown(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-xl p-4 z-40 space-y-3">
+                  <div className="absolute right-0 mt-2 w-84 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-2xl p-4 z-40 space-y-3">
                     <div className="flex justify-between items-center pb-2 border-b border-gray-50 dark:border-gray-700">
-                      <h4 className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wide">Notifications</h4>
-                      <button className="text-[10px] text-emerald-600 hover:underline font-bold cursor-pointer">Mark all read</button>
-                    </div>
-                    <div className="space-y-3 divide-y divide-gray-50 dark:divide-gray-700/50">
-                      <div className="pt-2 text-xs">
-                        <p className="font-bold text-gray-800 dark:text-gray-200">New Vendor Sign Up</p>
-                        <p className="text-gray-500 mt-0.5">Vendor 'Fresh Greens Co.' is waiting for verification.</p>
-                        <span className="text-[9px] text-gray-400 font-semibold block mt-1">2 mins ago</span>
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wide">Notifications</h4>
+                        {unreadCount > 0 && (
+                          <span className="text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 font-bold px-1.5 py-0.2 rounded-full">
+                            {unreadCount} new
+                          </span>
+                        )}
                       </div>
-                      <div className="pt-2 text-xs">
-                        <p className="font-bold text-gray-800 dark:text-gray-200">Stock Alert</p>
-                        <p className="text-gray-500 mt-0.5">Product 'Organic Apple' is running low on stock (less than 10kg).</p>
-                        <span className="text-[9px] text-gray-400 font-semibold block mt-1">1 hr ago</span>
+                      <button 
+                        type="button"
+                        onClick={markAllFeedRead}
+                        className="text-[10px] text-emerald-600 hover:underline font-bold cursor-pointer"
+                      >
+                        Mark all read
+                      </button>
+                    </div>
+
+                    <div className="max-h-72 overflow-y-auto space-y-2 divide-y divide-gray-50 dark:divide-gray-700/50">
+                      {feedNotifications.length === 0 ? (
+                        <p className="text-xs text-gray-400 py-3 text-center">No notifications yet.</p>
+                      ) : (
+                        feedNotifications.slice(0, 6).map((n) => (
+                          <div key={n._id} className="pt-2 text-xs">
+                            <div className="flex items-center justify-between">
+                              <p className={`font-bold ${!n.isRead ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
+                                {n.title}
+                              </p>
+                              {!n.isRead && (
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0 ml-1" />
+                              )}
+                            </div>
+                            <p className="text-gray-500 mt-0.5 text-[11px] leading-snug">{n.message}</p>
+                            <span className="text-[9px] text-gray-400 font-semibold block mt-1">
+                              {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Quick Live Popup Testing Buttons */}
+                    <div className="pt-2 border-t border-gray-100 dark:border-gray-700/80 flex items-center justify-between">
+                      <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Test Live Popup:</span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await fetch('/api/notifications/feed', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ action: 'test_order' }),
+                            });
+                          }}
+                          className="px-1.5 py-0.5 text-[10px] font-bold bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 rounded transition cursor-pointer"
+                          title="Generate a live test order notification popup"
+                        >
+                          + Order
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await fetch('/api/notifications/feed', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ action: 'test_user' }),
+                            });
+                          }}
+                          className="px-1.5 py-0.5 text-[10px] font-bold bg-purple-100 hover:bg-purple-200 dark:bg-purple-950 dark:hover:bg-purple-900 text-purple-700 dark:text-purple-300 rounded transition cursor-pointer"
+                          title="Generate a live customer signup notification popup"
+                        >
+                          + User
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await fetch('/api/notifications/feed', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ action: 'test_vendor' }),
+                            });
+                          }}
+                          className="px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 hover:bg-amber-200 dark:bg-amber-950 dark:hover:bg-amber-900 text-amber-700 dark:text-amber-300 rounded transition cursor-pointer"
+                          title="Generate a live vendor application notification popup"
+                        >
+                          + Vendor
+                        </button>
                       </div>
                     </div>
                   </div>

@@ -45,3 +45,13 @@ export const emitNewOrderPlaced = (orderData: any) => {
     console.error("Failed to emit new order:", error);
   }
 };
+
+// Helper function to emit order deleted event from the API
+export const emitOrderDeleted = (orderData: { order_id: string; order_number?: string }) => {
+  try {
+    const socket = getBackendSocket();
+    socket.emit("emit-order-deleted", orderData);
+  } catch (error) {
+    console.error("Failed to emit order deleted:", error);
+  }
+};

@@ -68,7 +68,7 @@ export default function ProductDetailPage() {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/api/products/${id}`);
+        const res = await fetch(`/api/products/${id}`, { cache: 'no-store' });
         if (!res.ok) throw new Error('Product not found');
         const json = await res.json();
         if (json.error) throw new Error(json.error);
@@ -97,7 +97,7 @@ export default function ProductDetailPage() {
             ? Number(item.stock)
             : (item.stock_status === 0 || item.stock_status === '0' || item.stock_status === 'out_of_stock')
               ? 0
-              : 10,
+              : 20,
           quantity: item.quantity || '1 kg',
           category: item.category || 'Fresh Produce',
           vendor_id: vId,

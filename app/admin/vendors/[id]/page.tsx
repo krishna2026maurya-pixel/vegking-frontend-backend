@@ -91,7 +91,9 @@ export default function VendorDetailsPage({ params }: { params: Promise<{ id: st
       key: 'stock_status',
       label: 'Stock',
       render: (row: any) => {
-        const count = Number(row.stock_status ?? row.stock ?? 0);
+        const count = (row.stock !== undefined && row.stock !== null && !isNaN(Number(row.stock)))
+          ? Number(row.stock)
+          : (typeof row.stock_status === 'number' && row.stock_status > 1 ? Number(row.stock_status) : (row.stock_status === 0 || row.stock_status === '0' ? 0 : 10));
         return (
           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
             count <= 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'

@@ -65,19 +65,19 @@ export async function GET(request: NextRequest) {
       Product.find()
         .sort({ createdAt: -1 })
         .limit(6)
-        .select('product_name selling_price stock bulk_stock product_image category createdAt vendor_shop_name')
+        .select('product_name selling_price stock bulk_stock product_image category createdAt created_at vendor_shop_name')
         .lean(),
       // Newly added vendors
       Vendor.find()
         .sort({ createdAt: -1 })
         .limit(6)
-        .select('full_name shop_name email is_verified createdAt mobile_no')
+        .select('full_name shop_name email is_verified createdAt created_at mobile_no')
         .lean(),
       // Newly registered users
       User.find()
         .sort({ createdAt: -1 })
         .limit(6)
-        .select('name email mobile_no role createdAt')
+        .select('name email mobile_no role createdAt created_at')
         .lean(),
       // 7-day daily aggregation
       Order.aggregate([
@@ -133,49 +133,61 @@ export async function GET(request: NextRequest) {
 
     (recentOrders || []).forEach((order: any) => {
       const customerName = order.user_id?.name || order.customer_name || 'Customer';
+      const timestamp = order.createdAt || order.created_at || new Date();
+      order.createdAt = timestamp;
+      order.created_at = timestamp;
       activities.push({
         id: 'order-' + order._id,
         type: 'order',
         title: `Order #${order.order_number || order._id.toString().slice(-6)}`,
         description: `By ${customerName} • ₹${order.total_amount?.toLocaleString('en-IN')}`,
         status: order.orderStatus || 'Order Placed',
-        timestamp: order.createdAt || new Date(),
+        timestamp: timestamp,
         amount: order.total_amount
       });
     });
 
     (recentProducts || []).forEach((prod: any) => {
+      const timestamp = prod.createdAt || prod.created_at || new Date();
+      prod.createdAt = timestamp;
+      prod.created_at = timestamp;
       activities.push({
         id: 'product-' + prod._id,
         type: 'product',
         title: `Product Added: ${prod.product_name}`,
         description: `₹${prod.selling_price} • ${prod.stock ?? 0} in stock (${prod.category || 'General'})`,
         status: `${prod.stock ?? 0} in stock`,
-        timestamp: prod.createdAt || new Date(),
+        timestamp: timestamp,
         amount: prod.selling_price
       });
     });
 
     (recentVendors || []).forEach((vendor: any) => {
+      const timestamp = vendor.createdAt || vendor.created_at || new Date();
+      vendor.createdAt = timestamp;
+      vendor.created_at = timestamp;
       activities.push({
         id: 'vendor-' + vendor._id,
         type: 'vendor',
         title: `New Vendor: ${vendor.shop_name || vendor.full_name}`,
         description: `${vendor.full_name} (${vendor.email || vendor.mobile_no || 'Registered'})`,
         status: vendor.is_verified === '1' ? 'Verified' : 'Pending',
-        timestamp: vendor.createdAt || new Date(),
+        timestamp: timestamp,
         amount: null
       });
     });
 
     (recentUsers || []).forEach((u: any) => {
+      const timestamp = u.createdAt || u.created_at || new Date();
+      u.createdAt = timestamp;
+      u.created_at = timestamp;
       activities.push({
         id: 'user-' + u._id,
         type: 'user',
         title: `New User: ${u.name || 'Customer'}`,
         description: `${u.mobile_no || u.email || 'Registered account'}`,
         status: u.role || 'customer',
-        timestamp: u.createdAt || new Date(),
+        timestamp: timestamp,
         amount: null
       });
     });
@@ -186,6 +198,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
+        serverTime: new Date().toISOString(),
         metrics: {
           totalVendors,
           totalProducts,
@@ -208,7 +221,7 @@ export async function GET(request: NextRequest) {
         recentVendors: recentVendors || [],
         recentUsers: recentUsers || [],
       }
-    });
+    }, { headers: { 'Cache-Control': 'no-store, max-age=0' } });
   } catch (error: any) {
     console.error('Admin dashboard API error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

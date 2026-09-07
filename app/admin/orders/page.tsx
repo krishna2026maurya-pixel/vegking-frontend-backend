@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import DataTable, { Column, Action, BulkAction } from '../components/DataTable';
-import { Eye, Trash2, ArrowUpDown, Bike } from 'lucide-react';
+import { Eye, Trash2, ArrowUpDown, Bike, RotateCw } from 'lucide-react';
 import clsx from 'clsx';
 
 interface Order {
@@ -251,9 +251,18 @@ export default function OrdersPage() {
       label: 'Delete',
       icon: <Trash2 size={15} />,
       onClick: async (row) => {
-        if (!confirm(`Order ${row.order_number} delete करें?`)) return;
-        await fetch(`/api/orders/${row._id}`, { method: 'DELETE' });
-        fetchOrders();
+        if (!confirm(`Are you sure you want to permanently delete order #${row.order_number}? This will delete it from database and customer's My Orders.`)) return;
+        try {
+          const res = await fetch(`/api/orders/${row._id}`, { method: 'DELETE' });
+          const json = await res.json();
+          if (!res.ok || !json.success) {
+            alert(json.error || 'Failed to delete order.');
+            return;
+          }
+          fetchOrders();
+        } catch (err: any) {
+          alert('Delete failed: ' + err.message);
+        }
       },
       color: 'danger'
     },
@@ -264,9 +273,21 @@ export default function OrdersPage() {
       label: 'Delete Selected',
       icon: <Trash2 size={14} />,
       onClick: async (ids) => {
-        if (!confirm(`${ids.length} orders delete करें?`)) return;
-        await Promise.all(ids.map(id => fetch(`/api/orders/${id}`, { method: 'DELETE' })));
-        fetchOrders();
+        if (!confirm(`Are you sure you want to permanently delete ${ids.length} selected orders? They will be removed from database and customer's My Orders.`)) return;
+        try {
+          const res = await fetch('/api/orders', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids }),
+          });
+          const json = await res.json();
+          if (!res.ok || !json.success) {
+            alert(json.error || 'Failed to delete selected orders.');
+          }
+          fetchOrders();
+        } catch (err: any) {
+          alert('Bulk delete failed: ' + err.message);
+        }
       },
       color: 'danger'
     },
@@ -296,25 +317,39 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Clean Filters */}
-      <div className="flex flex-wrap gap-2.5 items-center">
-        <input
-          type="text"
-          placeholder="Search order no, mobile, customer..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="px-3.5 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-xs w-72 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-gray-800 dark:text-white shadow-2xs placeholder-gray-400"
-        />
-        <select
-          value={filterStatus}
-          onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
-          className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-2xs cursor-pointer"
+      {/* Clean Filters with Refresh Button */}
+      <div className="flex flex-wrap gap-2.5 items-center justify-between">
+        <div className="flex flex-wrap gap-2.5 items-center">
+          <input
+            type="text"
+            placeholder="Search order no, mobile, customer..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="px-3.5 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-xs w-72 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-gray-800 dark:text-white shadow-2xs placeholder-gray-400"
+          />
+          <select
+            value={filterStatus}
+            onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
+            className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-2xs cursor-pointer"
+          >
+            <option value="">All Status</option>
+            {Object.entries(statusMap).map(([val, s]) => (
+              <option key={val} value={val}>{s.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Refresh Button */}
+        <button
+          type="button"
+          onClick={() => fetchOrders()}
+          disabled={loading}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 rounded-xl text-xs font-black transition-all duration-150 shadow-2xs cursor-pointer active:scale-95 disabled:opacity-50"
+          title="Refresh orders to show newly ordered products"
         >
-          <option value="">All Status</option>
-          {Object.entries(statusMap).map(([val, s]) => (
-            <option key={val} value={val}>{s.label}</option>
-          ))}
-        </select>
+          <RotateCw size={14} className={loading ? "animate-spin text-emerald-600" : ""} />
+          <span>Refresh Orders</span>
+        </button>
       </div>
 
       {/* Orders Table with Integrated Real Pagination */}

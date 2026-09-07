@@ -99,19 +99,45 @@ export async function DELETE(
     const { id } = await params;
 
     const query = mongoose.Types.ObjectId.isValid(id)
-      ? { _id: id }
+      ? { $or: [{ _id: new mongoose.Types.ObjectId(id) }, { order_number: id }] }
       : { order_number: id };
 
-    const order = await Order.findOneAndDelete(query);
+    const order = await Order.findOne(query);
     if (!order) {
       return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
     }
 
-    await OrderItem.deleteMany({ order_id: order._id });
+    const orderId = order._id;
+    const orderNumber = order.order_number;
+
+    await Order.deleteOne({ _id: orderId });
+    await OrderItem.deleteMany({
+      $or: [
+        { order_id: orderId },
+        { order_id: orderId.toString() },
+        ...(order.items && order.items.length > 0 ? [{ _id: { $in: order.items } }] : [])
+      ]
+    });
+
+    try {
+      const Notification = (await import('@/lib/models/Notification')).default;
+      await Notification.deleteMany({
+        $or: [
+          { link: { $regex: orderId.toString(), $options: 'i' } },
+          { message: { $regex: orderNumber, $options: 'i' } },
+          { title: { $regex: orderNumber, $options: 'i' } }
+        ]
+      });
+    } catch (_) {}
+
+    try {
+      const { emitOrderDeleted } = await import('@/lib/socketClient');
+      emitOrderDeleted({ order_id: orderId.toString(), order_number: orderNumber });
+    } catch (_) {}
 
     return NextResponse.json({
       success: true,
-      message: 'Order deleted successfully'
+      message: `Order #${orderNumber} deleted successfully from database and user orders.`
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
