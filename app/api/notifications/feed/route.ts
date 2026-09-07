@@ -21,10 +21,18 @@ export async function GET(request: NextRequest) {
     await syncMissingOrderNotifications();
 
     const { searchParams } = new URL(request.url);
-    const role = searchParams.get('role') || 'all';
+    const role = searchParams.get('role');
     const vendorId = searchParams.get('vendor_id');
     const since = searchParams.get('since');
     const limit = parseInt(searchParams.get('limit') || '10', 10);
+
+    // Strictly restrict notification feed to admin and vendor roles only
+    if (role !== 'admin' && role !== 'vendor') {
+      return NextResponse.json(
+        { success: true, data: [], unreadCount: 0, serverTime: new Date().toISOString() },
+        { headers: { 'Cache-Control': 'no-store, max-age=0' } }
+      );
+    }
 
     const query: any = {};
 
@@ -49,7 +57,6 @@ export async function GET(request: NextRequest) {
         );
       }
     }
-    // If role is 'all', matches platform notifications
 
     if (since) {
       const sinceDate = new Date(since);

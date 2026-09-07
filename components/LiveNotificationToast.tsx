@@ -72,11 +72,29 @@ export default function LiveNotificationToast({ role: propRole, vendorId: propVe
   // Auto-detect role and vendorId from session
   const sessionUser = session?.user as any;
   const userRole = sessionUser?.role;
-  const activeRole = propRole || (userRole === 'vendor' ? 'vendor' : userRole === 'admin' ? 'admin' : 'all');
-  const activeVendorId = propVendorId || (userRole === 'vendor' ? (sessionUser?.id || sessionUser?._id) : undefined);
+  
+  // STRICT: Only allow admin and vendor to receive pop-up notifications.
+  // Unauthenticated visitors and normal users (role: 'user') must never see popup toasts.
+  const isAuthorized = status === 'authenticated' && (userRole === 'admin' || userRole === 'vendor');
+  const activeRole: 'admin' | 'vendor' | null = isAuthorized
+    ? (userRole === 'vendor' ? 'vendor' : 'admin')
+    : (propRole === 'admin' || propRole === 'vendor' ? propRole : null);
+  const activeVendorId = propVendorId || (activeRole === 'vendor' ? (sessionUser?.id || sessionUser?._id) : undefined);
 
-  // Initialize dismissed IDs from sessionStorage (only user-dismissed notifications)
+  // Clear toasts and timers whenever user logs out or becomes unauthorized
   useEffect(() => {
+    if (!isAuthorized) {
+      setToasts([]);
+      initialLoadedRef.current = false;
+      lastCheckRef.current = null;
+      autoHideTimersRef.current.forEach(timer => clearTimeout(timer));
+      autoHideTimersRef.current.clear();
+    }
+  }, [isAuthorized]);
+
+  // Initialize dismissed IDs from sessionStorage (only when authorized)
+  useEffect(() => {
+    if (!isAuthorized) return;
     try {
       const stored = sessionStorage.getItem('vegking_dismissed_notifs');
       if (stored) {
@@ -86,7 +104,7 @@ export default function LiveNotificationToast({ role: propRole, vendorId: propVe
         }
       }
     } catch (_) {}
-  }, []);
+  }, [isAuthorized]);
 
   // Remove toast from display
   const removeToast = useCallback((id: string, options?: { manual?: boolean; markRead?: boolean }) => {
@@ -135,8 +153,10 @@ export default function LiveNotificationToast({ role: propRole, vendorId: propVe
     autoHideTimersRef.current.set(item._id, timer);
   }, [removeToast]);
 
-  // Support custom events and window console helpers for immediate testing
+  // Support custom events and window console helpers for immediate testing (only when authorized)
   useEffect(() => {
+    if (!isAuthorized) return;
+
     const handleCustomEvent = (event: any) => {
       if (event?.detail) {
         addToast(event.detail);
@@ -150,7 +170,7 @@ export default function LiveNotificationToast({ role: propRole, vendorId: propVe
       const id = 'test_' + Date.now();
       let title = 'New Order Placed: #ORD-998811';
       let message = 'Order #ORD-998811 placed by Rahul Sharma (9876543210) for ₹640 via UPI.\nItems: Fresh Spinach 500g, Organic Tomatoes 1kg.\nDelivery to: Pune.';
-      let link = '/admin/orders';
+      let link = activeRole === 'vendor' ? '/vendor/dashboard' : '/admin/orders';
 
       if (type === 'user_registered' || type === 'user') {
         title = 'New Customer Registration: Vikram Mehta';
@@ -163,7 +183,7 @@ export default function LiveNotificationToast({ role: propRole, vendorId: propVe
       } else if (type === 'product_created' || type === 'product') {
         title = 'Product Added: Fresh Strawberries (500g)';
         message = 'Product: "Fresh Strawberries (500g)" (Fruits) added with 40 units in stock at ₹140. Shop: Direct / Admin.';
-        link = '/admin/products';
+        link = activeRole === 'vendor' ? '/vendor/dashboard' : '/admin/products';
       }
 
       addToast({ _id: id, title, message, type, link, createdAt: new Date().toISOString() });
@@ -173,12 +193,17 @@ export default function LiveNotificationToast({ role: propRole, vendorId: propVe
       window.removeEventListener('vegking-notify', handleCustomEvent);
       delete (window as any).vegkingTestToast;
     };
-  }, [addToast]);
+  }, [isAuthorized, activeRole, addToast]);
 
-  // Main notification feed poller
+  // Main notification feed poller - ONLY runs for authenticated admin and vendor
   useEffect(() => {
-    // Wait until NextAuth resolves the session so role is known and stable
-    if (status === 'loading') {
+    // Strictly block unauthenticated visitors and non-admin/non-vendor users
+    if (status !== 'authenticated' || !isAuthorized || !activeRole) {
+      return;
+    }
+
+    // For vendor, wait until vendorId is available
+    if (activeRole === 'vendor' && !activeVendorId) {
       return;
     }
 
@@ -250,7 +275,7 @@ export default function LiveNotificationToast({ role: propRole, vendorId: propVe
       }
     };
 
-    // Run poll immediately on mount
+    // Run poll immediately on login
     poll();
 
     // Poll every 3.5 seconds
@@ -260,9 +285,10 @@ export default function LiveNotificationToast({ role: propRole, vendorId: propVe
       isMounted = false;
       clearInterval(interval);
     };
-  }, [status, activeRole, activeVendorId, removeToast]);
+  }, [status, isAuthorized, activeRole, activeVendorId, removeToast]);
 
-  if (toasts.length === 0) return null;
+  // Never render tray if unauthorized (guest or normal user) or no toasts
+  if (!isAuthorized || toasts.length === 0) return null;
 
   return (
     <div 
