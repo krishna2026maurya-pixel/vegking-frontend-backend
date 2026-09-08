@@ -13,7 +13,6 @@ import { authMiddleware } from '@/lib/auth';
 // Ensure models are registered in Mongoose schema registry before populate calls
 const _ensureModels = [Order, OrderItem, Product, Address, Cart, DeliveryBoy, User];
 
-
 async function getMyOrders(request: NextRequest, reqUserId: string) {
   try {
     await connectDB();
@@ -21,30 +20,30 @@ async function getMyOrders(request: NextRequest, reqUserId: string) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const status = searchParams.get('status') || '';
-    const vendorIdParam = searchParams.get('vendor_id') || searchParams.get('vendorId') || searchParams.get('email') || '';
+    const vendorIdParam = searchParams.get('vendor_id') || searchParams.get('vendorId') || '';
+    const userIdParam = searchParams.get('user_id') || searchParams.get('userId') || searchParams.get('id') || '';
 
     const { getUserFromRequest } = await import('@/lib/auth');
     const userObj = await getUserFromRequest(request);
-    const userId = userObj?.id !== '64c123456789012345678901' ? userObj?.id : '';
-    const role = userObj?.role || 'vendor';
-    const rawVendorId = vendorIdParam || userObj?.vendor_id || (role === 'vendor' ? userId : '');
+    
+    const effectiveUserId = userIdParam || reqUserId || userObj?.id || '';
 
     const query: any = {};
     if (status) query.orderStatus = status;
 
-    if (rawVendorId) {
+    if (vendorIdParam) {
       const Vendor = (await import('@/lib/models/Vendor')).default;
       let vendorObj: any = null;
-      if (mongoose.Types.ObjectId.isValid(rawVendorId)) {
-        vendorObj = await Vendor.findById(rawVendorId).lean();
+      if (mongoose.Types.ObjectId.isValid(vendorIdParam)) {
+        vendorObj = await Vendor.findById(vendorIdParam).lean();
       }
       if (!vendorObj) {
         vendorObj = await Vendor.findOne({
-          $or: [{ email: rawVendorId }, { mobile_number: rawVendorId }]
+          $or: [{ email: vendorIdParam }, { mobile_number: vendorIdParam }]
         }).lean();
       }
 
-      const actualVendorId = vendorObj ? vendorObj._id : (mongoose.Types.ObjectId.isValid(rawVendorId) ? rawVendorId : null);
+      const actualVendorId = vendorObj ? vendorObj._id : (mongoose.Types.ObjectId.isValid(vendorIdParam) ? vendorIdParam : null);
 
       if (actualVendorId) {
         const vendorObjId = new mongoose.Types.ObjectId(actualVendorId.toString());
@@ -67,8 +66,50 @@ async function getMyOrders(request: NextRequest, reqUserId: string) {
       } else {
         query._id = { $in: [] };
       }
-    } else if (role === 'user' && userId) {
-      query.user_id = userId;
+    } else {
+      // Customer user order query logic
+      const userConditions: any[] = [];
+      if (effectiveUserId) {
+        userConditions.push({ user_id: effectiveUserId });
+        userConditions.push({ user_id: String(effectiveUserId) });
+        if (mongoose.Types.ObjectId.isValid(effectiveUserId)) {
+          userConditions.push({ user_id: new mongoose.Types.ObjectId(effectiveUserId) });
+        }
+      }
+
+      if (effectiveUserId) {
+        let userDoc: any = null;
+        if (mongoose.Types.ObjectId.isValid(effectiveUserId)) {
+          userDoc = await User.findById(effectiveUserId).lean();
+        }
+        if (!userDoc) {
+          userDoc = await User.findOne({
+            $or: [
+              { email: effectiveUserId },
+              { mobile_no: effectiveUserId },
+              { phone: effectiveUserId },
+              { mobile: effectiveUserId }
+            ]
+          }).lean();
+        }
+        if (userDoc) {
+          const custId = userDoc._id;
+          const custObjId = new mongoose.Types.ObjectId(custId.toString());
+          userConditions.push({ user_id: custId });
+          userConditions.push({ user_id: String(custId) });
+          userConditions.push({ user_id: custObjId });
+
+          const custPhone = userDoc.mobile_no || userDoc.mobile || userDoc.phone;
+          if (custPhone) {
+            userConditions.push({ customer_mobile: custPhone });
+            userConditions.push({ customer_phone: custPhone });
+          }
+        }
+      }
+
+      if (userConditions.length > 0) {
+        query.$or = userConditions;
+      }
     }
 
     const [data, total] = await Promise.all([
