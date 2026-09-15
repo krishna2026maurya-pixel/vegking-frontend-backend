@@ -15,7 +15,7 @@ const GoogleMapAddressPicker = dynamic(
 );
 
 export default function CheckoutPage() {
-    const { cart, cartTotal, removeFromCart, clearCart } = useCart();
+    const { cart, cartTotal, removeFromCart, clearCart, appliedCoupon } = useCart();
     const [address, setAddress] = useState('');
     const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
     const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
@@ -33,6 +33,38 @@ export default function CheckoutPage() {
     const router = useRouter();
 
     const { data: session, status } = useAuth();
+
+    // Ensure the page always starts from the top on mount
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        }
+    }, []);
+
+    // Scroll to top when advancing between checkout steps
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        }
+    }, [step]);
+
+    // Critical fix: When order is placed successfully, reset scroll position to top immediately
+    // so the page opens from the top rather than preserving previous bottom scroll position.
+    useEffect(() => {
+        if (success && typeof window !== 'undefined') {
+            window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+            const rId = requestAnimationFrame(() => {
+                window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+            });
+            const tId = setTimeout(() => {
+                window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+            }, 50);
+            return () => {
+                cancelAnimationFrame(rId);
+                clearTimeout(tId);
+            };
+        }
+    }, [success]);
 
     const formatAddressObj = (addr: any) => {
         if (!addr) return '';
@@ -104,8 +136,9 @@ export default function CheckoutPage() {
         });
     };
 
+    const couponDiscount = appliedCoupon ? Number(appliedCoupon.discount_amount || 0) : 0;
     const deliveryCharge = cartTotal > 0 && cartTotal < 199 ? 40 : 0;
-    const finalTotal = cartTotal + deliveryCharge;
+    const finalTotal = Math.max(0, cartTotal - couponDiscount) + deliveryCharge;
 
     const handlePlaceOrder = async () => {
         if (!address) return;
@@ -130,6 +163,8 @@ export default function CheckoutPage() {
                         })),
                         totalAmount: finalTotal,
                         delivery_charge: deliveryCharge,
+                        coupon_code: appliedCoupon?.code || null,
+                        coupon_discount: couponDiscount,
                         shippingAddress: address,
                         coords,
                     }),
@@ -139,6 +174,9 @@ export default function CheckoutPage() {
                     setOrderId(data.id || data._id);
                     setSuccess(true);
                     clearCart();
+                    if (typeof window !== 'undefined') {
+                        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+                    }
                 } else {
                     const data = await res.json().catch(() => ({}));
                     throw new Error(data.message || 'Unable to place order.');
@@ -161,6 +199,8 @@ export default function CheckoutPage() {
                         })),
                         totalAmount: finalTotal,
                         delivery_charge: deliveryCharge,
+                        coupon_code: appliedCoupon?.code || null,
+                        coupon_discount: couponDiscount,
                         shippingAddress: address,
                         coords,
                     }),
@@ -198,6 +238,9 @@ export default function CheckoutPage() {
                         if (verifyRes.ok) {
                             setSuccess(true);
                             clearCart();
+                            if (typeof window !== 'undefined') {
+                                window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+                            }
                             setTimeout(() => router.push('/profile/orders'), 3000);
                         } else {
                             const vdata = await verifyRes.json().catch(() => ({}));
@@ -230,6 +273,60 @@ export default function CheckoutPage() {
         }
     };
 
+    if (success) {
+        return (
+            <div className="max-w-2xl mx-auto px-4 py-12 md:py-20 min-h-[75vh] flex flex-col items-center justify-center">
+                <div className="w-full p-8 sm:p-10 bg-white rounded-3xl shadow-xl shadow-emerald-600/10 text-center border border-emerald-100 animate-in zoom-in-95 duration-500">
+                    <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner">
+                        <CheckCircle2 className="w-12 h-12" />
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-3.5 py-1 rounded-full mb-3">
+                        ✓ Order Confirmed
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-black text-gray-950 mb-2">Order Placed Successfully!</h2>
+                    <p className="text-sm text-gray-500 max-w-md mx-auto mb-6 leading-relaxed">
+                        Thank you for shopping with VegKing. Your fresh produce order has been placed and is being prepared for delivery.
+                    </p>
+
+                    {orderId && (
+                        <div className="mb-6 p-4 rounded-2xl bg-gray-50 border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+                            <div>
+                                <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 block">Order Reference ID</span>
+                                <span className="font-mono font-bold text-gray-900 text-sm">{orderId.toUpperCase()}</span>
+                            </div>
+                            <span className="text-xs font-bold text-gray-700 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
+                                {paymentMethod === 'COD' ? '💵 Cash on Delivery' : '💳 Paid Online'}
+                            </span>
+                        </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                        <Button
+                            onClick={() => {
+                                if (typeof window !== 'undefined') window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+                                router.push('/profile/orders');
+                            }}
+                            className="h-12 px-6 rounded-2xl font-bold bg-primary hover:bg-primary-dark text-white shadow-md shadow-primary/20 flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                            <ShoppingBag className="w-4 h-4" />
+                            <span>View & Track Orders</span>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                if (typeof window !== 'undefined') window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+                                router.push('/');
+                            }}
+                            className="h-12 px-6 rounded-2xl font-bold border-gray-200 hover:bg-gray-50 text-gray-700 cursor-pointer"
+                        >
+                            Continue Shopping
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-4xl mx-auto px-4 py-8 md:py-12 min-h-[70vh]">
             <h1 className="text-3xl font-black text-gray-950 mb-8 flex items-center gap-3">
@@ -237,20 +334,7 @@ export default function CheckoutPage() {
                 Checkout
             </h1>
 
-            {success ? (
-                <div className="p-8 bg-white rounded-3xl shadow-xl shadow-primary/10 text-center border border-gray-100 animate-in zoom-in duration-500">
-                    <CheckCircle2 className="mx-auto mb-4 text-green-600 w-16 h-16" />
-                    <h2 className="text-2xl font-black mb-2 text-gray-950">Order Placed Successfully!</h2>
-                    {orderId && <p className="mb-4 text-sm font-medium text-gray-500">Your order ID: <span className="font-bold text-gray-900">{orderId.toUpperCase()}</span></p>}
-                    <Button
-                        onClick={() => router.push('/profile/orders')}
-                        className="mt-4"
-                    >
-                        View My Orders
-                    </Button>
-                </div>
-            ) : (
-                <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-xl shadow-primary/5">
+            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-xl shadow-primary/5">
                     {/* ── Address Section ── */}
                     <div className="mb-6">
                         <div className="flex items-center justify-between mb-3">
@@ -458,6 +542,14 @@ export default function CheckoutPage() {
                                     <span>Subtotal ({cart.length} items)</span>
                                     <span>₹{Number(cartTotal || 0).toFixed(2)}</span>
                                 </div>
+                                {appliedCoupon && (
+                                    <div className="flex justify-between text-emerald-700 font-bold text-sm bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200">
+                                        <span className="flex items-center gap-1.5">
+                                            🏷️ Coupon Discount ({appliedCoupon.code})
+                                        </span>
+                                        <span>-₹{couponDiscount.toFixed(2)}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between text-gray-600 font-medium text-sm">
                                     <span>Delivery</span>
                                     {deliveryCharge > 0 ? (
@@ -542,7 +634,6 @@ export default function CheckoutPage() {
                         </div>
                     )}
                 </div>
-            )}
 
             {/* ── Google Map Picker Modal ── */}
             {showMapPicker && (

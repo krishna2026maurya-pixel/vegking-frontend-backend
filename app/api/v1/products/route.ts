@@ -31,12 +31,17 @@ export async function GET(request: NextRequest) {
     let vendor_id = searchParams.get('vendor_id') || '';
     const category_id = searchParams.get('category_id') || '';
 
-    // If request comes from a logged-in Vendor and vendor_id isn't in URL, default to logged-in vendor ID
-    const userObj = await getUserIdFromRequest(request);
-    const { getUserFromRequest } = await import('@/lib/auth');
-    const fullUser = await getUserFromRequest(request);
-    if (!vendor_id && fullUser && fullUser.role === 'vendor') {
-      vendor_id = fullUser.vendor_id || fullUser.id;
+    // If request comes explicitly from the vendor portal and vendor_id isn't in URL, filter by vendor
+    const referer = request.headers.get('referer') || '';
+    const isVendorPortal = referer.includes('/vendor/') || request.headers.get('x-vendor-request') === 'true';
+    if (!vendor_id && isVendorPortal) {
+      try {
+        const { getUserFromRequest } = await import('@/lib/auth');
+        const fullUser = await getUserFromRequest(request);
+        if (fullUser && fullUser.role === 'vendor') {
+          vendor_id = fullUser.vendor_id || fullUser.id;
+        }
+      } catch (_) {}
     }
 
     const query: any = { is_active: { $ne: '0' } };

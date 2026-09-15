@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import DataTable, { Column, Action, BulkAction } from '../components/DataTable';
 import { Eye, Trash2, ArrowUpDown, Bike, RotateCw } from 'lucide-react';
 import clsx from 'clsx';
+import { getAllowedNextStatuses, canTransitionStatus, normalizeOrderStatus } from '@/lib/order-status-rules';
 
 interface Order {
   _id: string;
@@ -52,8 +53,9 @@ export default function OrdersPage() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterRider, setFilterRider] = useState('');
   const [error, setError] = useState('');
-  const [statusModal, setStatusModal] = useState<{ open: boolean; orderId: string | null; current: string }>({ open: false, orderId: null, current: 'Order Placed' });
+  const [statusModal, setStatusModal] = useState<{ open: boolean; orderId: string | null; current: string; initialStatus: string }>({ open: false, orderId: null, current: 'Order Placed', initialStatus: 'Order Placed' });
   const [assignModal, setAssignModal] = useState<{ open: boolean; orderId: string | null; riderId: string }>({ open: false, orderId: null, riderId: '' });
   const limit = 10;
 
@@ -63,7 +65,18 @@ export default function OrdersPage() {
     try {
       const params = new URLSearchParams({ page: String(page), limit: String(limit), search });
       if (filterStatus !== '') params.set('status', filterStatus);
-      const res = await fetch(`/api/orders?${params}`);
+      if (filterRider !== '') params.set('delivery_boy_id', filterRider);
+      const res = await fetch(`/api/orders?${params}`, {
+        credentials: 'include',
+        cache: 'no-store',
+        headers: {
+          'x-admin-request': 'true',
+        },
+      });
+      if (res.status === 401) {
+        setError('Session expired (401). Please log in again to access the orders panel.');
+        return;
+      }
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const json = await res.json();
       setOrders(json.data || []);
@@ -74,7 +87,7 @@ export default function OrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, filterStatus]);
+  }, [page, search, filterStatus, filterRider]);
 
   const fetchDeliveryBoys = useCallback(async () => {
     try {
@@ -91,6 +104,12 @@ export default function OrdersPage() {
 
   const applyStatus = async (newStatus: string) => {
     if (!statusModal.orderId) return;
+    const initial = statusModal.initialStatus || statusModal.current;
+    const check = canTransitionStatus(initial, newStatus);
+    if (!check.allowed) {
+      alert(check.reason || `Status cannot move backwards from "${initial}" to "${newStatus}".`);
+      return;
+    }
     try {
       const legacyMap: Record<string, number> = { 'Order Placed': 0, 'Order Confirmed': 1, 'Packing': 2, 'Out for Delivery': 3, 'Delivered': 4, 'Cancelled': 5 };
       const res = await fetch(`/api/orders/${statusModal.orderId}`, {
@@ -98,12 +117,15 @@ export default function OrdersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderStatus: newStatus, status: legacyMap[newStatus], isAdmin: true }),
       });
-      if (!res.ok) throw new Error('Update failed');
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || 'Update failed');
+      }
       fetchOrders();
     } catch (e: any) {
       alert(e.message);
     } finally {
-      setStatusModal({ open: false, orderId: null, current: 'Order Placed' });
+      setStatusModal({ open: false, orderId: null, current: 'Order Placed', initialStatus: 'Order Placed' });
     }
   };
 
@@ -185,25 +207,52 @@ export default function OrdersPage() {
     },
     {
       key: 'delivery_boy_id' as any,
-      label: 'Rider & Status',
+      label: 'Delivery Boy',
       render: (row: any) => {
-        const r = row.delivery_boy_id;
+        const r = (typeof row.delivery_boy_id === 'object' && row.delivery_boy_id)
+          || (row.items && row.items.find((it: any) => typeof it.delivery_boy_id === 'object' && it.delivery_boy_id)?.delivery_boy_id);
+        const isDelivered = row.orderStatus === 'Delivered';
+        const isOut = row.orderStatus === 'Out for Delivery';
         const isOnline = r?.is_active === '1';
+
         if (r?.name) {
           return (
             <div className="flex flex-col gap-0.5 whitespace-nowrap">
               <div className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+                <Bike className="w-3.5 h-3.5 text-green-600 shrink-0" />
                 <span className="font-bold text-gray-900 dark:text-white text-xs">{r.name}</span>
-                <span className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase ${isOnline ? 'bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700'}`}>
-                  {isOnline ? 'Online' : 'Offline'}
-                </span>
+                {isDelivered ? (
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300 border border-green-200">
+                    Delivered
+                  </span>
+                ) : isOut ? (
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200">
+                    Out for Delivery
+                  </span>
+                ) : (
+                  <span className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase ${isOnline ? 'bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700'}`}>
+                    {isOnline ? 'Online' : 'Offline'}
+                  </span>
+                )}
               </div>
-              {r.mobile_number && <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">📞 {r.mobile_number}</span>}
+              {r.mobile_number && (
+                <a href={`tel:${r.mobile_number}`} className="text-[10px] text-gray-500 dark:text-gray-400 font-medium hover:text-green-600">
+                  📞 {r.mobile_number}
+                </a>
+              )}
+              {r.vehicle_number && (
+                <span className="text-[9px] text-gray-400 font-medium">
+                  🏍️ {r.vehicle_type || 'Vehicle'}: {r.vehicle_number}
+                </span>
+              )}
             </div>
           );
         }
-        return <span className="text-xs text-gray-400 font-semibold whitespace-nowrap">Unassigned</span>;
+        return (
+          <span className="text-xs text-gray-400 font-semibold whitespace-nowrap">
+            {isDelivered ? 'Delivered (Direct)' : 'Unassigned'}
+          </span>
+        );
       }
     },
     {
@@ -244,7 +293,14 @@ export default function OrdersPage() {
     {
       label: 'Change Status',
       icon: <ArrowUpDown size={15} />,
-      onClick: (row) => setStatusModal({ open: true, orderId: row._id, current: row.orderStatus || 'Order Placed' }),
+      disabled: (row) => {
+        const norm = normalizeOrderStatus(row.orderStatus);
+        return norm === 'Delivered' || norm === 'Cancelled';
+      },
+      onClick: (row) => {
+        const norm = normalizeOrderStatus(row.orderStatus || 'Order Placed');
+        setStatusModal({ open: true, orderId: row._id, current: norm, initialStatus: norm });
+      },
       color: 'success'
     },
     {
@@ -311,9 +367,21 @@ export default function OrdersPage() {
       </div>
 
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center justify-between">
-          <span>⚠️ {error}</span>
-          <button onClick={fetchOrders} className="underline font-bold hover:text-red-900 cursor-pointer">Retry</button>
+        <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center justify-between gap-3 flex-wrap shadow-2xs">
+          <span className="font-semibold">⚠️ {error}</span>
+          <div className="flex items-center gap-2">
+            {(error.includes('401') || error.toLowerCase().includes('session')) && (
+              <a
+                href="/admin-login"
+                className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition shadow-xs"
+              >
+                Log In to Admin
+              </a>
+            )}
+            <button onClick={() => fetchOrders()} className="px-3 py-1.5 bg-white border border-red-200 rounded-lg text-xs font-bold text-red-700 hover:bg-red-100 cursor-pointer">
+              Retry
+            </button>
+          </div>
         </div>
       )}
 
@@ -335,6 +403,18 @@ export default function OrdersPage() {
             <option value="">All Status</option>
             {Object.entries(statusMap).map(([val, s]) => (
               <option key={val} value={val}>{s.label}</option>
+            ))}
+          </select>
+          <select
+            value={filterRider}
+            onChange={(e) => { setFilterRider(e.target.value); setPage(1); }}
+            className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-2xs cursor-pointer max-w-[200px]"
+          >
+            <option value="">All Delivery Boys</option>
+            {deliveryBoys.map((boy: any) => (
+              <option key={boy._id} value={boy._id}>
+                {boy.name} {boy.mobile_number ? `(${boy.mobile_number})` : ''}
+              </option>
             ))}
           </select>
         </div>
@@ -374,19 +454,24 @@ export default function OrdersPage() {
       {statusModal.open && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-80">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Change Order Status</h3>
+            <h3 className="text-lg font-semibold mb-1 text-gray-900 dark:text-white">Change Order Status</h3>
+            <p className="text-xs text-gray-500 mb-3">
+              Current: <span className="font-bold text-gray-800 dark:text-gray-200">{statusModal.initialStatus}</span>
+            </p>
             <select
               value={statusModal.current}
               onChange={(e) => setStatusModal(m => ({ ...m, current: e.target.value }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             >
-              {Object.entries(statusMap).map(([val, s]) => (
-                <option key={val} value={val}>{s.label}</option>
-              ))}
+              {getAllowedNextStatuses(statusModal.initialStatus || statusModal.current)
+                .filter(val => statusMap[val])
+                .map((val) => (
+                  <option key={val} value={val}>{statusMap[val]?.label || val}</option>
+                ))}
             </select>
             <div className="flex gap-3">
               <button
-                onClick={() => setStatusModal({ open: false, orderId: null, current: 'Order Placed' })}
+                onClick={() => setStatusModal({ open: false, orderId: null, current: 'Order Placed', initialStatus: 'Order Placed' })}
                 className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
               >Cancel</button>
               <button

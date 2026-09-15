@@ -1,17 +1,47 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { Scale, Sparkles, MessageSquare, ArrowLeft, Search, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { 
+  Scale, Sparkles, MessageSquare, ArrowLeft, Search, ShieldCheck, 
+  CheckCircle2, ShoppingCart, Zap, Clock, ArrowRight, Check 
+} from 'lucide-react';
 import NegotiationModal from '@/components/NegotiationModal';
+import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
 
 export default function BulkProductsPage() {
+  const router = useRouter();
+  const { data: session } = useAuth();
+  const { addBulkDealToCart } = useCart();
+
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [categories, setCategories] = useState<any[]>([]);
   const [negotiateProduct, setNegotiateProduct] = useState<any>(null);
+
+  // User Negotiations for real-time deal detection
+  const [userNegotiations, setUserNegotiations] = useState<any[]>([]);
+  const [loadingNegotiations, setLoadingNegotiations] = useState(false);
+
+  const fetchUserNegotiations = useCallback(async () => {
+    if (!session?.user?.id) {
+      setUserNegotiations([]);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/negotiations?user_id=${session.user.id}`, { cache: 'no-store' });
+      const json = await res.json();
+      if (res.ok && json.data) {
+        setUserNegotiations(json.data);
+      }
+    } catch (e) {
+      console.error('Failed to load user bulk negotiations:', e);
+    }
+  }, [session?.user?.id]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,6 +66,30 @@ export default function BulkProductsPage() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    fetchUserNegotiations();
+    const interval = setInterval(fetchUserNegotiations, 3000);
+    return () => clearInterval(interval);
+  }, [fetchUserNegotiations]);
+
+  // Map product_id to active negotiation
+  const dealsMap = useMemo(() => {
+    const map: Record<string, any> = {};
+    for (const neg of userNegotiations) {
+      const pid = String(neg.product_id?._id || neg.product_id);
+      if (pid) {
+        if (!map[pid] || neg.status === 'ACCEPTED') {
+          map[pid] = neg;
+        }
+      }
+    }
+    return map;
+  }, [userNegotiations]);
+
+  const acceptedDeals = useMemo(() => {
+    return userNegotiations.filter((n) => n.status === 'ACCEPTED');
+  }, [userNegotiations]);
+
   const filteredProducts = products.filter((p) => {
     const matchesSearch = !search.trim() ||
       (p.name || p.product_name || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -46,6 +100,21 @@ export default function BulkProductsPage() {
 
     return matchesSearch && matchesCat;
   });
+
+  const handleOrderAcceptedDeal = (deal: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    addBulkDealToCart({
+      negotiation_id: deal._id,
+      product_id: deal.product_id?._id || deal.product_id,
+      product_name: deal.product_name,
+      product_image: deal.product_image || '/images/product-card-default.jpg',
+      agreed_rate: deal.final_agreed_price,
+      agreed_qty: deal.final_agreed_qty,
+      unit: deal.unit || 'kg',
+      deal_token: deal.deal_token,
+    }, e);
+    router.push('/cart');
+  };
 
   return (
     <div className="min-h-screen bg-[#070e17] text-gray-100 py-6 px-3 sm:px-6 lg:px-8">
@@ -92,6 +161,61 @@ export default function BulkProductsPage() {
             </div>
           </div>
         </div>
+
+        {/* Real-time Approved Deals Alert Banner for Logged-In User */}
+        {acceptedDeals.length > 0 && (
+          <div className="bg-gradient-to-r from-emerald-900/90 via-green-900/90 to-teal-900/90 rounded-2xl p-4 sm:p-5 border-2 border-emerald-400 shadow-2xl relative overflow-hidden animate-fadeIn">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-400 text-gray-950 flex items-center justify-center font-black shrink-0 shadow-md">
+                  <Zap className="w-5 h-5 fill-current" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base sm:text-lg font-black text-white">
+                      🎉 You have {acceptedDeals.length} Approved Wholesale Deal{acceptedDeals.length > 1 ? 's' : ''}!
+                    </h2>
+                    <span className="bg-emerald-400 text-gray-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                      Ready for Order
+                    </span>
+                  </div>
+                  <p className="text-xs text-emerald-200 mt-0.5">
+                    Your negotiated bulk rates have been accepted by the seller. Claim before the 24-hour deal window closes.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+                {acceptedDeals.map((deal) => (
+                  <div 
+                    key={deal._id}
+                    className="flex items-center gap-2.5 bg-black/40 border border-emerald-500/40 rounded-xl p-2 shrink-0 backdrop-blur"
+                  >
+                    <img
+                      src={deal.product_image || '/images/product-card-default.jpg'}
+                      alt={deal.product_name}
+                      className="w-9 h-9 rounded-lg object-cover border border-emerald-500/30"
+                    />
+                    <div className="text-xs">
+                      <div className="font-extrabold text-white truncate max-w-[120px]">{deal.product_name}</div>
+                      <div className="text-emerald-300 font-bold text-[11px]">
+                        ₹{deal.final_agreed_price}/{deal.unit} &bull; {deal.final_agreed_qty} {deal.unit}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => handleOrderAcceptedDeal(deal, e)}
+                      className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-black text-xs rounded-lg transition shadow flex items-center gap-1 cursor-pointer"
+                    >
+                      <ShoppingCart className="w-3.5 h-3.5" />
+                      <span>Buy (₹{deal.total_deal_amount})</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Compact Search & Category Filter Row */}
         <div className="bg-[#0e1726] rounded-xl p-3 border border-gray-800 shadow-md flex flex-col md:flex-row items-center gap-3">
@@ -159,16 +283,25 @@ export default function BulkProductsPage() {
               const minKg = p.bulk_min_qty || 5;
               const retailPrice = Number(p.price || p.selling_price || 0);
               const discountPct = Number(p.discount || 0);
-              const mrp = p.mrp ? Number(p.mrp) : (discountPct > 0 ? Math.round(retailPrice / (1 - discountPct / 100)) : Math.round(retailPrice * 1.2));
               const wholesalePrice = (p.bulk_base_price && Number(p.bulk_base_price) > 0 && Number(p.bulk_base_price) < retailPrice)
                 ? Number(p.bulk_base_price)
                 : Math.max(1, Math.round(retailPrice * 0.85));
+
+              const deal = dealsMap[p._id];
+              const isDealAccepted = deal?.status === 'ACCEPTED';
+              const isDealCountered = deal?.status === 'COUNTERED';
 
               return (
                 <div
                   key={p._id}
                   onClick={() => setNegotiateProduct(p)}
-                  className="bg-[#0e1726] rounded-xl p-3 border border-gray-800 hover:border-emerald-500 hover:shadow-lg transition-all duration-200 flex flex-col justify-between group cursor-pointer"
+                  className={`rounded-xl p-3 border transition-all duration-200 flex flex-col justify-between group cursor-pointer ${
+                    isDealAccepted
+                      ? 'bg-gradient-to-b from-emerald-950/60 to-[#0e1726] border-2 border-emerald-500 shadow-lg shadow-emerald-950/50 ring-1 ring-emerald-400/40'
+                      : isDealCountered
+                      ? 'bg-gradient-to-b from-amber-950/40 to-[#0e1726] border border-amber-500/80'
+                      : 'bg-[#0e1726] border-gray-800 hover:border-emerald-500 hover:shadow-lg'
+                  }`}
                 >
                   <div className="space-y-2">
                     {/* Compact Image */}
@@ -178,9 +311,22 @@ export default function BulkProductsPage() {
                         alt={p.name || p.product_name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                      <span className="absolute top-1.5 left-1.5 bg-amber-400 text-gray-950 font-black text-[9px] px-2 py-0.2 rounded uppercase shadow-sm">
-                        Min {minKg} kg
-                      </span>
+
+                      {/* Status Badges */}
+                      {isDealAccepted ? (
+                        <span className="absolute top-1.5 left-1.5 bg-emerald-400 text-gray-950 font-black text-[9px] px-2 py-0.5 rounded uppercase shadow-sm flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Deal Accepted: ₹{deal.final_agreed_price}/{deal.unit || 'kg'}</span>
+                        </span>
+                      ) : isDealCountered ? (
+                        <span className="absolute top-1.5 left-1.5 bg-amber-400 text-gray-950 font-black text-[9px] px-2 py-0.5 rounded uppercase shadow-sm">
+                          Counter: ₹{deal.current_counter_price}/{deal.unit || 'kg'}
+                        </span>
+                      ) : (
+                        <span className="absolute top-1.5 left-1.5 bg-amber-400 text-gray-950 font-black text-[9px] px-2 py-0.2 rounded uppercase shadow-sm">
+                          Min {minKg} kg
+                        </span>
+                      )}
                     </div>
 
                     {/* Vendor & Title */}
@@ -195,34 +341,85 @@ export default function BulkProductsPage() {
                     </div>
 
                     {/* Pricing Snippet */}
-                    <div className="p-2 bg-[#142032] rounded-lg flex items-center justify-between border border-gray-800 text-xs">
-                      <div>
-                        <span className="text-[9px] text-gray-400 block leading-tight">Wholesale Rate:</span>
-                        <span className="text-sm font-black text-emerald-400">
-                          ₹{wholesalePrice}/kg
-                        </span>
+                    {isDealAccepted ? (
+                      <div className="p-2.5 bg-emerald-950/80 rounded-lg border border-emerald-600/70 text-xs space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] text-emerald-300 font-bold uppercase tracking-wider">Your Approved Rate:</span>
+                          <span className="text-sm font-black text-emerald-300">
+                            ₹{deal.final_agreed_price}/{deal.unit || 'kg'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-emerald-100 font-semibold">
+                          <span>Agreed: {deal.final_agreed_qty} {deal.unit || 'kg'}</span>
+                          <span className="font-black text-white">Total: ₹{deal.total_deal_amount}</span>
+                        </div>
+                        <div className="pt-1 border-t border-emerald-800/40 flex justify-between text-[10px] text-gray-400">
+                          <span>Wholesale: <span className="line-through">₹{wholesalePrice}</span></span>
+                          <span>Retail: <span className="line-through">₹{retailPrice}</span></span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-[9px] text-gray-500 block leading-tight">Retail:</span>
-                        <span className="text-[11px] line-through text-gray-500">
-                          ₹{retailPrice}/kg
-                        </span>
+                    ) : (
+                      <div className="p-2 bg-[#142032] rounded-lg flex items-center justify-between border border-gray-800 text-xs">
+                        <div>
+                          <span className="text-[9px] text-gray-400 block leading-tight">Wholesale Rate:</span>
+                          <span className="text-sm font-black text-emerald-400">
+                            ₹{wholesalePrice}/kg
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[9px] text-gray-500 block leading-tight">Retail:</span>
+                          <span className="text-[11px] line-through text-gray-500">
+                            ₹{retailPrice}/kg
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Compact Action Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setNegotiateProduct(p);
-                    }}
-                    className="mt-2.5 w-full h-8.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase tracking-wider shadow transition flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>Negotiate Rate</span>
-                  </button>
+                  {/* Compact Action Buttons */}
+                  {isDealAccepted ? (
+                    <div className="mt-2.5 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={(e) => handleOrderAcceptedDeal(deal, e)}
+                        className="w-full h-9 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-950/40 flex items-center justify-center gap-1.5 cursor-pointer transition"
+                      >
+                        <ShoppingCart className="w-3.5 h-3.5" />
+                        <span>Order Deal (₹{deal.total_deal_amount})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNegotiateProduct(p)}
+                        className="w-full text-center text-[11px] font-bold text-emerald-400 hover:text-emerald-300 transition cursor-pointer"
+                      >
+                        View Deal & Chat History
+                      </button>
+                    </div>
+                  ) : isDealCountered ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setNegotiateProduct(p);
+                      }}
+                      className="mt-2.5 w-full h-8.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-gray-950 font-black text-xs uppercase tracking-wider shadow transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>Review Offer (₹{deal.current_counter_price})</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setNegotiateProduct(p);
+                      }}
+                      className="mt-2.5 w-full h-8.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase tracking-wider shadow transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>Negotiate Rate</span>
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -232,7 +429,10 @@ export default function BulkProductsPage() {
         {/* Compact Live Negotiation Modal */}
         <NegotiationModal
           isOpen={!!negotiateProduct}
-          onClose={() => setNegotiateProduct(null)}
+          onClose={() => {
+            setNegotiateProduct(null);
+            fetchUserNegotiations();
+          }}
           product={negotiateProduct}
         />
 

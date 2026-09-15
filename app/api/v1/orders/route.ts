@@ -144,11 +144,18 @@ async function placeOrder(request: NextRequest, userId: string) {
       
       itemIds.push(orderItem._id);
       
-      // Decrease stock if stock status exists
-      if (product.stock_status !== undefined) {
-        product.stock_status = Math.max(0, (product.stock_status || 0) - Number(item.qty));
-        await product.save();
+      // Decrease product stock and dynamically update stock_status
+      const curStock = typeof product.stock === 'number'
+        ? product.stock
+        : (product.stock !== undefined && product.stock !== null && !isNaN(Number(product.stock))
+            ? Number(product.stock)
+            : (Number(product.stock_status) || 0));
+      const newStock = Math.max(0, curStock - Number(item.qty || 1));
+      product.stock = newStock;
+      if (newStock === 0) {
+        product.stock_status = 0;
       }
+      await product.save();
     }
     
     order.items = itemIds;

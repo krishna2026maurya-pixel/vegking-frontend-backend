@@ -86,22 +86,16 @@ async function updateOrderStatus(
     const newStatus = orderStatus as OrderStatusType;
 
     // ── Enforce transition rules ─────────────────────────────────────────
-    if (currentStatus === newStatus) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Order is already in "${currentStatus}" status.`,
-        },
-        { status: 400 }
-      );
-    }
+    const { canTransitionStatus, normalizeOrderStatus } = await import('@/lib/order-status-rules');
+    const currentCanonical = normalizeOrderStatus(currentStatus);
+    const requestedCanonical = normalizeOrderStatus(newStatus);
 
-    const allowed = VALID_TRANSITIONS[currentStatus];
-    if (!allowed.includes(newStatus)) {
+    const check = canTransitionStatus(currentCanonical, requestedCanonical);
+    if (!check.allowed) {
       return NextResponse.json(
         {
           success: false,
-          error: `Invalid status transition: "${currentStatus}" → "${newStatus}". Allowed next: ${allowed.length ? allowed.join(', ') : 'none (terminal state)'}`,
+          error: check.reason || `Invalid status transition: "${currentStatus}" → "${newStatus}". Backwards transitions are not allowed.`,
         },
         { status: 400 }
       );

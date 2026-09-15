@@ -1,10 +1,8 @@
 "use client";
-
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { ShoppingBag, Package, Bell, X, ExternalLink, Flame, UserPlus, Store } from 'lucide-react';
-
 export interface NotificationItem {
   _id: string;
   title: string;
@@ -13,12 +11,10 @@ export interface NotificationItem {
   link?: string;
   createdAt?: string;
 }
-
 interface LiveNotificationToastProps {
   role?: 'admin' | 'vendor' | 'all';
   vendorId?: string;
 }
-
 // Gentle pleasant sound chime using Web Audio API
 function playChime() {
   try {
@@ -26,11 +22,11 @@ function playChime() {
     if (!AudioContext) return;
     const ctx = new AudioContext();
     if (ctx.state === 'suspended') {
-      ctx.resume().catch(() => {});
+      ctx.resume().catch(() => { });
     }
 
     const now = ctx.currentTime;
-    
+
     // Note 1 (D5 - 587.33Hz)
     const osc1 = ctx.createOscillator();
     const gain1 = ctx.createGain();
@@ -58,7 +54,6 @@ function playChime() {
     // Audio autoplay or permission restriction safely ignored
   }
 }
-
 export default function LiveNotificationToast({ role: propRole, vendorId: propVendorId }: LiveNotificationToastProps) {
   const { data: session, status } = useSession();
   const [toasts, setToasts] = useState<NotificationItem[]>([]);
@@ -72,7 +67,7 @@ export default function LiveNotificationToast({ role: propRole, vendorId: propVe
   // Auto-detect role and vendorId from session
   const sessionUser = session?.user as any;
   const userRole = sessionUser?.role;
-  
+
   // STRICT: Only allow admin and vendor to receive pop-up notifications.
   // Unauthenticated visitors and normal users (role: 'user') must never see popup toasts.
   const isAuthorized = status === 'authenticated' && (userRole === 'admin' || userRole === 'vendor');
@@ -103,7 +98,7 @@ export default function LiveNotificationToast({ role: propRole, vendorId: propVe
           parsed.forEach(id => seenIdsRef.current.add(id));
         }
       }
-    } catch (_) {}
+    } catch (_) { }
   }, [isAuthorized]);
 
   // Remove toast from display
@@ -122,7 +117,7 @@ export default function LiveNotificationToast({ role: propRole, vendorId: propVe
       try {
         const existing = Array.from(seenIdsRef.current).slice(-50);
         sessionStorage.setItem('vegking_dismissed_notifs', JSON.stringify(existing));
-      } catch (_) {}
+      } catch (_) { }
     }
 
     // Optionally mark as read in database
@@ -131,7 +126,7 @@ export default function LiveNotificationToast({ role: propRole, vendorId: propVe
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, []);
 
@@ -291,7 +286,7 @@ export default function LiveNotificationToast({ role: propRole, vendorId: propVe
   if (!isAuthorized || toasts.length === 0) return null;
 
   return (
-    <div 
+    <div
       id="live-notification-tray"
       className="fixed bottom-6 right-6 z-[99999] flex flex-col gap-3 max-w-md w-full pointer-events-none px-4 sm:px-0"
       onMouseEnter={() => setIsHovered(true)}

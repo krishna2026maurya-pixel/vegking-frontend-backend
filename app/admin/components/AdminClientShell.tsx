@@ -7,7 +7,7 @@ import { signOut } from 'next-auth/react';
 import { 
   LayoutDashboard, Users, ShoppingCart, Truck, Wallet, Settings, Package, 
   ListTree, Tags, Image as ImageIcon, Bell, FileText, CreditCard, Shield, MapPin, Search,
-  Menu, X, LogOut
+  Menu, X, LogOut, Scale
 } from 'lucide-react';
 
 interface AdminClientShellProps {
@@ -154,9 +154,10 @@ export default function AdminClientShell({ children, sessionUser }: AdminClientS
 
         {/* Orders */}
         <div>
-          <div className="px-3 mb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Orders</div>
+          <div className="px-3 mb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Orders & Deals</div>
           <div className="space-y-1">
             <SidebarItem href="/admin/orders" icon={<ShoppingCart size={18} />} label="Orders" />
+            <SidebarItem href="/admin/bulk-inquiries" icon={<Scale size={18} />} label="Bulk Inquiries & Deals" />
             <SidebarItem href="/admin/order-items" icon={<ShoppingCart size={18} />} label="Order Items" />
             <SidebarItem href="/admin/carts" icon={<ShoppingCart size={18} />} label="Cart List" />
           </div>

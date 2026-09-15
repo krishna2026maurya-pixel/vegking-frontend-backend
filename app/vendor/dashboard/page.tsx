@@ -1,11 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { BarChart3, Loader2, LogOut, Package, PackagePlus, ReceiptText, Store, User, X, Bike, Bell, Settings, ShieldCheck, CheckCircle2, AlertTriangle, Landmark, Search, Mail, ChevronDown, Plus, Heart, Filter, MessageSquare, HelpCircle, Sparkles, Download, Eye, ArrowUpDown, Trash2, Scale, Send, Check, Sun, Moon, RotateCw } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import DataTable, { Column, Action } from '@/app/admin/components/DataTable';
+import { extractPriceFromMessage, getNegotiatedPrice } from '@/lib/negotiation-utils';
+import { getAllowedNextStatuses, canTransitionStatus, normalizeOrderStatus } from '@/lib/order-status-rules';
 
 const tabs = [
   { id: 'home', label: 'Market', icon: BarChart3 },
@@ -82,10 +84,25 @@ const emptyProduct = {
   bulk_stock: '',
 };
 
+function deduplicateMessages(rawMessages: any[]): any[] {
+  if (!Array.isArray(rawMessages)) return [];
+  const seen = new Set<string>();
+  const result: any[] = [];
+  for (const m of rawMessages) {
+    if (!m) continue;
+    const key = m._id ? String(m._id) : `${m.createdAt || ''}-${m.sender_role || ''}-${m.message || ''}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(m);
+    }
+  }
+  return result;
+}
+
 export default function VendorDashboardPage() {
   const { data: session, status, signOut } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState<string>('home');
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
@@ -126,7 +143,21 @@ export default function VendorDashboardPage() {
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
       url.searchParams.set('tab', tabId);
-      window.history.pushState({}, '', url.toString());
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const handlePopState = () => {
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get('tab');
+        if (tab && tabs.some((t) => t.id === tab)) {
+          setActiveTab(tab);
+        }
+      };
+      window.addEventListener('popstate', handlePopState);
+      return () => window.removeEventListener('popstate', handlePopState);
     }
   }, []);
 
@@ -157,7 +188,7 @@ export default function VendorDashboardPage() {
   const [orderFilterStatus, setOrderFilterStatus] = useState('');
   const [orderLoading, setOrderLoading] = useState(true);
   const [orderError, setOrderError] = useState('');
-  const [orderStatusModal, setOrderStatusModal] = useState<{ open: boolean; orderId: string | null; current: string; otp: string }>({ open: false, orderId: null, current: 'Order Placed', otp: '' });
+  const [orderStatusModal, setOrderStatusModal] = useState<{ open: boolean; orderId: string | null; current: string; initialStatus: string; otp: string }>({ open: false, orderId: null, current: 'Order Placed', initialStatus: 'Order Placed', otp: '' });
   const [assignRiderModal, setAssignRiderModal] = useState<{ open: boolean; orderId: string | null; currentRiderId: string; itemId?: string | null; itemName?: string | null }>({ open: false, orderId: null, currentRiderId: '', itemId: null, itemName: null });
   const [viewingOrder, setViewingOrder] = useState<any>(null);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
@@ -197,9 +228,18 @@ export default function VendorDashboardPage() {
   const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
-  const fetchNegotiations = useCallback(async () => {
+  const vendorChatScrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll vendor chat to bottom
+  useEffect(() => {
+    if (vendorChatScrollRef.current) {
+      vendorChatScrollRef.current.scrollTop = vendorChatScrollRef.current.scrollHeight;
+    }
+  }, [negotiationMessages.length]);
+
+  const fetchNegotiations = useCallback(async (silent = false) => {
     if (!session?.user?.id) return;
-    setNegotiationLoading(true);
+    if (!silent && negotiations.length === 0) setNegotiationLoading(true);
     try {
       const res = await fetch(`/api/negotiations?vendor_id=${session.user.id}`);
       const json = await res.json();
@@ -209,9 +249,9 @@ export default function VendorDashboardPage() {
     } catch (e) {
       console.error('Failed to load vendor negotiations:', e);
     } finally {
-      setNegotiationLoading(false);
+      if (!silent) setNegotiationLoading(false);
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.id, negotiations.length]);
 
   const fetchVendorNotifications = useCallback(async () => {
     if (!session?.user?.id) return;
@@ -231,10 +271,58 @@ export default function VendorDashboardPage() {
     fetchVendorNotifications();
     const interval = setInterval(() => {
       fetchVendorNotifications();
-      fetchNegotiations();
-    }, 5000);
+      fetchNegotiations(true);
+    }, 4000);
     return () => clearInterval(interval);
   }, [fetchVendorNotifications, fetchNegotiations]);
+
+  // Real-time chat polling when viewing an inquiry
+  useEffect(() => {
+    if (activeTab !== 'negotiations' || !selectedNegotiation?._id) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/negotiations/${selectedNegotiation._id}`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          if (json.data.session) {
+            setSelectedNegotiation((prev: any) => {
+              if (
+                !prev ||
+                prev.status !== json.data.session.status ||
+                prev.current_counter_price !== json.data.session.current_counter_price ||
+                prev.requested_qty !== json.data.session.requested_qty
+              ) {
+                return json.data.session;
+              }
+              return prev;
+            });
+          }
+          const fresh = deduplicateMessages(json.data.messages || []);
+          setNegotiationMessages((prev) => {
+            if (
+              prev.length === fresh.length &&
+              prev.every((m, i) => (m._id || i) === (fresh[i]?._id || i))
+            ) {
+              return prev;
+            }
+            return fresh;
+          });
+        }
+      } catch (err) {
+        // silent polling
+      }
+    }, 2500);
+
+    return () => clearInterval(pollInterval);
+  }, [activeTab, selectedNegotiation?._id]);
+
+  // Auto-select first negotiation if on negotiations tab and none selected
+  useEffect(() => {
+    if (activeTab === 'negotiations' && negotiations.length > 0 && !selectedNegotiation) {
+      openNegotiation(negotiations[0]);
+    }
+  }, [activeTab, negotiations, selectedNegotiation]);
 
   const markNotificationAsRead = async (notifId?: string, markAll = false) => {
     try {
@@ -265,7 +353,7 @@ export default function VendorDashboardPage() {
             if (json.success && json.data) {
               openNegotiation(json.data.session || json.data);
             }
-          } catch {}
+          } catch { }
         }
       }
     } else if (item.type === 'new_order' || item.type === 'order_status') {
@@ -286,19 +374,28 @@ export default function VendorDashboardPage() {
         if (json.data.session) {
           setSelectedNegotiation(json.data.session);
         }
-        setNegotiationMessages(json.data.messages || []);
+        setNegotiationMessages(deduplicateMessages(json.data.messages || []));
       }
     } catch (e) {
       console.error(e);
     }
   };
 
+  const effectiveAgreedPrice = useMemo(() => {
+    if (!selectedNegotiation) return 0;
+    if (vendorCounterInput && Number(vendorCounterInput) > 0) {
+      return Number(vendorCounterInput);
+    }
+    return getNegotiatedPrice(selectedNegotiation, negotiationMessages);
+  }, [selectedNegotiation, negotiationMessages, vendorCounterInput]);
+
   const handleVendorSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedNegotiation?._id || (!vendorChatInput.trim() && !vendorCounterInput)) return;
     setActionSending(true);
     try {
-      const proposedPrice = vendorCounterInput ? Number(vendorCounterInput) : null;
+      const detectedInMsg = extractPriceFromMessage(vendorChatInput);
+      const proposedPrice = vendorCounterInput ? Number(vendorCounterInput) : (detectedInMsg || null);
       const res = await fetch(`/api/negotiations/${selectedNegotiation._id}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -313,11 +410,15 @@ export default function VendorDashboardPage() {
         }),
       });
       const json = await res.json();
-      if (res.ok) {
-        setNegotiationMessages((prev) => [...prev, json.data]);
+      if (res.ok && json.data) {
+        setNegotiationMessages((prev) => {
+          const isAlreadyPresent = prev.some((m: any) => m._id && String(m._id) === String(json.data._id));
+          if (isAlreadyPresent) return prev;
+          return [...prev, json.data];
+        });
         setVendorChatInput('');
         setVendorCounterInput('');
-        fetchNegotiations();
+        fetchNegotiations(true);
       }
     } catch (e) {
       console.error(e);
@@ -326,10 +427,11 @@ export default function VendorDashboardPage() {
     }
   };
 
-  const handleVendorAction = async (action: 'ACCEPT' | 'REJECT') => {
+  const handleVendorAction = async (action: 'ACCEPT' | 'REJECT', customPrice?: number) => {
     if (!selectedNegotiation?._id) return;
     setActionSending(true);
     try {
+      const finalPriceToUse = customPrice || effectiveAgreedPrice || selectedNegotiation.current_counter_price || selectedNegotiation.initial_offer_price;
       const res = await fetch(`/api/negotiations/${selectedNegotiation._id}/action`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -337,7 +439,7 @@ export default function VendorDashboardPage() {
           action,
           sender_id: session?.user?.id,
           sender_role: 'vendor',
-          final_price: selectedNegotiation.current_counter_price,
+          final_price: finalPriceToUse,
           final_qty: selectedNegotiation.requested_qty,
         }),
       });
@@ -345,10 +447,58 @@ export default function VendorDashboardPage() {
       if (res.ok) {
         setSelectedNegotiation(json.data);
         openNegotiation(json.data);
-        fetchNegotiations();
+        fetchNegotiations(true);
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setActionSending(false);
+    }
+  };
+
+  const handleCreateTestInquiry = async () => {
+    if (!session?.user?.id) return;
+    if (products.length === 0) {
+      alert('Please add at least one product before creating a bulk inquiry.');
+      return;
+    }
+    setActionSending(true);
+    try {
+      const targetProd = products.find((p: any) => p.is_bulk_available) || products[0];
+      const testNames = [
+        'Ramesh Kumar (Greens Wholesale)',
+        'Pooja Sharma (Organic Mart)',
+        'Vikram Singh (Kisan Mandi)',
+        'Amit Patel (Fresh Mart Retail)',
+      ];
+      const randomName = testNames[Math.floor(Math.random() * testNames.length)];
+      const reqQty = Number(targetProd.bulk_min_qty) || 15;
+      const baseWholesale = Number(targetProd.bulk_base_price) || Math.round(Number(targetProd.selling_price || targetProd.price || 50) * 0.85);
+      const proposedRate = Math.max(1, Math.round(baseWholesale * 0.9));
+
+      const res = await fetch('/api/negotiations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_id: targetProd._id,
+          user_id: session.user.id,
+          requested_qty: reqQty,
+          initial_offer_price: proposedRate,
+          customer_name: randomName,
+          customer_mobile: '9876543210',
+          note: `Hello ${profile?.businessName || 'Vendor'}, I need ${reqQty} ${targetProd.bulk_unit || 'kg'} of ${targetProd.product_name || targetProd.name} for our retail outlet. Can you do ₹${proposedRate}/${targetProd.bulk_unit || 'kg'}?`,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.data) {
+        await fetchNegotiations(false);
+        openNegotiation(json.data);
+      } else {
+        alert(json.error || 'Failed to create inquiry');
+      }
+    } catch (e: any) {
+      console.error('Error creating inquiry:', e);
+      alert('Error creating inquiry: ' + e.message);
     } finally {
       setActionSending(false);
     }
@@ -696,7 +846,7 @@ export default function VendorDashboardPage() {
       label: 'Pay Status',
       render: (row) => (
         <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${row.payment_status === 'completed' ? 'bg-green-100 text-green-800' :
-            row.payment_status === 'failed' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+          row.payment_status === 'failed' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
           }`}>{row.payment_status}</span>
       )
     },
@@ -788,8 +938,14 @@ export default function VendorDashboardPage() {
     {
       label: 'Change Status',
       icon: <ArrowUpDown size={15} />,
-      disabled: (row) => row.orderStatus === 'Delivered' || row.orderStatus === 'Cancelled',
-      onClick: (row) => setOrderStatusModal({ open: true, orderId: row._id, current: row.orderStatus || 'Order Placed', otp: '' }),
+      disabled: (row) => {
+        const norm = normalizeOrderStatus(row.orderStatus);
+        return norm === 'Delivered' || norm === 'Cancelled';
+      },
+      onClick: (row) => {
+        const norm = normalizeOrderStatus(row.orderStatus || 'Order Placed');
+        setOrderStatusModal({ open: true, orderId: row._id, current: norm, initialStatus: norm, otp: '' });
+      },
       color: 'success'
     },
     {
@@ -847,6 +1003,15 @@ export default function VendorDashboardPage() {
 
   const applyOrderStatus = async (newStatus: string) => {
     if (!orderStatusModal.orderId) return;
+    const initial = orderStatusModal.initialStatus || orderStatusModal.current;
+    
+    // Enforce forward-only status machine check
+    const check = canTransitionStatus(initial, newStatus);
+    if (!check.allowed) {
+      alert(check.reason || `Status cannot move backwards from "${initial}" to "${newStatus}".`);
+      return;
+    }
+
     if (newStatus === 'Delivered' && !orderStatusModal.otp) {
       alert("Delivery OTP is required to mark the order as Delivered.");
       return;
@@ -865,12 +1030,12 @@ export default function VendorDashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderStatus: newStatus,
-          status: legacyMap[newStatus],
+          status: legacyMap[newStatus] ?? 1,
           otp: orderStatusModal.otp
         }),
       });
       if (!res.ok) {
-        const errJson = await res.json();
+        const errJson = await res.json().catch(() => ({}));
         throw new Error(errJson.error || 'Update failed');
       }
       fetchPaginatedOrders();
@@ -878,7 +1043,7 @@ export default function VendorDashboardPage() {
     } catch (e: any) {
       alert(e.message);
     } finally {
-      setOrderStatusModal({ open: false, orderId: null, current: 'Order Placed', otp: '' });
+      setOrderStatusModal({ open: false, orderId: null, current: 'Order Placed', initialStatus: 'Order Placed', otp: '' });
     }
   };
 
@@ -1130,8 +1295,8 @@ export default function VendorDashboardPage() {
                   type="button"
                   onClick={() => changeTab(tab.id)}
                   className={`flex w-full items-center gap-3.5 px-4 py-3.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${isActive
-                      ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] dark:from-emerald-950/60 dark:to-emerald-900/40 text-emerald-700 dark:text-emerald-400 shadow-xs scale-[1.01]'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-[#f6faf7] dark:hover:bg-gray-700/50 hover:scale-[1.01]'
+                    ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] dark:from-emerald-950/60 dark:to-emerald-900/40 text-emerald-700 dark:text-emerald-400 shadow-xs scale-[1.01]'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-[#f6faf7] dark:hover:bg-gray-700/50 hover:scale-[1.01]'
                     }`}
                 >
                   <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'}`} />
@@ -1161,8 +1326,8 @@ export default function VendorDashboardPage() {
                   type="button"
                   onClick={() => changeTab(tab.id)}
                   className={`flex w-full items-center gap-3.5 px-4 py-3.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${isActive
-                      ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] dark:from-emerald-950/60 dark:to-emerald-900/40 text-emerald-700 dark:text-emerald-400 shadow-xs scale-[1.01]'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-[#f6faf7] dark:hover:bg-gray-700/50 hover:scale-[1.01]'
+                    ? 'bg-gradient-to-r from-emerald-50 to-[#edf7f0] dark:from-emerald-950/60 dark:to-emerald-900/40 text-emerald-700 dark:text-emerald-400 shadow-xs scale-[1.01]'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-[#f6faf7] dark:hover:bg-gray-700/50 hover:scale-[1.01]'
                     }`}
                 >
                   <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'}`} />
@@ -1200,7 +1365,17 @@ export default function VendorDashboardPage() {
           </div>
 
           <div className="hidden md:flex items-center gap-4">
-            <h2 className="font-extrabold text-xl text-gray-900 dark:text-white">Welcome to Market</h2>
+            <h2 className="font-extrabold text-xl text-gray-900 dark:text-white">
+              {activeTab === 'home' && 'Welcome to Market'}
+              {activeTab === 'negotiations' && 'Bulk Inquiries & Negotiations'}
+              {activeTab === 'products' && 'Product Inventory'}
+              {activeTab === 'orders' && 'Store Orders'}
+              {activeTab === 'customers' && 'My Customers'}
+              {activeTab === 'riders' && 'Delivery Riders'}
+              {activeTab === 'notifications' && 'Alerts & Notifications'}
+              {activeTab === 'profile' && 'Store Profile'}
+              {activeTab === 'settings' && 'Store Settings'}
+            </h2>
             <button
               type="button"
               onClick={downloadVendorReport}
@@ -1225,7 +1400,7 @@ export default function VendorDashboardPage() {
 
             <div className="flex items-center gap-3 text-gray-400">
               {/* Global Refresh Button */}
-              <button
+              {/* <button
                 type="button"
                 onClick={() => {
                   loadVendorData();
@@ -1238,10 +1413,10 @@ export default function VendorDashboardPage() {
               >
                 <RotateCw className={`h-4 w-4 ${loading || orderLoading ? 'animate-spin text-[#2bb673]' : ''}`} />
                 <span className="hidden sm:inline text-gray-600 dark:text-gray-300">Refresh</span>
-              </button>
+              </button> */}
 
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => changeTab('negotiations')}
                 className="p-2 hover:bg-[#f6faf7] dark:hover:bg-gray-700/50 hover:text-[#2bb673] rounded-xl transition cursor-pointer relative"
                 title="Bulk Chat & Inquiries"
@@ -1256,9 +1431,8 @@ export default function VendorDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setShowNotificationDropdown((prev) => !prev)}
-                  className={`p-2 hover:bg-[#f6faf7] dark:hover:bg-gray-700/50 hover:text-[#2bb673] rounded-xl transition relative cursor-pointer ${
-                    showNotificationDropdown ? 'bg-[#edf7f0] text-emerald-700' : ''
-                  }`}
+                  className={`p-2 hover:bg-[#f6faf7] dark:hover:bg-gray-700/50 hover:text-[#2bb673] rounded-xl transition relative cursor-pointer ${showNotificationDropdown ? 'bg-[#edf7f0] text-emerald-700' : ''
+                    }`}
                   title="Notifications"
                 >
                   <Bell className="h-5 w-5" />
@@ -1311,13 +1485,11 @@ export default function VendorDashboardPage() {
                               <div
                                 key={item._id || item.id}
                                 onClick={() => handleNotificationClick(item)}
-                                className={`p-3.5 flex gap-3 transition cursor-pointer hover:bg-emerald-50/40 dark:hover:bg-gray-700/60 ${
-                                  !item.isRead ? 'bg-emerald-50/20' : 'opacity-75'
-                                }`}
+                                className={`p-3.5 flex gap-3 transition cursor-pointer hover:bg-emerald-50/40 dark:hover:bg-gray-700/60 ${!item.isRead ? 'bg-emerald-50/20' : 'opacity-75'
+                                  }`}
                               >
-                                <div className={`h-9 w-9 shrink-0 rounded-2xl flex items-center justify-center ${
-                                  isBulk ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-700'
-                                }`}>
+                                <div className={`h-9 w-9 shrink-0 rounded-2xl flex items-center justify-center ${isBulk ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-700'
+                                  }`}>
                                   {isBulk ? <Scale className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -1854,15 +2026,20 @@ export default function VendorDashboardPage() {
               {orderStatusModal.open && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
                   <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-80">
-                    <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Change Order Status</h3>
+                    <h3 className="text-lg font-semibold mb-1 text-gray-900 dark:text-white">Change Order Status</h3>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Current: <span className="font-bold text-gray-800 dark:text-gray-200">{orderStatusModal.initialStatus}</span>
+                    </p>
                     <select
                       value={orderStatusModal.current}
                       onChange={(e) => setOrderStatusModal(m => ({ ...m, current: e.target.value }))}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     >
-                      {Object.entries(orderStatusMap).map(([val, s]) => (
-                        <option key={val} value={val}>{s.label}</option>
-                      ))}
+                      {getAllowedNextStatuses(orderStatusModal.initialStatus || orderStatusModal.current)
+                        .filter(val => orderStatusMap[val])
+                        .map((val) => (
+                          <option key={val} value={val}>{orderStatusMap[val]?.label || val}</option>
+                        ))}
                     </select>
 
                     {orderStatusModal.current === 'Delivered' && (
@@ -1880,7 +2057,7 @@ export default function VendorDashboardPage() {
 
                     <div className="flex gap-3">
                       <button
-                        onClick={() => setOrderStatusModal({ open: false, orderId: null, current: 'Order Placed', otp: '' })}
+                        onClick={() => setOrderStatusModal({ open: false, orderId: null, current: 'Order Placed', initialStatus: 'Order Placed', otp: '' })}
                         className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
                       >Cancel</button>
                       <button
@@ -2085,6 +2262,41 @@ export default function VendorDashboardPage() {
                           );
                         })}
                       </div>
+                      {/* Price Breakdown */}
+                      {(() => {
+                        const items = viewingOrder.items || viewingOrder.populatedItems || [];
+                        const sub = items.reduce((acc: number, it: any) => acc + (Number(it.price || 0) * Number(it.qty || it.quantity || 1)), 0);
+                        let disc = Number(viewingOrder.coupon_discount || 0);
+                        if (disc <= 0 && sub > 0 && Number(viewingOrder.total_amount || 0) > 0 && sub > Number(viewingOrder.total_amount)) {
+                          disc = Math.max(0, Math.round((sub - Number(viewingOrder.total_amount)) * 100) / 100);
+                        }
+                        const hasDisc = disc > 0 || Boolean(viewingOrder.coupon_code);
+                        return (
+                          <div className="space-y-1.5 px-4 pt-2 border-t border-gray-100 dark:border-gray-700 text-xs">
+                            <div className="flex justify-between items-center text-gray-600 dark:text-gray-300">
+                              <span>Items Subtotal</span>
+                              <span className="font-semibold">₹{sub.toFixed(2)}</span>
+                            </div>
+                            {hasDisc && (
+                              <div className="flex justify-between items-center text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded-lg">
+                                <span>🏷️ Coupon Discount {viewingOrder.coupon_code ? `(${viewingOrder.coupon_code})` : ''}</span>
+                                <span>-₹{disc.toFixed(2)}</span>
+                              </div>
+                            )}
+                            {viewingOrder.delivery_charge !== undefined && viewingOrder.delivery_charge > 0 ? (
+                              <div className="flex justify-between items-center text-gray-500">
+                                <span>Delivery Fee</span>
+                                <span>₹{Number(viewingOrder.delivery_charge).toFixed(2)}</span>
+                              </div>
+                            ) : sub >= 199 ? (
+                              <div className="flex justify-between items-center text-gray-500">
+                                <span>Delivery Fee</span>
+                                <span className="font-bold text-emerald-600">FREE</span>
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })()}
                       <div className="flex justify-between items-center px-4 pt-1">
                         <span className="text-xs font-bold text-gray-500">Total Bill</span>
                         <span className="text-base font-black text-gray-950 dark:text-white">₹{Number(viewingOrder.total_amount || 0).toFixed(2)}</span>
@@ -2118,15 +2330,27 @@ export default function VendorDashboardPage() {
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={fetchNegotiations}
-                    className="p-2 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 text-gray-600 text-xs font-bold flex items-center gap-1.5"
+                    type="button"
+                    onClick={handleCreateTestInquiry}
+                    disabled={actionSending}
+                    className="px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-black border border-emerald-200 dark:border-emerald-800 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-xs"
+                    title="Simulate a new buyer inquiry to test negotiation and real-time chat"
                   >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Simulate Buyer Inquiry</span>
+                  </button>
+
+                  <button
+                    onClick={() => fetchNegotiations(false)}
+                    className="p-2 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 text-gray-600 dark:text-gray-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <RotateCw className="w-3.5 h-3.5" />
                     <span>Refresh</span>
                   </button>
                 </div>
               </div>
 
-              {negotiationLoading ? (
+              {negotiationLoading && negotiations.length === 0 ? (
                 <div className="p-12 text-center text-gray-400 text-sm">Loading bulk inquiries...</div>
               ) : negotiations.length === 0 ? (
                 <div className="text-center py-16 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 space-y-2">
@@ -2136,7 +2360,7 @@ export default function VendorDashboardPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                  
+
                   {/* Inquiries Sidebar */}
                   <div className="lg:col-span-5 space-y-3 max-h-[600px] overflow-y-auto pr-1">
                     {negotiations.map((n) => {
@@ -2145,11 +2369,10 @@ export default function VendorDashboardPage() {
                         <div
                           key={n._id}
                           onClick={() => openNegotiation(n)}
-                          className={`p-4 rounded-2xl border transition cursor-pointer space-y-2.5 ${
-                            isSelected
+                          className={`p-4 rounded-2xl border transition cursor-pointer space-y-2.5 ${isSelected
                               ? 'border-green-600 bg-green-50/50 dark:bg-green-950/20 shadow-sm'
                               : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-green-400'
-                          }`}
+                            }`}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-3">
@@ -2160,12 +2383,11 @@ export default function VendorDashboardPage() {
                               </div>
                             </div>
 
-                            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                              n.status === 'ACCEPTED' ? 'bg-green-100 text-green-800' :
-                              n.status === 'COUNTERED' ? 'bg-amber-100 text-amber-800' :
-                              n.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
-                              'bg-blue-100 text-blue-800'
-                            }`}>
+                            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${n.status === 'ACCEPTED' ? 'bg-green-100 text-green-800' :
+                                n.status === 'COUNTERED' ? 'bg-amber-100 text-amber-800' :
+                                  n.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                                    'bg-blue-100 text-blue-800'
+                              }`}>
                               {n.status}
                             </span>
                           </div>
@@ -2189,7 +2411,7 @@ export default function VendorDashboardPage() {
                   <div className="lg:col-span-7 border border-gray-200 dark:border-gray-700 rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-5 flex flex-col min-h-[500px] justify-between">
                     {selectedNegotiation ? (
                       <div className="flex flex-col h-full space-y-4">
-                        
+
                         {/* Header */}
                         <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
                           <div>
@@ -2200,23 +2422,45 @@ export default function VendorDashboardPage() {
                           </div>
 
                           {selectedNegotiation.status === 'ACCEPTED' ? (
-                            <span className="bg-green-100 text-green-800 font-mono font-bold text-xs px-2.5 py-1 rounded-full border border-green-300">
-                              Deal Token: {selectedNegotiation.deal_token}
-                            </span>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                              <span className="bg-green-100 text-green-800 font-extrabold text-xs px-3 py-1 rounded-xl border border-green-300 flex items-center gap-1.5 shadow-xs">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-green-700" />
+                                <span>Deal Accepted: ₹{selectedNegotiation.final_agreed_price || selectedNegotiation.current_counter_price}/{selectedNegotiation.unit || 'kg'} ({selectedNegotiation.final_agreed_qty || selectedNegotiation.requested_qty} {selectedNegotiation.unit || 'kg'} &bull; Total ₹{selectedNegotiation.total_deal_amount || (Number(selectedNegotiation.final_agreed_price || selectedNegotiation.current_counter_price) * Number(selectedNegotiation.final_agreed_qty || selectedNegotiation.requested_qty))})</span>
+                              </span>
+                              <span className="bg-emerald-50 text-emerald-800 font-mono font-bold text-[11px] px-2.5 py-1 rounded-xl border border-emerald-200">
+                                Token: {selectedNegotiation.deal_token}
+                              </span>
+                            </div>
                           ) : (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <button
-                                onClick={() => handleVendorAction('ACCEPT')}
-                                disabled={actionSending}
-                                className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-extrabold shadow flex items-center gap-1 cursor-pointer"
+                                type="button"
+                                onClick={() => handleVendorAction('ACCEPT', effectiveAgreedPrice)}
+                                disabled={actionSending || effectiveAgreedPrice <= 0}
+                                className="px-3.5 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-black shadow-xs flex items-center gap-1 cursor-pointer transition disabled:opacity-50"
+                                title={`Accept deal at ₹${effectiveAgreedPrice}/${selectedNegotiation.unit || 'kg'} for ${selectedNegotiation.requested_qty} ${selectedNegotiation.unit || 'kg'}`}
                               >
                                 <Check className="w-3.5 h-3.5" />
-                                <span>Accept Deal (₹{selectedNegotiation.current_counter_price}/{selectedNegotiation.unit})</span>
+                                <span>Accept Deal (₹{effectiveAgreedPrice}/{selectedNegotiation.unit || 'kg'})</span>
                               </button>
+
+                              <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-2 py-1 text-xs border border-gray-200 dark:border-gray-600 shadow-xs" title="Adjust rate to accept or counter">
+                                <span className="text-gray-400 font-bold mr-0.5">₹</span>
+                                <input
+                                  type="number"
+                                  value={vendorCounterInput}
+                                  onChange={(e) => setVendorCounterInput(e.target.value)}
+                                  placeholder={String(effectiveAgreedPrice)}
+                                  className="w-12 bg-transparent font-black text-gray-900 dark:text-white outline-none text-xs"
+                                />
+                                <span className="text-[10px] text-gray-400">/{selectedNegotiation.unit || 'kg'}</span>
+                              </div>
+
                               <button
+                                type="button"
                                 onClick={() => handleVendorAction('REJECT')}
                                 disabled={actionSending}
-                                className="px-3 py-1.5 bg-gray-100 hover:bg-red-50 text-red-600 rounded-xl text-xs font-bold transition cursor-pointer"
+                                className="px-2.5 py-1.5 bg-gray-100 hover:bg-red-50 text-red-600 rounded-xl text-xs font-bold transition cursor-pointer"
                               >
                                 Decline
                               </button>
@@ -2225,19 +2469,22 @@ export default function VendorDashboardPage() {
                         </div>
 
                         {/* Messages Stream */}
-                        <div className="flex-1 overflow-y-auto space-y-3 min-h-[250px] max-h-[350px] p-2 bg-gray-50 dark:bg-gray-900/40 rounded-xl">
-                          {negotiationMessages.map((msg: any, i: number) => {
+                        <div 
+                          ref={vendorChatScrollRef}
+                          className="flex-1 overflow-y-auto space-y-3 min-h-[250px] max-h-[350px] p-2 bg-gray-50 dark:bg-gray-900/40 rounded-xl"
+                        >
+                          {deduplicateMessages(negotiationMessages).map((msg: any, i: number) => {
                             const isVendor = msg.sender_role === 'vendor';
+                            const itemKey = msg._id ? `${msg._id}-${i}` : `vmsg-${i}`;
                             return (
-                              <div key={msg._id || i} className={`flex flex-col ${isVendor ? 'items-end' : 'items-start'}`}>
+                              <div key={itemKey} className={`flex flex-col ${isVendor ? 'items-end' : 'items-start'}`}>
                                 <span className="text-[9px] font-bold text-gray-400 px-1 mb-0.5">
                                   {isVendor ? 'You' : msg.sender_name || 'Buyer'}
                                 </span>
-                                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-xs shadow-xs ${
-                                  isVendor
+                                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-xs shadow-xs ${isVendor
                                     ? 'bg-green-600 text-white rounded-tr-none'
                                     : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-none'
-                                }`}>
+                                  }`}>
                                   <p>{msg.message}</p>
                                   {msg.proposed_price && (
                                     <div className="mt-1 font-bold text-[10px] opacity-90">
@@ -2596,13 +2843,11 @@ export default function VendorDashboardPage() {
                     <div
                       key={item._id || item.id}
                       onClick={() => handleNotificationClick(item)}
-                      className={`py-4 px-3 sm:px-4 flex gap-4 transition rounded-2xl cursor-pointer hover:bg-emerald-50/40 dark:hover:bg-gray-700/60 ${
-                        !item.isRead ? 'bg-emerald-50/25 dark:bg-emerald-950/20 border-l-4 border-emerald-500' : 'opacity-85'
-                      }`}
+                      className={`py-4 px-3 sm:px-4 flex gap-4 transition rounded-2xl cursor-pointer hover:bg-emerald-50/40 dark:hover:bg-gray-700/60 ${!item.isRead ? 'bg-emerald-50/25 dark:bg-emerald-950/20 border-l-4 border-emerald-500' : 'opacity-85'
+                        }`}
                     >
-                      <div className={`h-11 w-11 shrink-0 rounded-2xl flex items-center justify-center ${
-                        isBulk ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300' : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
-                      }`}>
+                      <div className={`h-11 w-11 shrink-0 rounded-2xl flex items-center justify-center ${isBulk ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300' : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                        }`}>
                         {isBulk ? <Scale className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
                       </div>
                       <div className="flex-1 min-w-0">

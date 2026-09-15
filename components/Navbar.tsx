@@ -358,7 +358,20 @@ export default function Navbar() {
                           className="flex w-full items-center gap-4 px-5 py-3 text-left transition hover:bg-green-50"
                         >
                           <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-gray-50">
-                            <Image src={product.image} alt={product.name} fill sizes="48px" className="object-cover" />
+                            {product.image ? (
+                              <Image
+                                src={product.image}
+                                alt={product.name}
+                                fill
+                                sizes="48px"
+                                unoptimized
+                                className="object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">
+                                🥬
+                              </div>
+                            )}
                           </div>
                           <div className="min-w-0">
                             <p className="truncate text-sm font-extrabold text-gray-950">{product.name}</p>

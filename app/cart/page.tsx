@@ -1,9 +1,28 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Scale, Sparkles, ShieldCheck, RotateCcw } from 'lucide-react';
+import {
+  Trash2,
+  Plus,
+  Minus,
+  ShoppingBag,
+  ArrowRight,
+  Scale,
+  Sparkles,
+  ShieldCheck,
+  RotateCcw,
+  Tag,
+  Ticket,
+  Check,
+  X,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  AlertCircle
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import DealCountdownTimer from '@/components/DealCountdownTimer';
 
@@ -16,8 +35,116 @@ function getSafeCartImage(img: any) {
 }
 
 export default function CartPage() {
-  const { cart, removeFromCart, updateQuantity, clearCart, cartTotal } = useCart();
+  const {
+    cart,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    cartTotal,
+    appliedCoupon,
+    applyCoupon,
+    removeCoupon,
+  } = useCart();
   const { status } = useAuth();
+
+  const [couponInput, setCouponInput] = useState('');
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState('');
+  const [couponSuccess, setCouponSuccess] = useState('');
+  const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
+  const [showOffers, setShowOffers] = useState(false);
+  const [loadingOffers, setLoadingOffers] = useState(false);
+
+  // Check if any cart items are vendor-specific (ordered from a vendor store page)
+  const vendorStoreItem = cart.find((item: any) => item.from_vendor_page && item.vendor_id);
+  const currentVendorId = vendorStoreItem ? String(vendorStoreItem.vendor_id) : null;
+  const currentVendorName = vendorStoreItem?.vendor_name || 'Seller Store';
+  const isVendorOrder = Boolean(currentVendorId);
+
+  // Ensure cart page opens from the top on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
+  }, []);
+
+  // Fetch available coupons dynamically based on vendor order vs global all-products order
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCoupons = async () => {
+      try {
+        setLoadingOffers(true);
+        const url = isVendorOrder
+          ? `/api/v1/coupons?vendor_id=${encodeURIComponent(currentVendorId!)}`
+          : `/api/v1/coupons?type=global`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const json = await res.json();
+          if (isMounted && json.success && Array.isArray(json.data)) {
+            setAvailableCoupons(json.data);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load coupons:', e);
+      } finally {
+        if (isMounted) setLoadingOffers(false);
+      }
+    };
+    fetchCoupons();
+    return () => { isMounted = false; };
+  }, [isVendorOrder, currentVendorId]);
+
+  // Remove incompatible coupon if order type switches
+  useEffect(() => {
+    if (!appliedCoupon) return;
+    if (isVendorOrder && !appliedCoupon.vendor_id) {
+      removeCoupon();
+      setCouponError('Previous global coupon was removed because your cart contains items from a seller store.');
+    } else if (!isVendorOrder && appliedCoupon.vendor_id) {
+      removeCoupon();
+      setCouponError('Previous seller coupon was removed because your cart is from the general produce catalog.');
+    }
+  }, [isVendorOrder, appliedCoupon, removeCoupon]);
+
+  const handleApplyCoupon = async (codeToUse?: string) => {
+    const code = (codeToUse || couponInput).trim().toUpperCase();
+    if (!code) {
+      setCouponError('Please enter a coupon code.');
+      return;
+    }
+    setApplyingCoupon(true);
+    setCouponError('');
+    setCouponSuccess('');
+    try {
+      const res = await fetch('/api/v1/coupons/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          order_total: cartTotal,
+          vendor_id: currentVendorId,
+          from_vendor_page: isVendorOrder,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Invalid or inactive coupon code.');
+      }
+      applyCoupon(data.coupon);
+      setCouponInput('');
+      setCouponSuccess(`Coupon "${data.coupon.code}" applied! You saved ₹${Number(data.coupon.discount_amount).toFixed(2)}`);
+    } catch (err: any) {
+      setCouponError(err.message || 'Failed to apply coupon.');
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    removeCoupon();
+    setCouponSuccess('');
+    setCouponError('');
+  };
 
   if (cart.length === 0) {
     return (
@@ -62,8 +189,10 @@ export default function CartPage() {
   const retailSubtotal = retailItems.reduce((acc: number, item: any) => acc + (Number(item.price || 0) * Number(item.cartQuantity || 1)), 0);
   const bulkSubtotal = bulkItems.reduce((acc: number, item: any) => acc + (Number(item.price || 0) * Number(item.cartQuantity || 1)), 0);
 
+  const couponDiscount = appliedCoupon ? Number(appliedCoupon.discount_amount || 0) : 0;
+  const discountedSubtotal = Math.max(0, cartTotal - couponDiscount);
   const deliveryCharge = cartTotal > 0 && cartTotal < 199 ? 40 : 0;
-  const finalTotal = cartTotal + deliveryCharge;
+  const finalTotal = discountedSubtotal + deliveryCharge;
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
@@ -119,7 +248,7 @@ export default function CartPage() {
                     className="bg-gradient-to-br from-emerald-50/80 via-green-50/40 to-white p-4 sm:p-5 rounded-3xl flex flex-col sm:flex-row gap-4 sm:items-center border-2 border-emerald-300 shadow-sm relative overflow-hidden"
                   >
                     <div className="relative w-full sm:w-28 h-28 rounded-2xl overflow-hidden shrink-0 bg-white border border-emerald-200">
-                      <Image src={getSafeCartImage(item.image)} alt={item.name || 'Product'} fill sizes="(max-width: 640px) 100vw, 112px" className="object-cover" />
+                      <Image src={getSafeCartImage(item.image)} alt={item.name || 'Product'} fill sizes="(max-width: 640px) 100vw, 112px" unoptimized className="object-cover" />
                       <span className="absolute top-1.5 left-1.5 bg-amber-400 text-gray-950 font-black text-[9px] px-2 py-0.2 rounded uppercase shadow-xs">
                         Min 5 kg
                       </span>
@@ -208,7 +337,7 @@ export default function CartPage() {
                 return (
                   <div key={item.cartId || item._id} className="bg-white p-4 sm:p-5 rounded-3xl flex flex-col sm:flex-row gap-4 sm:items-center border border-gray-100 shadow-sm relative">
                     <div className="relative w-full sm:w-24 h-24 rounded-2xl overflow-hidden shrink-0 bg-gray-50">
-                      <Image src={getSafeCartImage(item.image)} alt={item.name || 'Product'} fill sizes="(max-width: 640px) 100vw, 96px" className="object-cover" />
+                      <Image src={getSafeCartImage(item.image)} alt={item.name || 'Product'} fill sizes="(max-width: 640px) 100vw, 96px" unoptimized className="object-cover" />
                     </div>
 
                     <div className="flex-grow flex flex-col sm:flex-row sm:items-center justify-between w-full">
@@ -265,25 +394,247 @@ export default function CartPage() {
 
         {/* Order Summary Card */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm h-fit sticky top-24 space-y-4">
-          <h2 className="text-xl font-bold text-gray-900">Order Summary</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-gray-900">Order Summary</h2>
+            <span className="text-xs text-gray-400 font-semibold">{cart.length} item{cart.length > 1 ? 's' : ''}</span>
+          </div>
 
-          <div className="space-y-3 pb-4 border-b border-gray-100">
+          {/* ─── Coupon / Promo Code Box ─── */}
+          <div className="bg-gray-50/80 border border-gray-200/90 rounded-2xl p-4 space-y-3">
+            {appliedCoupon ? (
+              <div className="bg-gradient-to-r from-emerald-500/10 via-green-500/15 to-emerald-500/10 border border-emerald-300 rounded-xl p-3 relative transition-all shadow-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Ticket className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-mono font-black text-emerald-950 tracking-wider text-xs sm:text-sm">{appliedCoupon.code}</span>
+                        <span className="bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase">Applied</span>
+                      </div>
+                      <p className="text-xs text-emerald-700 font-bold mt-0.5">
+                        Saved ₹{couponDiscount.toFixed(2)} {appliedCoupon.discount_type === 'percent' ? `(${appliedCoupon.discount_value}% OFF)` : 'Flat OFF'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0"
+                    title="Remove coupon"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between pb-0.5">
+                  <label className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-green-600" />
+                    <span>{isVendorOrder ? `${currentVendorName} Promo` : 'Global Promo Code'}</span>
+                  </label>
+                  {isVendorOrder ? (
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-200">
+                      🏪 Seller Store
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200">
+                      🌐 All Products
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <div className="relative flex-grow">
+                    <input
+                      type="text"
+                      value={couponInput}
+                      onChange={(e) => {
+                        setCouponInput(e.target.value.toUpperCase());
+                        if (couponError) setCouponError('');
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleApplyCoupon();
+                        }
+                      }}
+                      placeholder="e.g. FRESH10"
+                      className="w-full pl-3 pr-7 py-2 bg-white border border-gray-200 focus:border-green-500 rounded-xl text-xs sm:text-sm font-mono uppercase tracking-wider text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 transition"
+                    />
+                    {couponInput && (
+                      <button
+                        type="button"
+                        onClick={() => setCouponInput('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyCoupon()}
+                    disabled={!couponInput.trim() || applyingCoupon}
+                    className="px-3.5 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-200 text-white disabled:text-gray-400 font-extrabold text-xs rounded-xl transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer disabled:cursor-not-allowed shrink-0"
+                  >
+                    {applyingCoupon ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Apply'}
+                  </button>
+                </div>
+
+                {couponError && (
+                  <div className="flex items-start gap-1.5 p-2 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 animate-in fade-in">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-red-600" />
+                    <span className="font-semibold leading-tight">{couponError}</span>
+                  </div>
+                )}
+
+                {couponSuccess && (
+                  <div className="flex items-center gap-1.5 p-2 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 animate-in fade-in">
+                    <Check className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+                    <span className="font-bold">{couponSuccess}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Available Offers Dropdown ── */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => setShowOffers(!showOffers)}
+                className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                  isVendorOrder
+                    ? 'bg-amber-50/80 hover:bg-amber-100/80 border-amber-200 text-amber-950'
+                    : 'bg-emerald-50/70 hover:bg-emerald-100/70 border-emerald-200 text-emerald-900'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className={`w-3.5 h-3.5 ${isVendorOrder ? 'text-amber-600' : 'text-emerald-600'}`} />
+                  <span>
+                    {isVendorOrder
+                      ? `Offers from ${currentVendorName} (${availableCoupons.length})`
+                      : `Platform Offers (${availableCoupons.length})`}
+                  </span>
+                </span>
+                {showOffers ? (
+                  <ChevronUp className={`w-4 h-4 ${isVendorOrder ? 'text-amber-700' : 'text-emerald-700'}`} />
+                ) : (
+                  <ChevronDown className={`w-4 h-4 ${isVendorOrder ? 'text-amber-700' : 'text-emerald-700'}`} />
+                )}
+              </button>
+
+              {showOffers && (
+                <div className="mt-2 space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {availableCoupons.length === 0 ? (
+                    <div className="p-3 bg-white rounded-xl border border-gray-100 text-center text-xs text-gray-500 font-medium">
+                      {isVendorOrder
+                        ? `No active coupons listed by ${currentVendorName} right now.`
+                        : 'No active platform coupons available right now.'}
+                    </div>
+                  ) : (
+                    availableCoupons.map((c) => {
+                      const minOrder = Number(c.min_order || 0);
+                      const isEligible = cartTotal >= minOrder;
+                      const isThisApplied = appliedCoupon?.code === c.code;
+
+                      return (
+                        <div
+                          key={c._id || c.code}
+                          className={`p-2.5 rounded-xl border transition-all text-xs ${
+                            isThisApplied
+                              ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-400'
+                              : isEligible
+                              ? isVendorOrder
+                                ? 'border-dashed border-amber-300 bg-white hover:border-amber-500'
+                                : 'border-dashed border-emerald-300 bg-white hover:border-emerald-500'
+                              : 'border-dashed border-gray-200 bg-gray-50/80 opacity-70'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-mono font-black text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200 uppercase text-[11px]">
+                                {c.code}
+                              </span>
+                              <span className={`font-bold text-[11px] ${isVendorOrder ? 'text-amber-800' : 'text-emerald-700'}`}>
+                                {c.discount_type === 'percent' ? `${c.discount_value}% OFF` : `₹${c.discount_value} FLAT`}
+                              </span>
+                              {c.vendor_id ? (
+                                <span className="text-[9px] font-bold text-amber-800 bg-amber-50 px-1 py-0.2 rounded border border-amber-200">
+                                  🏪 Seller Deal
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200">
+                                  🌐 All Products
+                                </span>
+                              )}
+                            </div>
+                            {isThisApplied ? (
+                              <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">
+                                Applied
+                              </span>
+                            ) : isEligible ? (
+                              <button
+                                type="button"
+                                onClick={() => handleApplyCoupon(c.code)}
+                                disabled={applyingCoupon}
+                                className={`px-2.5 py-1 text-white font-extrabold text-[10px] rounded-lg transition cursor-pointer shadow-xs ${
+                                  isVendorOrder
+                                    ? 'bg-amber-600 hover:bg-amber-700'
+                                    : 'bg-emerald-600 hover:bg-emerald-700'
+                                }`}
+                              >
+                                Apply
+                              </button>
+                            ) : (
+                              <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                                +₹{(minOrder - cartTotal).toFixed(0)} more
+                              </span>
+                            )}
+                          </div>
+                          {minOrder > 0 && (
+                            <p className="text-[10px] text-gray-500 mt-1 font-medium">
+                              Valid on orders above ₹{minOrder}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── Price Breakdown ── */}
+          <div className="space-y-2.5 pb-4 border-b border-gray-100 text-xs">
             {/* Separate Subtotals */}
             {retailSubtotal > 0 && (
-              <div className="flex justify-between text-gray-600 text-xs">
+              <div className="flex justify-between text-gray-600">
                 <span>🛍️ Retail Produce Subtotal</span>
                 <span className="font-bold text-gray-900">₹{retailSubtotal.toFixed(2)}</span>
               </div>
             )}
 
             {bulkSubtotal > 0 && (
-              <div className="flex justify-between text-emerald-800 text-xs bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-200">
+              <div className="flex justify-between text-emerald-800 bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-200">
                 <span className="font-semibold">🌾 Negotiated Bulk Deals ({bulkItems.length})</span>
                 <span className="font-extrabold text-emerald-900">₹{bulkSubtotal.toFixed(2)}</span>
               </div>
             )}
 
-            <div className="flex justify-between text-gray-600 text-xs">
+            {appliedCoupon && (
+              <div className="flex justify-between text-emerald-700 font-bold bg-emerald-50/80 px-2.5 py-2 rounded-xl border border-emerald-200">
+                <span className="flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Coupon Discount ({appliedCoupon.code})</span>
+                </span>
+                <span className="font-black">-₹{couponDiscount.toFixed(2)}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between text-gray-600">
               <span>Delivery Charges</span>
               {deliveryCharge > 0 ? (
                 <span className="text-gray-900 font-bold">₹{deliveryCharge.toFixed(2)}</span>
@@ -293,9 +644,24 @@ export default function CartPage() {
             </div>
           </div>
 
+          {/* ── Total Payable ── */}
           <div className="flex justify-between items-baseline pt-1">
-            <span className="text-base font-bold text-gray-900">Total Payable</span>
-            <span className="text-2xl font-black text-green-700">₹{finalTotal.toFixed(2)}</span>
+            <div>
+              <span className="text-base font-bold text-gray-900">Total Payable</span>
+              {couponDiscount > 0 && (
+                <p className="text-[11px] font-extrabold text-emerald-600 mt-0.5">
+                  🎉 Saved ₹{couponDiscount.toFixed(2)} with coupon
+                </p>
+              )}
+            </div>
+            <div className="text-right">
+              {couponDiscount > 0 && (
+                <span className="text-xs text-gray-400 line-through mr-2 font-bold">
+                  ₹{(cartTotal + deliveryCharge).toFixed(2)}
+                </span>
+              )}
+              <span className="text-2xl font-black text-green-700">₹{finalTotal.toFixed(2)}</span>
+            </div>
           </div>
 
           <Link

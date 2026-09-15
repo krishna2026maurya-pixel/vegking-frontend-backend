@@ -62,6 +62,8 @@ const OrderSchema = new Schema(
     customer_mobile: { type: String },
     shippingAddress: { type: Schema.Types.Mixed },
     total_amount:    Number,
+    coupon_code:     { type: String, default: null },
+    coupon_discount: { type: Number, default: 0 },
     admin_commission:Number,
     delivery_charge: Number,
     payment_method:  { type: String, enum: ['COD', 'ONLINE'], default: 'COD' },

@@ -21,7 +21,11 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '*.googleusercontent.com',       pathname: '/**' },
       { protocol: 'https', hostname: 'www.bbassets.com',              pathname: '/**' },
       { protocol: 'https', hostname: '*.bbassets.com',                 pathname: '/**' },
+      { protocol: 'https', hostname: 'cdn1.healthians.com',           pathname: '/**' },
+      { protocol: 'https', hostname: '*.healthians.com',              pathname: '/**' },
       { protocol: 'https', hostname: 'cdn.shopaccino.com',            pathname: '/**' },
+      { protocol: 'https', hostname: '**',                            pathname: '/**' },
+      { protocol: 'http', hostname: '**',                             pathname: '/**' },
     ],
   },
   async headers() {

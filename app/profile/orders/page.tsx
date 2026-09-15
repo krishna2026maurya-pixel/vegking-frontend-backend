@@ -9,8 +9,9 @@ import {
   ChevronRight, Clock, MapPin, CreditCard, Receipt,
   ArrowLeft, RefreshCw, Loader2, AlertCircle, Box,
   ClipboardList, ShieldCheck, Scale, Sparkles, X, Store,
-  PhoneCall, Bike, Copy, Check, HelpCircle
+  PhoneCall, Bike, Copy, Check, HelpCircle, Tag
 } from 'lucide-react';
+import { normalizeOrderStatus, canTransitionStatus } from '@/lib/order-status-rules';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface RiderInfo {
@@ -39,13 +40,15 @@ interface OrderItem {
   delivery_boy_id?: RiderInfo | null;
 }
 
-interface Order {
+export interface Order {
   _id: string;
   order_number: string;
   orderStatus: string;
   payment_method: string;
   payment_status: string;
   total_amount: number;
+  coupon_code?: string | null;
+  coupon_discount?: number;
   delivery_charge?: number;
   shippingAddress: string;
   createdAt: string;
@@ -58,7 +61,7 @@ interface Order {
 }
 
 // ─── Status config ────────────────────────────────────────────────────────────
-const STATUS_CONFIG: Record<string, {
+export const STATUS_CONFIG: Record<string, {
   label: string;
   color: string;
   bg: string;
@@ -137,15 +140,53 @@ function isBulkOrder(order: Order): boolean {
 }
 
 // ─── Compact Vertical Order Detail Modal ──────────────────────────────────────
-function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => void }) {
+export function OrderDetailModal({ 
+  order, 
+  onClose,
+  onOrderCancelled 
+}: { 
+  order: Order; 
+  onClose: () => void;
+  onOrderCancelled?: () => void;
+}) {
   const [copied, setCopied] = useState(false);
-  const cfg = STATUS_CONFIG[order.orderStatus] || STATUS_CONFIG['Order Placed'];
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState('');
+
+  const normStatus = normalizeOrderStatus(order.orderStatus);
+  const cfg = STATUS_CONFIG[normStatus] || STATUS_CONFIG['Order Placed'];
   const currentStep = cfg.step;
-  const isCancelled = order.orderStatus === 'Cancelled';
+  const isCancelled = normStatus === 'Cancelled';
+  const isDelivered = normStatus === 'Delivered';
+  const canUserCancel = !isCancelled && !isDelivered && currentStep < 2; // only before packing / dispatch
   const hasBulk = isBulkOrder(order);
   const items = (order.populatedItems && order.populatedItems.length > 0)
     ? order.populatedItems
     : (order.items || []);
+
+  const handleCancelOrder = async () => {
+    if (!confirm(`Are you sure you want to cancel order #${order.order_number}?`)) return;
+    setCancelling(true);
+    setCancelError('');
+    try {
+      const res = await fetch(`/api/orders/${order._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderStatus: 'Cancelled', status: 5 }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Failed to cancel order.');
+      }
+      alert('Order has been cancelled successfully.');
+      if (onOrderCancelled) onOrderCancelled();
+      onClose();
+    } catch (err: any) {
+      setCancelError(err.message || 'Failed to cancel order.');
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const itemsSubtotal = items.reduce(
     (acc: number, item: any) => acc + (Number(item.price || 0) * Number(item.qty || item.quantity || 1)),
@@ -161,7 +202,21 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
     ? Math.max(0, Math.round((order.total_amount - itemsSubtotal) * 100) / 100)
     : (itemsSubtotal > 0 && itemsSubtotal < 199 ? 40 : 0);
 
-  const calculatedTotal = itemsSubtotal > 0 ? (itemsSubtotal + (isFreeDelivery ? 0 : deliveryCharge)) : (order.total_amount || 0);
+  // Robust coupon discount computation:
+  let couponDiscount = Number(order.coupon_discount || 0);
+  if (couponDiscount <= 0 && itemsSubtotal > 0 && Number(order.total_amount || 0) > 0) {
+    const rawExpected = itemsSubtotal + (isFreeDelivery ? 0 : deliveryCharge);
+    if (rawExpected > Number(order.total_amount)) {
+      couponDiscount = Math.max(0, Math.round((rawExpected - Number(order.total_amount)) * 100) / 100);
+    }
+  }
+  const couponCode = order.coupon_code || (couponDiscount > 0 ? 'COUPON' : null);
+  const hasCoupon = couponDiscount > 0 || Boolean(order.coupon_code);
+
+  const calculatedTotal = itemsSubtotal > 0 
+    ? Math.max(0, (itemsSubtotal + (isFreeDelivery ? 0 : deliveryCharge) - couponDiscount)) 
+    : (order.total_amount || 0);
+  const finalPayable = Number(order.total_amount ?? calculatedTotal);
 
   // Single rider information for the order
   const anyRider = order.delivery_boy_id || items.find((it) => it.delivery_boy_id)?.delivery_boy_id;
@@ -179,7 +234,7 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
     ? `${formatDate(order.updatedAt)} at ${formatTime(order.updatedAt)}`
     : `${formatDate(order.createdAt)} at ${formatTime(order.createdAt)}`;
 
-  const isOutForDelivery = order.orderStatus === 'Out for Delivery' || order.orderStatus === 'Delivered';
+  const isOutForDelivery = normStatus === 'Out for Delivery' || normStatus === 'Delivered';
 
   const handleCopyOrderId = () => {
     if (order.order_number) {
@@ -228,6 +283,12 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
                     🌾 Wholesale Deal
                   </span>
                 )}
+                {hasCoupon && (
+                  <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[9px] font-black px-2 py-0.5 rounded-full uppercase shadow-2xs flex items-center gap-1">
+                    <Tag className="w-2.5 h-2.5" />
+                    <span>Coupon: {couponCode} (-₹{couponDiscount.toFixed(2)})</span>
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-gray-500 font-medium">
                 Ordered on {formatDate(order.createdAt)} at {formatTime(order.createdAt)}
@@ -258,16 +319,16 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
             <div className="bg-gradient-to-r from-emerald-50 via-teal-50/50 to-emerald-50 border border-emerald-200/90 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
               <div className="flex items-center gap-3.5 min-w-0">
                 <div className="relative flex items-center justify-center shrink-0">
-                  {order.orderStatus === 'Out for Delivery' && (
+                  {normStatus === 'Out for Delivery' && (
                     <span className="absolute -top-1 -right-1 flex h-3 w-3">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                     </span>
                   )}
                   <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-                    {order.orderStatus === 'Out for Delivery' ? (
+                    {normStatus === 'Out for Delivery' ? (
                       <Truck className="w-5 h-5 animate-pulse" />
-                    ) : order.orderStatus === 'Delivered' ? (
+                    ) : normStatus === 'Delivered' ? (
                       <CheckCircle2 className="w-5 h-5" />
                     ) : (
                       <Clock className="w-5 h-5" />
@@ -277,20 +338,20 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 
                 <div className="min-w-0">
                   <h3 className="text-sm sm:text-base font-black text-gray-950">
-                    {order.orderStatus === 'Out for Delivery'
+                    {normStatus === 'Out for Delivery'
                       ? 'Out for Delivery — On the Way!'
-                      : order.orderStatus === 'Delivered'
+                      : normStatus === 'Delivered'
                       ? 'Order Delivered Successfully'
-                      : order.orderStatus === 'Packing'
+                      : normStatus === 'Packing'
                       ? 'Packaging Fresh Produce at Warehouse'
-                      : order.orderStatus === 'Order Confirmed'
+                      : normStatus === 'Order Confirmed'
                       ? 'Order Confirmed & Preparing for Dispatch'
                       : 'Order Placed — Processing Your Fresh Veggies'}
                   </h3>
                   <p className="text-xs text-gray-600 font-medium mt-0.5 leading-snug">
-                    {order.orderStatus === 'Out for Delivery'
+                    {normStatus === 'Out for Delivery'
                       ? 'Your delivery partner has picked up your produce and is on the way.'
-                      : order.orderStatus === 'Delivered'
+                      : normStatus === 'Delivered'
                       ? 'Enjoy your farm fresh produce. Rate your experience anytime.'
                       : 'Quality inspected farm produce packed with care.'}
                   </p>
@@ -300,7 +361,7 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
               <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
                 <span className="text-xs font-black text-emerald-800 bg-white/90 border border-emerald-200 px-3 py-1.5 rounded-xl shadow-2xs flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{order.orderStatus === 'Delivered' ? 'Completed' : 'Expected Today'}</span>
+                  <span>{normStatus === 'Delivered' ? 'Completed' : 'Expected Today'}</span>
                 </span>
               </div>
             </div>
@@ -596,6 +657,21 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
                     <span className="font-bold text-gray-900">₹{itemsSubtotal.toFixed(2)}</span>
                   </div>
 
+                  {/* Applied Coupon Discount Row */}
+                  {hasCoupon && (
+                    <div className="flex items-center justify-between text-emerald-700 bg-emerald-50/90 px-3 py-2 rounded-xl border border-emerald-200">
+                      <div className="flex items-center gap-1.5">
+                        <Tag className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span className="font-bold text-xs">
+                          Coupon Discount {couponCode ? `(${couponCode})` : ''}
+                        </span>
+                      </div>
+                      <span className="font-black text-xs text-emerald-700">
+                        -₹{couponDiscount.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Delivery Charges with Strikethrough if Free */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1">
@@ -625,10 +701,20 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
                   </div>
 
                   {/* Savings Card */}
-                  {isFreeDelivery && (
+                  {(isFreeDelivery || hasCoupon) && (
                     <div className="text-[10px] text-emerald-800 font-bold bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-2.5 border border-emerald-200 flex items-center gap-2">
                       <span className="text-sm">🎉</span>
-                      <span>Yay! You saved <strong>₹40.00</strong> on delivery fee with this order.</span>
+                      <span>
+                        Yay! You saved <strong>₹{((isFreeDelivery ? 40 : 0) + couponDiscount).toFixed(2)}</strong>
+                        {hasCoupon && isFreeDelivery ? (
+                          <> (₹{couponDiscount.toFixed(2)} with coupon + ₹40 free delivery)</>
+                        ) : hasCoupon ? (
+                          <> with coupon {couponCode}</>
+                        ) : (
+                          <> on delivery fee</>
+                        )}{' '}
+                        with this order.
+                      </span>
                     </div>
                   )}
 
@@ -647,10 +733,61 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
                       <span className="text-[10px] text-gray-400 font-medium">Single final amount (all taxes incl.)</span>
                     </div>
                     <span className="text-xl sm:text-2xl font-black text-emerald-700">
-                      ₹{Number(order.total_amount || calculatedTotal).toFixed(2)}
+                      ₹{finalPayable.toFixed(2)}
                     </span>
                   </div>
                 </div>
+              </div>
+
+              {/* Order Status Action & Forward Progression Notice */}
+              <div className="bg-white rounded-2xl p-4 border border-gray-150 shadow-2xs space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-black text-gray-900">Order Management</span>
+                  <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.color}`}>
+                    {cfg.label}
+                  </span>
+                </div>
+
+                {cancelError && (
+                  <p className="text-xs text-red-600 bg-red-50 p-2 rounded-lg border border-red-200 font-semibold">
+                    {cancelError}
+                  </p>
+                )}
+
+                {canUserCancel ? (
+                  <div className="space-y-1.5">
+                    <button
+                      type="button"
+                      disabled={cancelling}
+                      onClick={handleCancelOrder}
+                      className="w-full py-2.5 px-3 bg-red-50 hover:bg-red-100 active:scale-98 text-red-700 border border-red-200 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      {cancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                      <span>{cancelling ? 'Cancelling Order...' : 'Cancel Order'}</span>
+                    </button>
+                    <p className="text-[10px] text-gray-400 text-center leading-tight">
+                      Free cancellation is available until the vendor starts packing fresh produce.
+                    </p>
+                  </div>
+                ) : isCancelled ? (
+                  <div className="bg-red-50 text-red-700 p-2.5 rounded-xl border border-red-200 text-xs font-bold text-center">
+                    This order was cancelled. No further status changes can occur.
+                  </div>
+                ) : isDelivered ? (
+                  <div className="bg-green-50 text-green-700 p-2.5 rounded-xl border border-green-200 text-xs font-bold text-center flex items-center justify-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    <span>Order successfully delivered. Terminal state locked.</span>
+                  </div>
+                ) : (
+                  <div className="bg-amber-50/90 text-amber-900 p-3 rounded-xl border border-amber-200 text-xs font-medium space-y-1">
+                    <div className="font-extrabold flex items-center gap-1 text-amber-950">
+                      <span>🔒 Status Locked ({cfg.label})</span>
+                    </div>
+                    <p className="text-[11px] text-amber-800 leading-snug">
+                      Your produce is already at the <strong>{cfg.label}</strong> stage. Once orders are being packed or dispatched, status moves strictly forward to ensure fast farm-to-table delivery. Backwards cancellation is not allowed.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Guarantee & Support Card */}
@@ -680,7 +817,8 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 
 // ─── Compact Order Card (Clean, Tidy, Informative) ────────────────────────────
 function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
-  const cfg = STATUS_CONFIG[order.orderStatus] || STATUS_CONFIG['Order Placed'];
+  const normStatus = normalizeOrderStatus(order.orderStatus);
+  const cfg = STATUS_CONFIG[normStatus] || STATUS_CONFIG['Order Placed'];
   const hasBulk = isBulkOrder(order);
   const items = (order.populatedItems && order.populatedItems.length > 0)
     ? order.populatedItems
@@ -694,6 +832,16 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
   );
   const isFreeDelivery = itemsSubtotal >= 199 || Number(order.total_amount || 0) >= 199 || order.delivery_charge === 0;
 
+  let cardCouponDiscount = Number(order.coupon_discount || 0);
+  if (cardCouponDiscount <= 0 && itemsSubtotal > 0 && Number(order.total_amount || 0) > 0) {
+    const rawExpected = itemsSubtotal + (isFreeDelivery ? 0 : 40);
+    if (rawExpected > Number(order.total_amount)) {
+      cardCouponDiscount = Math.max(0, Math.round((rawExpected - Number(order.total_amount)) * 100) / 100);
+    }
+  }
+  const cardHasCoupon = cardCouponDiscount > 0 || Boolean(order.coupon_code);
+  const cardCouponCode = order.coupon_code || (cardCouponDiscount > 0 ? 'COUPON' : null);
+
   return (
     <button
       onClick={onClick}
@@ -705,15 +853,22 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
       <div className="flex items-center justify-between gap-2 w-full">
         <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
           <div className={`w-2 h-2 rounded-full ${
-            order.orderStatus === 'Delivered' ? 'bg-green-500' :
-            order.orderStatus === 'Cancelled' ? 'bg-red-500' :
-            order.orderStatus === 'Out for Delivery' ? 'bg-orange-500' :
+            normStatus === 'Delivered' ? 'bg-green-500' :
+            normStatus === 'Cancelled' ? 'bg-red-500' :
+            normStatus === 'Out for Delivery' ? 'bg-orange-500' :
+            normStatus === 'Packing' ? 'bg-purple-500' :
             'bg-emerald-500'
           }`} />
           <strong className="text-xs sm:text-sm font-black text-gray-950 truncate">{order.order_number}</strong>
           {hasBulk && (
             <span className="bg-amber-400 text-gray-950 text-[9px] font-black px-1.5 py-0.2 rounded uppercase shrink-0">
               🌾 Bulk Deal
+            </span>
+          )}
+          {cardHasCoupon && (
+            <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase shrink-0 flex items-center gap-0.5">
+              <span>🏷️</span>
+              <span>{cardCouponCode} (-₹{cardCouponDiscount.toFixed(2)})</span>
             </span>
           )}
           {isFreeDelivery && (
@@ -765,6 +920,12 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
             </strong>
             <span className="text-[10px] text-gray-400">({order.payment_method})</span>
           </div>
+          {cardCouponDiscount > 0 && (
+            <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60 flex items-center gap-0.5">
+              <span>🏷️</span>
+              <span>Saved ₹{cardCouponDiscount.toFixed(2)}</span>
+            </span>
+          )}
           {isFreeDelivery && (
             <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">
               Free Delivery
@@ -821,6 +982,13 @@ export default function MyOrdersPage() {
       if (isInitial) setError(e.message || 'Something went wrong.');
     } finally {
       if (isInitial) setLoading(false);
+    }
+  }, []);
+
+  // Always ensure the orders page opens from the top
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     }
   }, []);
 
@@ -943,6 +1111,7 @@ export default function MyOrdersPage() {
         <OrderDetailModal
           order={selectedOrder}
           onClose={() => setSelectedOrder(null)}
+          onOrderCancelled={() => fetchOrders(false)}
         />
       )}
     </div>

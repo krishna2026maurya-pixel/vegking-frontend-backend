@@ -4,10 +4,20 @@ import { useAuth } from '@/context/AuthContext';
 
 const CartContext = createContext<any>(null);
 const LOCAL_STORAGE_KEY = 'vegking_guest_cart';
+const COUPON_STORAGE_KEY = 'vegking_applied_coupon';
+
+export interface AppliedCoupon {
+  code: string;
+  discount_type: 'percent' | 'flat' | string;
+  discount_value: number;
+  discount_amount: number;
+  min_order?: number;
+}
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [cart, setCart] = useState<any[]>([]);
   const [cartTotal, setCartTotal] = useState(0);
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const { data: session, status: authStatus } = useAuth();
   const hasSyncedGuest = useRef(false);
 
@@ -41,6 +51,9 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
               unit: p.quantity_unit,
               stock: typeof p.stock === 'number' ? p.stock : (p.stock != null && !isNaN(Number(p.stock)) ? Number(p.stock) : 10),
               bulk_stock: typeof p.bulk_stock === 'number' ? p.bulk_stock : undefined,
+              vendor_id: p.vendor_id || null,
+              from_vendor_page: Boolean(p.from_vendor_page),
+              vendor_name: p.vendor_name || null,
             }));
             setCart(mappedProducts);
             setCartTotal(data.data.pricing?.subtotal || calculateTotal(mappedProducts));
@@ -210,6 +223,11 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     const existingStock = existingIndex > -1 ? parseStockNumber(cart[existingIndex].stock) : null;
     const availableStock = pStock !== null ? pStock : (existingStock !== null ? existingStock : 999999);
 
+    if (availableStock <= 0 || product.stock_status === 0 || product.stock_status === '0') {
+      alert(`This product is currently out of stock.`);
+      return;
+    }
+
     if (currentQty + 1 > availableStock) {
       alert(`You cannot order more than the product stock limit (${availableStock} available).`);
       return;
@@ -228,6 +246,9 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
               stock: availableStock,
               cartQuantity: currentQty + 1,
               quantity: currentQty + 1,
+              vendor_id: product.vendor_id || item.vendor_id || null,
+              from_vendor_page: Boolean(product.from_vendor_page || item.from_vendor_page),
+              vendor_name: product.vendor_name || item.vendor_name || null,
             }
           : item
       );
@@ -242,6 +263,9 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         cartQuantity: 1,
         unit: product.unit || product.quantity || '1 unit',
         stock: availableStock,
+        vendor_id: product.vendor_id || null,
+        from_vendor_page: Boolean(product.from_vendor_page),
+        vendor_name: product.vendor_name || null,
       };
       updatedCart = [...cart, newItem];
     }
@@ -395,9 +419,64 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Initial load of applied coupon from localStorage
+  useEffect(() => {
+    try {
+      const savedCoupon = localStorage.getItem(COUPON_STORAGE_KEY);
+      if (savedCoupon) {
+        setAppliedCoupon(JSON.parse(savedCoupon));
+      }
+    } catch (e) {}
+  }, []);
+
+  // Automatically recalculate or invalidate coupon if cartTotal changes
+  useEffect(() => {
+    if (!appliedCoupon) return;
+
+    if (cart.length === 0 || cartTotal === 0) {
+      setAppliedCoupon(null);
+      try { localStorage.removeItem(COUPON_STORAGE_KEY); } catch (e) {}
+      return;
+    }
+
+    if (appliedCoupon.min_order && cartTotal < appliedCoupon.min_order) {
+      setAppliedCoupon(null);
+      try { localStorage.removeItem(COUPON_STORAGE_KEY); } catch (e) {}
+      return;
+    }
+
+    let newDiscount = 0;
+    if (appliedCoupon.discount_type === 'percent') {
+      newDiscount = parseFloat(((cartTotal * appliedCoupon.discount_value) / 100).toFixed(2));
+    } else {
+      newDiscount = Math.min(appliedCoupon.discount_value, cartTotal);
+    }
+
+    if (newDiscount !== appliedCoupon.discount_amount) {
+      const updated = { ...appliedCoupon, discount_amount: newDiscount };
+      setAppliedCoupon(updated);
+      try { localStorage.setItem(COUPON_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
+    }
+  }, [cartTotal, cart.length, appliedCoupon]);
+
+  const applyCoupon = (coupon: AppliedCoupon) => {
+    setAppliedCoupon(coupon);
+    try {
+      localStorage.setItem(COUPON_STORAGE_KEY, JSON.stringify(coupon));
+    } catch (e) {}
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    try {
+      localStorage.removeItem(COUPON_STORAGE_KEY);
+    } catch (e) {}
+  };
+
   const clearCart = async () => {
     setCart([]);
     setCartTotal(0);
+    removeCoupon();
     try {
       localStorage.removeItem(LOCAL_STORAGE_KEY);
       if (typeof window !== 'undefined') {
@@ -420,7 +499,19 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <CartContext.Provider
-      value={{ cart, addToCart, addBulkDealToCart, removeFromCart, updateQuantity, clearCart, cartTotal, fetchCart }}
+      value={{
+        cart,
+        addToCart,
+        addBulkDealToCart,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+        cartTotal,
+        fetchCart,
+        appliedCoupon,
+        applyCoupon,
+        removeCoupon,
+      }}
     >
       {children}
     </CartContext.Provider>

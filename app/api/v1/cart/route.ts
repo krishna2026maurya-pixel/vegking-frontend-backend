@@ -32,7 +32,7 @@ async function getCart(request: NextRequest, userId: string) {
         .populate({
           path: 'items.product_id',
           model: Product,
-          select: 'product_name product_image selling_price mrp quantity brand category is_active description stock bulk_stock stock_status',
+          select: 'product_name product_image selling_price mrp quantity brand category is_active description stock bulk_stock stock_status vendor_id',
         })
         .lean() as any,
 
@@ -150,6 +150,7 @@ async function getCart(request: NextRequest, userId: string) {
       return {
         cart_item_id:   item._id,
         product_id:     p?._id || null,
+        vendor_id:      p?.vendor_id || null,
         product_name:   p?.product_name  || 'Unknown',
         product_image:  p?.product_image || null,
         selling_price:  price,

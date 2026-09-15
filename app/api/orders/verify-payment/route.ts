@@ -35,11 +35,34 @@ export async function POST(request: NextRequest) {
 
     // Update order payment status to completed
     await connectDB();
-    await Order.findByIdAndUpdate(orderId, {
-      payment_status: 'completed',
-      razorpay_order_id,
-      razorpay_payment_id,
-    });
+    const existingOrder = await Order.findById(orderId).populate('items');
+    if (existingOrder && existingOrder.payment_status !== 'completed') {
+      existingOrder.payment_status = 'completed';
+      existingOrder.razorpay_order_id = razorpay_order_id;
+      existingOrder.razorpay_payment_id = razorpay_payment_id;
+      await existingOrder.save();
+
+      // Decrement DB stock for purchased items
+      try {
+        const { decrementProductStock } = await import('@/lib/inventory');
+        const itemsToDeduct = (existingOrder.items || []).map((it: any) => ({
+          productId: it.product_id || it.productId || it._id,
+          quantity: it.qty || it.quantity || 1,
+          is_bulk_deal: Boolean(it.is_bulk_deal),
+        }));
+        await decrementProductStock(itemsToDeduct);
+      } catch (stockErr) {
+        console.error('Failed to decrement stock on verify-payment:', stockErr);
+      }
+
+      // Trigger real-time notifications and socket emit for paid order
+      try {
+        const { notifyNewOrder } = await import('@/lib/realtimeNotifications');
+        await notifyNewOrder(existingOrder, existingOrder.items);
+      } catch (notifErr) {
+        console.error('Failed to dispatch notification on verify-payment:', notifErr);
+      }
+    }
 
     return NextResponse.json({ message: 'Payment verified successfully.' });
   } catch (error: any) {

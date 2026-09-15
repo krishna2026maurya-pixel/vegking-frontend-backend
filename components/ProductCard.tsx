@@ -226,68 +226,76 @@ export default function ProductCard({ product }: { product: any }) {
             />
           </button>
 
-          {/* Bottom Right Circular Green Plus / Stepper Button */}
-          <div className="absolute bottom-1 right-1 z-10">
-            {cartQty > 0 ? (
-              <div className="bg-[#16a34a] text-white flex items-center justify-between rounded-full px-1.5 py-0.5 gap-1 shadow-md h-6">
+            {/* Bottom Right Circular Green Plus / Stepper Button */}
+            <div className="absolute bottom-1 right-1 z-10">
+              {cartQty > 0 ? (
+                <div className="bg-[#16a34a] text-white flex items-center justify-between rounded-full px-1.5 py-0.5 gap-1 shadow-md h-6">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      updateQuantity(product?._id, cartQty - 1, e);
+                    }}
+                    className="font-black text-xs p-0.5 active:scale-75 cursor-pointer"
+                  >
+                    <Minus className="w-2.5 h-2.5" strokeWidth={3} />
+                  </button>
+                  <span className="font-extrabold text-[10px] select-none px-0.5">{cartQty}</span>
+                  <button
+                    type="button"
+                    disabled={cartQty >= stockCount}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (cartQty < stockCount) {
+                        updateQuantity(product?._id, cartQty + 1, e);
+                      }
+                    }}
+                    className={`font-black text-xs p-0.5 ${cartQty >= stockCount ? 'opacity-40 cursor-not-allowed' : 'active:scale-75 cursor-pointer'}`}
+                    title={cartQty >= stockCount ? `Max stock reached (${stockCount} available)` : "Increase quantity"}
+                  >
+                    <Plus className="w-2.5 h-2.5" strokeWidth={3} />
+                  </button>
+                </div>
+              ) : (
                 <button
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    updateQuantity(product?._id, cartQty - 1, e);
+                    if (inStock && stockCount > 0) {
+                      addToCart({ ...product, qty, price: yourPrice, stock: stockCount }, e);
+                    }
                   }}
-                  className="font-black text-xs p-0.5 active:scale-75 cursor-pointer"
+                  disabled={!inStock || stockCount <= 0}
+                  className="w-6.5 h-6.5 rounded-full bg-[#16a34a] hover:bg-[#15803d] text-white flex items-center justify-center shadow-md active:scale-90 transition-transform cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  title={inStock && stockCount > 0 ? "Add to cart" : "Out of stock"}
                 >
-                  <Minus className="w-2.5 h-2.5" strokeWidth={3} />
+                  <Plus className="w-3.5 h-3.5" strokeWidth={2.8} />
                 </button>
-                <span className="font-extrabold text-[10px] select-none px-0.5">{cartQty}</span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    updateQuantity(product?._id, cartQty + 1, e);
-                  }}
-                  className="font-black text-xs p-0.5 active:scale-75 cursor-pointer"
-                >
-                  <Plus className="w-2.5 h-2.5" strokeWidth={3} />
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (inStock) {
-                    addToCart({ ...product, qty, price: yourPrice }, e);
-                  }
-                }}
-                disabled={!inStock}
-                className="w-6.5 h-6.5 rounded-full bg-[#16a34a] hover:bg-[#15803d] text-white flex items-center justify-center shadow-md active:scale-90 transition-transform cursor-pointer disabled:bg-gray-300"
-                title="Add to cart"
-              >
-                <Plus className="w-3.5 h-3.5" strokeWidth={2.8} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Content Section below image */}
-        <div className="flex flex-col flex-1 mt-1 px-0.5 justify-between">
-          <div>
-            {/* Weight/Unit & Stock Badge */}
-            <div className="flex items-center justify-between gap-1">
-              <span className="text-gray-400 text-[10px] font-semibold truncate">
-                {qty}
-              </span>
-              {stockCount > 0 && (
-                <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded shrink-0">
-                  {stockCount} in stock
-                </span>
               )}
             </div>
+          </div>
+
+          {/* Content Section below image */}
+          <div className="flex flex-col flex-1 mt-1 px-0.5 justify-between">
+            <div>
+              {/* Weight/Unit & Stock Badge */}
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-gray-400 text-[10px] font-semibold truncate">
+                  {qty}
+                </span>
+                {inStock && stockCount > 0 ? (
+                  <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded shrink-0">
+                    {stockCount} in stock
+                  </span>
+                ) : (
+                  <span className="text-[9px] font-bold text-red-600 bg-red-50 px-1 py-0.2 rounded shrink-0">
+                    Out of stock
+                  </span>
+                )}
+              </div>
 
             {/* Product Name */}
             <Link
@@ -585,13 +593,16 @@ export default function ProductCard({ product }: { product: any }) {
                   </span>
                   <button
                     type="button"
+                    disabled={cartQty >= stockCount}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      updateQuantity(product?._id, cartQty + 1, e);
+                      if (cartQty < stockCount) {
+                        updateQuantity(product?._id, cartQty + 1, e);
+                      }
                     }}
-                    className="font-black text-base hover:scale-110 active:scale-90 transition-transform p-0.5 cursor-pointer"
-                    title="Increase quantity"
+                    className={`font-black text-base transition-transform p-0.5 ${cartQty >= stockCount ? 'opacity-40 cursor-not-allowed' : 'hover:scale-110 active:scale-90 cursor-pointer'}`}
+                    title={cartQty >= stockCount ? `Max stock reached (${stockCount} available)` : "Increase quantity"}
                   >
                     <Plus className="w-3.5 h-3.5" strokeWidth={3} />
                   </button>
@@ -602,17 +613,17 @@ export default function ProductCard({ product }: { product: any }) {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    if (inStock) {
-                      addToCart({ ...product, qty, price: yourPrice }, e);
+                    if (inStock && stockCount > 0) {
+                      addToCart({ ...product, qty, price: yourPrice, stock: stockCount }, e);
                     }
                   }}
-                  disabled={!inStock}
-                  className={`w-full h-9 rounded-xl font-extrabold text-sm tracking-wide transition-all duration-150 active:scale-98 cursor-pointer shadow-xs flex items-center justify-center gap-1.5 ${inStock
-                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-600/20'
+                  disabled={!inStock || stockCount <= 0}
+                  className={`w-full h-9 rounded-xl font-extrabold text-sm tracking-wide transition-all duration-150 active:scale-98 shadow-xs flex items-center justify-center gap-1.5 ${inStock && stockCount > 0
+                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-600/20 cursor-pointer'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed border-none'
                     }`}
                 >
-                  {inStock ? (
+                  {inStock && stockCount > 0 ? (
                     <>
                       <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
                       <span>Add to Cart</span>
@@ -631,9 +642,9 @@ export default function ProductCard({ product }: { product: any }) {
                   e.stopPropagation();
                   setIsSubscribing(true);
                 }}
-                disabled={!inStock}
-                className={`w-full h-9 rounded-xl font-extrabold text-sm tracking-wide transition-all duration-150 active:scale-98 cursor-pointer shadow-xs flex items-center justify-center border ${inStock
-                  ? 'border-green-600 bg-green-50/70 hover:bg-green-600 text-green-700 hover:text-white shadow-green-600/10'
+                disabled={!inStock || stockCount <= 0}
+                className={`w-full h-9 rounded-xl font-extrabold text-sm tracking-wide transition-all duration-150 active:scale-98 shadow-xs flex items-center justify-center border ${inStock && stockCount > 0
+                  ? 'border-green-600 bg-green-50 text-green-700 hover:bg-green-100/80 cursor-pointer'
                   : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                   }`}
               >

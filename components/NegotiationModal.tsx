@@ -12,6 +12,7 @@ import { useCart } from '@/context/CartContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import DealCountdownTimer from '@/components/DealCountdownTimer';
+import { extractPriceFromMessage, getNegotiatedPrice } from '@/lib/negotiation-utils';
 
 interface NegotiationModalProps {
   isOpen: boolean;
@@ -32,6 +33,21 @@ interface NegotiationModalProps {
     bulk_base_price?: number;
     bulk_unit?: string;
   } | null;
+}
+
+function deduplicateMessages(rawMessages: any[]): any[] {
+  if (!Array.isArray(rawMessages)) return [];
+  const seen = new Set<string>();
+  const result: any[] = [];
+  for (const m of rawMessages) {
+    if (!m) continue;
+    const key = m._id ? String(m._id) : `${m.createdAt || ''}-${m.sender_role || ''}-${m.message || ''}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(m);
+    }
+  }
+  return result;
 }
 
 export default function NegotiationModal({ isOpen, onClose, product }: NegotiationModalProps) {
@@ -126,10 +142,13 @@ export default function NegotiationModal({ isOpen, onClose, product }: Negotiati
           if (msgJson.data.session) {
             setSessionData(msgJson.data.session);
           }
-          const newMessages = msgJson.data.messages || [];
+          const newMessages = deduplicateMessages(msgJson.data.messages || []);
           setMessages((prev) => {
-            if (prev.length === newMessages.length) {
-              return prev; // No change in count, avoid re-render and scroll jump
+            if (
+              prev.length === newMessages.length &&
+              prev.every((m, i) => (m._id || i) === (newMessages[i]?._id || i))
+            ) {
+              return prev; // No change in count or IDs, avoid re-render and scroll jump
             }
             return newMessages;
           });
@@ -210,7 +229,7 @@ export default function NegotiationModal({ isOpen, onClose, product }: Negotiati
       const msgRes = await fetch(`/api/negotiations/${json.data._id}`);
       const msgJson = await msgRes.json();
       if (msgRes.ok && msgJson.data) {
-        setMessages(msgJson.data.messages || []);
+        setMessages(deduplicateMessages(msgJson.data.messages || []));
       }
       setSuccessMsg('Offer submitted! Live chat connected on right.');
       setTimeout(() => setSuccessMsg(''), 3000);
@@ -226,7 +245,8 @@ export default function NegotiationModal({ isOpen, onClose, product }: Negotiati
     if (e) e.preventDefault();
     if (!sessionData?._id) return;
 
-    const proposedPrice = customCounter || (counterPriceInput ? Number(counterPriceInput) : null);
+    const detectedPrice = extractPriceFromMessage(chatInput);
+    const proposedPrice = customCounter || (counterPriceInput ? Number(counterPriceInput) : (detectedPrice || null));
     if (!chatInput.trim() && !proposedPrice) return;
 
     setSending(true);
@@ -248,7 +268,15 @@ export default function NegotiationModal({ isOpen, onClose, product }: Negotiati
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to send message');
 
-      setMessages((prev) => [...prev, json.data]);
+      if (json.data) {
+        setMessages((prev) => {
+          const isAlreadyPresent = prev.some(
+            (m: any) => m._id && String(m._id) === String(json.data._id)
+          );
+          if (isAlreadyPresent) return prev;
+          return [...prev, json.data];
+        });
+      }
       setChatInput('');
       setCounterPriceInput('');
       
@@ -614,13 +642,14 @@ export default function NegotiationModal({ isOpen, onClose, product }: Negotiati
 
               {/* Chat Message Bubble Stream */}
               <div className="space-y-3 min-h-[220px]">
-                {messages.map((msg: any, idx: number) => {
+                {deduplicateMessages(messages).map((msg: any, idx: number) => {
                   const isUser = msg.sender_role === 'user';
                   const isCounter = msg.offer_type === 'COUNTER' || msg.offer_type === 'PROPOSAL';
                   const isAccept = msg.offer_type === 'ACCEPT';
+                  const itemKey = msg._id ? `${msg._id}-${idx}` : `msg-${idx}`;
                   
                   return (
-                    <div key={msg._id || idx} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} space-y-1`}>
+                    <div key={itemKey} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} space-y-1`}>
                       <div className="flex items-center gap-1.5 px-1">
                         <span className="text-[10px] font-extrabold text-gray-400">
                           {isUser ? 'You (Buyer)' : `${vendorName} (Seller)`}

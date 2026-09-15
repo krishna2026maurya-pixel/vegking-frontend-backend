@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
-import mongoose from 'mongoose';
-
-const CouponSchema = new mongoose.Schema({ code: String, discount_type: String, discount_value: Number, min_order: Number, max_uses: Number, used_count: { type: Number, default: 0 }, is_active: String, expires_at: String }, { timestamps: true });
-const Coupon = mongoose.models.Coupon || mongoose.model('Coupon', CouponSchema);
+import Coupon from '@/lib/models/Coupon';
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
     const body = await request.json();
-    const { items, totalAmount, shippingAddress, delivery_charge } = body;
+    const { items, totalAmount, shippingAddress, delivery_charge, coupon_code, coupon_discount } = body;
 
     if (!items?.length || totalAmount == null || !shippingAddress) {
       return NextResponse.json(
@@ -46,7 +46,16 @@ export async function POST(request: NextRequest) {
             ? (prod.bulk_stock !== undefined && prod.bulk_stock !== null ? prod.bulk_stock : prod.stock)
             : (prod.stock !== undefined && prod.stock !== null ? prod.stock : 0);
 
-          if (availableStock !== undefined && reqQty > availableStock) {
+          if (availableStock <= 0 || prod.stock_status === 0 || prod.stock_status === '0') {
+            return NextResponse.json(
+              {
+                message: `"${prod.product_name || item.name}" is currently out of stock.`
+              },
+              { status: 400 }
+            );
+          }
+
+          if (reqQty > availableStock) {
             return NextResponse.json(
               {
                 message: `You cannot order more than the product stock limit (${availableStock} available) for "${prod.product_name || item.name}".`
@@ -67,10 +76,21 @@ export async function POST(request: NextRequest) {
       user_id: session?.user ? (session.user as any).id : null,
       total_amount: totalAmount,
       delivery_charge: delivery_charge !== undefined ? Number(delivery_charge) : 0,
+      coupon_code: coupon_code || null,
+      coupon_discount: coupon_discount ? Number(coupon_discount) : 0,
       payment_method: 'ONLINE',
       payment_status: 'pending',
       shippingAddress,
     });
+
+    if (coupon_code) {
+      try {
+        const Coupon = (await import('@/lib/models/Coupon')).default;
+        await Coupon.updateOne({ code: String(coupon_code).toUpperCase().trim() }, { $inc: { used_count: 1 } });
+      } catch (couponErr) {
+        console.error('Failed to increment coupon used_count:', couponErr);
+      }
+    }
 
     // Create OrderItem documents linked to the order
     const createdItems = await OrderItem.insertMany(

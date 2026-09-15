@@ -98,6 +98,7 @@ export default function ProductDetailPage() {
             : (item.stock_status === 0 || item.stock_status === '0' || item.stock_status === 'out_of_stock')
               ? 0
               : 20,
+          stock_status: item.stock_status !== undefined ? Number(item.stock_status) : (Number(item.stock) > 0 ? 1 : 0),
           quantity: item.quantity || '1 kg',
           category: item.category || 'Fresh Produce',
           vendor_id: vId,
@@ -272,7 +273,7 @@ export default function ProductDetailPage() {
     );
   }
 
-  const inStock = product.stock > 0;
+  const inStock = product.stock > 0 && product.stock_status !== 0 && product.stock_status !== '0';
   const pct = product.discount;
   const yourPrice = product.price;
   const mrp = product.mrp;
@@ -422,12 +423,15 @@ export default function ProductDetailPage() {
                 </div>
                 <button
                   type="button"
+                  disabled={cartQty >= product.stock}
                   onClick={(e) => {
                     e.stopPropagation();
-                    updateQuantity(product._id, cartQty + 1, e);
+                    if (cartQty < product.stock) {
+                      updateQuantity(product._id, cartQty + 1, e);
+                    }
                   }}
-                  className="w-8 h-8 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center font-black text-white hover:scale-110 active:scale-90 transition cursor-pointer"
-                  title="Increase quantity"
+                  className={`w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center font-black text-white transition ${cartQty >= product.stock ? 'opacity-40 cursor-not-allowed' : 'hover:bg-white/30 hover:scale-110 active:scale-90 cursor-pointer'}`}
+                  title={cartQty >= product.stock ? `Max stock reached (${product.stock} available)` : "Increase quantity"}
                 >
                   <Plus className="w-4 h-4" strokeWidth={3} />
                 </button>
@@ -436,18 +440,20 @@ export default function ProductDetailPage() {
               <button
                 type="button"
                 onClick={(e) => {
-                  addToCart({ ...product, qty, price: yourPrice }, e);
-                  setCartClicked(true);
-                  setTimeout(() => setCartClicked(false), 600);
+                  if (inStock && product.stock > 0) {
+                    addToCart({ ...product, qty, price: yourPrice, stock: product.stock }, e);
+                    setCartClicked(true);
+                    setTimeout(() => setCartClicked(false), 600);
+                  }
                 }}
-                disabled={!inStock}
-                className={`w-full relative group inline-flex items-center justify-center gap-2 py-3 sm:py-3.5 px-4 rounded-2xl text-xs sm:text-sm font-black transition-all duration-200 shadow-md active:scale-[0.98] cursor-pointer h-[50px] overflow-hidden ${
-                  inStock
-                    ? 'bg-gradient-to-r from-[#16a34a] via-[#15803d] to-[#047857] hover:from-[#15803d] hover:to-[#065f46] text-white shadow-green-600/30 hover:shadow-lg hover:shadow-green-600/40 border border-green-500/30'
+                disabled={!inStock || product.stock <= 0}
+                className={`w-full relative group inline-flex items-center justify-center gap-2 py-3 sm:py-3.5 px-4 rounded-2xl text-xs sm:text-sm font-black transition-all duration-200 shadow-md active:scale-[0.98] h-[50px] overflow-hidden ${
+                  inStock && product.stock > 0
+                    ? 'bg-gradient-to-r from-[#16a34a] via-[#15803d] to-[#047857] hover:from-[#15803d] hover:to-[#065f46] text-white shadow-green-600/30 hover:shadow-lg hover:shadow-green-600/40 border border-green-500/30 cursor-pointer'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed border-none shadow-none'
                 }`}
               >
-                {inStock ? (
+                {inStock && product.stock > 0 ? (
                   <>
                     {cartClicked ? (
                       <span className="inline-flex items-center gap-1.5 animate-scale-in text-white">
@@ -471,10 +477,10 @@ export default function ProductDetailPage() {
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              disabled={!inStock}
-              className={`w-full relative group inline-flex items-center justify-center gap-2 py-3 sm:py-3.5 px-4 rounded-2xl text-xs sm:text-sm font-extrabold transition-all duration-200 border-2 shadow-xs active:scale-[0.98] cursor-pointer h-[50px] overflow-hidden ${
-                inStock
-                  ? 'border-emerald-600/40 bg-gradient-to-r from-emerald-50/95 via-green-50/80 to-teal-50/70 hover:from-emerald-100 hover:to-green-100/90 text-emerald-950 hover:border-emerald-600/70 shadow-emerald-700/5 animate-shimmer'
+              disabled={!inStock || product.stock <= 0}
+              className={`w-full relative group inline-flex items-center justify-center gap-2 py-3 sm:py-3.5 px-4 rounded-2xl text-xs sm:text-sm font-extrabold transition-all duration-200 border-2 shadow-xs active:scale-[0.98] h-[50px] overflow-hidden ${
+                inStock && product.stock > 0
+                  ? 'border-emerald-600/40 bg-gradient-to-r from-emerald-50/95 via-green-50/80 to-teal-50/70 hover:from-emerald-100 hover:to-green-100/90 text-emerald-950 hover:border-emerald-600/70 shadow-emerald-700/5 animate-shimmer cursor-pointer'
                   : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
               }`}
             >

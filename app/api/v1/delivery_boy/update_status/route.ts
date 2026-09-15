@@ -69,6 +69,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const { canTransitionStatus, normalizeOrderStatus } = await import('@/lib/order-status-rules');
+    const currentCanonical = normalizeOrderStatus(targetOrder.orderStatus ?? targetOrder.status);
+    const requestedCanonical = normalizeOrderStatus(newOrderStatus);
+
+    const check = canTransitionStatus(currentCanonical, requestedCanonical);
+    if (!check.allowed) {
+      return NextResponse.json({
+        success: false,
+        error: check.reason || `Status cannot move backwards from "${currentCanonical}" to "${requestedCanonical}".`
+      }, { status: 400 });
+    }
+
     targetOrder.orderStatus = newOrderStatus;
     targetOrder.status = numericStatus;
     targetOrder.updatedAt = new Date();

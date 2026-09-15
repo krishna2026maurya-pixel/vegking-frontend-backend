@@ -21,6 +21,21 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'Order not found or not assigned to you' }, { status: 404 });
     }
 
+    // Enforce forward-only status transitions
+    const requestedStatus = body.orderStatus || (body.status !== undefined ? (await import('@/lib/order-status-rules')).STATUS_NUM_TO_STR[body.status] : null);
+    if (requestedStatus) {
+      const { canTransitionStatus, normalizeOrderStatus } = await import('@/lib/order-status-rules');
+      const currentCanonical = normalizeOrderStatus(order.orderStatus ?? order.status);
+      const requestedCanonical = normalizeOrderStatus(requestedStatus);
+
+      const check = canTransitionStatus(currentCanonical, requestedCanonical);
+      if (!check.allowed) {
+        return NextResponse.json({
+          error: check.reason || `Status cannot move backwards from "${currentCanonical}" to "${requestedCanonical}".`
+        }, { status: 400 });
+      }
+    }
+
     // Enforce OTP check if marking order as Delivered
     if (body.orderStatus === 'Delivered') {
       if (!body.otp) {

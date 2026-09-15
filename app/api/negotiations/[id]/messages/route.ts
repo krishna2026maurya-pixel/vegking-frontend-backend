@@ -24,8 +24,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ success: false, error: `This negotiation is already ${session.status.toLowerCase()}` }, { status: 400 });
     }
 
-    const price = proposed_price ? Number(proposed_price) : null;
+    let price = proposed_price ? Number(proposed_price) : null;
     const qty = proposed_qty ? Number(proposed_qty) : null;
+
+    if (!price && message) {
+      const { extractPriceFromMessage } = await import('@/lib/negotiation-utils');
+      const detectedPrice = extractPriceFromMessage(message);
+      if (detectedPrice) {
+        price = detectedPrice;
+      }
+    }
 
     if (qty && qty < 5) {
       return NextResponse.json({ success: false, error: 'Bulk quantity must be at least 5 kg' }, { status: 400 });
@@ -43,6 +51,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
     }
 
+    const effectiveOfferType = offer_type || (price ? 'COUNTER' : 'CHAT');
+
     const msgDoc = await NegotiationMessage.create({
       session_id: id,
       sender_id,
@@ -51,7 +61,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       message: message || (price ? `Proposed price: ₹${price}/${session.unit}` : ''),
       proposed_price: price,
       proposed_qty: qty,
-      offer_type: offer_type || (price ? 'COUNTER' : 'CHAT')
+      offer_type: effectiveOfferType
     });
 
     // Update session state

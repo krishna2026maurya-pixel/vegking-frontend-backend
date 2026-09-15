@@ -45,6 +45,21 @@ export async function PATCH(
       return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
     }
 
+    const requestedStatus = body.orderStatus || (body.status !== undefined ? (await import('@/lib/order-status-rules')).STATUS_NUM_TO_STR[body.status] : null);
+    if (requestedStatus) {
+      const { canTransitionStatus, normalizeOrderStatus } = await import('@/lib/order-status-rules');
+      const currentCanonical = normalizeOrderStatus(order.orderStatus ?? order.status);
+      const requestedCanonical = normalizeOrderStatus(requestedStatus);
+
+      const check = canTransitionStatus(currentCanonical, requestedCanonical);
+      if (!check.allowed) {
+        return NextResponse.json({
+          success: false,
+          error: check.reason || `Status cannot move backwards from "${currentCanonical}" to "${requestedCanonical}".`
+        }, { status: 400 });
+      }
+    }
+
     if (body.status !== undefined) {
       order.status = Number(body.status);
       const statusMap: Record<number, string> = {

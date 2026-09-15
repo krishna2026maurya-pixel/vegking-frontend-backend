@@ -51,6 +51,9 @@ export default function VendorStorePage({ params }: { params?: Promise<{ id: str
             name: p.name || p.product_name,
             price: p.price || p.selling_price,
             image: p.image || p.product_image,
+            vendor_id: vendorId,
+            from_vendor_page: true,
+            vendor_name: vendorData?.store_name || vendorData?.business_name || vendorData?.name || 'Seller Store',
             discount:
               (p.mrp && p.selling_price
                 ? (((p.mrp - p.selling_price) / p.mrp) * 100).toFixed(1)

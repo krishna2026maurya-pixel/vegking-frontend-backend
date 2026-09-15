@@ -21,11 +21,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const custName = (order as any).customer_name || (order as any).shippingAddress?.fullName || (order as any).user_id?.name || 'Customer';
     const custMobile = (order as any).customer_mobile || (order as any).shippingAddress?.phone || (order as any).user_id?.mobile_no || (order as any).user_id?.phone || '';
     const orderDate = (order as any).createdAt || (order as any).created_at;
+    const resolvedDeliveryBoy = (order as any).delivery_boy_id || items.find((i: any) => i.delivery_boy_id)?.delivery_boy_id || null;
 
     return NextResponse.json({
       success: true,
       data: {
         ...order,
+        delivery_boy_id: resolvedDeliveryBoy,
         customer_name: custName,
         customer_mobile: custMobile,
         createdAt: orderDate,
@@ -50,6 +52,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       ? await Order.findById(id)
       : await Order.findOne({ order_number: id });
     if (!order) return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+
+    // Enforce forward-only status transitions
+    const requestedStatus = body.orderStatus || (body.status !== undefined ? (await import('@/lib/order-status-rules')).STATUS_NUM_TO_STR[body.status] : null);
+    if (requestedStatus) {
+      const { canTransitionStatus, normalizeOrderStatus } = await import('@/lib/order-status-rules');
+      const currentCanonical = normalizeOrderStatus(order.orderStatus ?? order.status);
+      const requestedCanonical = normalizeOrderStatus(requestedStatus);
+
+      const check = canTransitionStatus(currentCanonical, requestedCanonical);
+      if (!check.allowed) {
+        return NextResponse.json({
+          success: false,
+          error: check.reason || `Status cannot move backwards from "${currentCanonical}" to "${requestedCanonical}".`
+        }, { status: 400 });
+      }
+    }
 
     // Enforce OTP check if marking order as Delivered (skip for admin override)
     if (body.orderStatus === 'Delivered' && !body.isAdmin) {
