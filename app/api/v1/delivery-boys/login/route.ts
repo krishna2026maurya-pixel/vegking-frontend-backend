@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import DeliveryBoy from '@/lib/models/DeliveryBoy';
+import bcrypt from 'bcryptjs';
 
 /**
  * POST /api/v1/delivery-boys/login
- * Real login endpoint for Delivery Boy app
+ * Real login endpoint for Delivery Boy app (Strict DB Check, No Dummy Data)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -16,35 +17,48 @@ export async function POST(request: NextRequest) {
     } catch (_) {}
 
     const mobileOrEmail = String(body.mobile_number || body.phone || body.email || body.username || '').trim();
-    const password = String(body.password || '').trim();
+    const inputPassword = String(body.password || '').trim();
 
-    let rider = null;
-    if (mobileOrEmail) {
-      rider = await DeliveryBoy.findOne({
-        $or: [
-          { mobile_number: mobileOrEmail },
-          { email: mobileOrEmail },
-          { name: mobileOrEmail }
-        ]
-      });
+    if (!mobileOrEmail) {
+      return NextResponse.json({
+        success: false,
+        message: 'Please enter a valid mobile number or email'
+      }, { status: 400 });
     }
 
-    if (!rider) {
-      rider = await DeliveryBoy.findOne();
-    }
+    // Strictly find rider in MongoDB by mobile_number, email, or phone
+    const rider = await DeliveryBoy.findOne({
+      $or: [
+        { mobile_number: mobileOrEmail },
+        { email: mobileOrEmail },
+        { phone: mobileOrEmail }
+      ]
+    });
 
     if (!rider) {
-      // Auto-create a default rider if DB has none
-      rider = await DeliveryBoy.create({
-        name: 'Suresh Delivery Partner',
-        mobile_number: mobileOrEmail || '9876543210',
-        email: 'rider@veggiemart.com',
-        is_active: '1',
-        is_verified: '1',
-        wallet_balance: 1250,
-        vehicle_type: 'Bike',
-        vehicle_number: 'UP65 AB 1234'
-      });
+      return NextResponse.json({
+        success: false,
+        message: 'No registered rider found with this mobile number or email'
+      }, { status: 404 });
+    }
+
+    // Verify password if rider has password set and inputPassword is provided
+    if (rider.password && inputPassword) {
+      let isMatch = false;
+      try {
+        isMatch = await bcrypt.compare(inputPassword, rider.password);
+      } catch {
+        isMatch = false;
+      }
+      if (!isMatch) {
+        isMatch = (rider.password === inputPassword);
+      }
+      if (!isMatch) {
+        return NextResponse.json({
+          success: false,
+          message: 'Invalid password. Please check your credentials.'
+        }, { status: 401 });
+      }
     }
 
     return NextResponse.json({
@@ -54,11 +68,13 @@ export async function POST(request: NextRequest) {
         delivery_boy: {
           id: String(rider._id),
           name: rider.name || 'Delivery Partner',
-          mobile: rider.mobile_number || '9876543210',
-          email: rider.email || 'rider@veggiemart.com',
+          mobile: rider.mobile_number || (rider as any).phone || '',
+          email: rider.email || '',
           active_status: rider.is_active === '1' ? 'online' : 'offline',
-          is_verified: rider.is_verified || '1',
-          wallet_balance: String(rider.wallet_balance || 0)
+          is_verified: rider.is_verified || '0',
+          wallet_balance: String(rider.wallet_balance || 0),
+          vehicle_type: rider.vehicle_type || '',
+          vehicle_number: rider.vehicle_number || ''
         }
       }
     });

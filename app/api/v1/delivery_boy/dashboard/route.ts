@@ -13,7 +13,7 @@ const _ensureModels = [Order, DeliveryBoy, Product, OrderItem, User, Address];
 /**
  * POST /api/v1/delivery_boy/dashboard
  * GET /api/v1/delivery_boy/dashboard
- * Returns live assigned & available orders for the specific logged-in rider
+ * Returns live assigned & active orders for the specific logged-in rider
  */
 async function handleDashboard(request: NextRequest) {
   try {
@@ -27,11 +27,18 @@ async function handleDashboard(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const riderId = body.delivery_boy_id || body.riderId || body.rider_id || body.id || searchParams.get('rider_id') || searchParams.get('delivery_boy_id');
 
+    if (!riderId) {
+      return NextResponse.json({
+        success: false,
+        message: 'delivery_boy_id is required'
+      }, { status: 400 });
+    }
+
     let rider = null;
-    if (riderId && mongoose.Types.ObjectId.isValid(riderId)) {
+    if (mongoose.Types.ObjectId.isValid(riderId)) {
       rider = await DeliveryBoy.findById(riderId).lean();
     }
-    if (!rider && riderId) {
+    if (!rider) {
       rider = await DeliveryBoy.findOne({
         $or: [
           { mobile_number: riderId },
@@ -39,42 +46,46 @@ async function handleDashboard(request: NextRequest) {
         ]
       }).lean();
     }
-    if (!rider) {
-      rider = await DeliveryBoy.findOne().sort({ createdAt: 1 }).lean();
-    }
 
     if (!rider) {
-      rider = {
-        _id: new mongoose.Types.ObjectId(),
-        name: 'Delivery Partner',
-        mobile_number: '9876543210',
-        is_active: '1',
-        is_verified: '1',
-        wallet_balance: 450
-      };
+      return NextResponse.json({
+        success: false,
+        message: 'Delivery boy profile not found'
+      }, { status: 404 });
     }
 
-    // Query orders assigned to this rider OR unassigned new orders (status 1)
-    const orders = await Order.find({
+    const objRiderId = (rider._id && mongoose.Types.ObjectId.isValid(rider._id)) ? new mongoose.Types.ObjectId(rider._id) : null;
+
+    // Query orders assigned to THIS specific logged-in rider + new unassigned orders available for pickup
+    const riderOrders = await Order.find({
       $or: [
         { delivery_boy_id: rider._id },
         { delivery_boy_id: String(rider._id) },
-        { delivery_boy_id: null, orderStatus: { $in: ['Order Placed', 'Pending', '1', 'Order Confirmed', 'Packing', 'Out for Delivery'] } },
-        { delivery_boy_id: { $exists: false }, orderStatus: { $in: ['Order Placed', 'Pending', '1', 'Order Confirmed', 'Packing', 'Out for Delivery'] } }
+        ...(objRiderId ? [{ delivery_boy_id: objRiderId }] : []),
+        {
+          $and: [
+            {
+              $or: [
+                { delivery_boy_id: null },
+                { delivery_boy_id: { $exists: false } }
+              ]
+            },
+            {
+              $or: [
+                { status: { $in: [0, 1, 2] } },
+                { orderStatus: { $in: ['Order Placed', 'Order Confirmed', 'Packing', 'Assigned'] } }
+              ]
+            }
+          ]
+        }
       ]
     })
       .sort({ updatedAt: -1 })
-      .limit(50)
+      .limit(100)
       .populate('items')
       .populate('address_id')
       .populate('user_id', 'name full_name mobile_no phone mobile')
       .lean();
-
-    // Query all platform orders to get system-wide delivered/cancelled if rider has 0
-    const allPlatformOrders = await Order.find().lean();
-    const riderSpecificOrders = allPlatformOrders.filter((o: any) => 
-      String(o.delivery_boy_id) === String(rider._id)
-    );
 
     const calcDelivered = (list: any[]) => list.filter((o: any) => {
       const st = String(o.orderStatus || '').toLowerCase();
@@ -88,19 +99,20 @@ async function handleDashboard(request: NextRequest) {
       return st.includes('cancel') || numSt === 5;
     }).length;
 
-    let totalDelivered = calcDelivered(riderSpecificOrders);
-    let totalCancelled = calcCancelled(riderSpecificOrders);
+    const totalDelivered = calcDelivered(riderOrders);
+    const totalCancelled = calcCancelled(riderOrders);
+    const walletBalance = Number(rider.wallet_balance || 0);
 
-    // If rider specific count is 0, fallback to platform totals so dashboard displays real metrics
-    if (totalDelivered === 0 && totalCancelled === 0) {
-      totalDelivered = calcDelivered(allPlatformOrders);
-      totalCancelled = calcCancelled(allPlatformOrders);
-    }
+    // Active deliveries: assigned orders that are not yet Delivered (4) or Cancelled (5)
+    const activeRiderOrders = riderOrders.filter((o: any) => {
+      const st = String(o.orderStatus || '').toLowerCase();
+      const numSt = Number(o.status);
+      const isDelivered = st.includes('delivered') || st.includes('completed') || numSt === 4;
+      const isCancelled = st.includes('cancel') || numSt === 5;
+      return !isDelivered && !isCancelled;
+    });
 
-    const rawWallet = Number(rider.wallet_balance || 0);
-    const walletBalance = rawWallet > 0 ? rawWallet : (totalDelivered > 0 ? totalDelivered * 50 : 250);
-
-    const formattedOrders = orders.map((ord: any) => {
+    const formatOrder = (ord: any) => {
       const userObj = ord.user_id || {};
       const customerName = userObj.full_name || userObj.name || ord.customerName || 'Customer';
       const customerPhone = userObj.mobile_no || userObj.mobile || userObj.phone || ord.customerPhone || '9876543210';
@@ -125,13 +137,14 @@ async function handleDashboard(request: NextRequest) {
 
       let numericStatus = '1';
       const st = String(ord.orderStatus || '').toLowerCase();
-      if (st.includes('packing') || st.includes('preparing') || st.includes('accepted')) {
-        numericStatus = '2';
-      } else if (st.includes('out for delivery') || st.includes('on the way')) {
+      const numSt = Number(ord.status);
+      if (numSt === 3 || st.includes('out for delivery') || st.includes('on the way')) {
         numericStatus = '3';
-      } else if (st.includes('delivered') || st.includes('completed')) {
+      } else if (numSt === 2 || st.includes('packing') || st.includes('preparing') || st.includes('accepted')) {
+        numericStatus = '2';
+      } else if (numSt === 4 || st.includes('delivered') || st.includes('completed')) {
         numericStatus = '4';
-      } else if (st.includes('cancel')) {
+      } else if (numSt === 5 || st.includes('cancel')) {
         numericStatus = '5';
       } else {
         numericStatus = '1';
@@ -181,7 +194,10 @@ async function handleDashboard(request: NextRequest) {
         },
         order_items: itemsList
       };
-    });
+    };
+
+    const formattedActiveOrders = activeRiderOrders.map(formatOrder);
+    const formattedAllOrders = riderOrders.map(formatOrder);
 
     return NextResponse.json({
       success: true,
@@ -197,16 +213,38 @@ async function handleDashboard(request: NextRequest) {
           wallet_balance: String(walletBalance)
         },
         statistics: {
-          total_orders: allPlatformOrders.length,
+          total_orders: riderOrders.length,
           total_delivered: totalDelivered,
           total_cancelled: totalCancelled
         },
-        today_orders: formattedOrders,
-        order_list: formattedOrders
+        today_orders: formattedActiveOrders,
+        order_list: formattedAllOrders
       }
     });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('Dashboard error:', error);
+    return NextResponse.json({
+      success: false,
+      message: error.message || 'Error loading dashboard',
+      data: {
+        delivery_boy_details: {
+          id: '',
+          name: 'Delivery Partner',
+          phone: '',
+          active_status: 'online',
+          is_active: '1',
+          is_verified: '1',
+          wallet_balance: '0'
+        },
+        statistics: {
+          total_orders: 0,
+          total_delivered: 0,
+          total_cancelled: 0
+        },
+        today_orders: [],
+        order_list: []
+      }
+    }, { status: 500 });
   }
 }
 
