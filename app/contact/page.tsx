@@ -12,9 +12,9 @@ import {
 } from 'lucide-react';
 
 export const metadata = {
-    title: 'Contact Us | Organic Vatika',
+    title: 'Contact Us | VegKing',
     description:
-        'Contact Organic Vatika for fresh grocery delivery support, order help, subscription questions, and customer care.',
+        'Contact VegKing for fresh grocery delivery support, order help, subscription questions, and customer care.',
 };
 
 const contactMethods = [
@@ -66,7 +66,7 @@ export default function ContactPage() {
                 <div className="space-y-7">
                     <div className="inline-flex items-center gap-2 border border-green-200 bg-green-50 px-4 py-2 text-xs font-black uppercase tracking-widest text-green-700">
                         <Headphones className="h-4 w-4" />
-                        Contact Organic Vatika
+                        Contact VegKing
                     </div>
 
                     <div className="space-y-5">

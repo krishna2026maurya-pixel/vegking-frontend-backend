@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, Package, Wallet, User as UserIcon, Heart, LogOut } from 'lucide-react';
+import { Loader2, Package, Wallet, User as UserIcon, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'next-auth/react';
 
@@ -92,7 +92,7 @@ export default function UserDashboard() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Stats Cards */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
             <div className="h-12 w-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center">
@@ -111,16 +111,6 @@ export default function UserDashboard() {
             <div>
               <p className="text-sm text-gray-500 font-medium">Active Orders</p>
               <h3 className="text-2xl font-bold text-gray-900">{data.active_orders?.count || 0}</h3>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-            <div className="h-12 w-12 bg-pink-50 text-pink-500 rounded-full flex items-center justify-center">
-              <Heart className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500 font-medium">Wishlist Items</p>
-              <h3 className="text-2xl font-bold text-gray-900">{data.wishlist?.wishlist_count || 0}</h3>
             </div>
           </div>
         </div>

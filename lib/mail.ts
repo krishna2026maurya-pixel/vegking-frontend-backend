@@ -199,19 +199,19 @@ VegKing Team`;
 }
 
 export async function sendUserWelcomeEmail(user: { name: string; email: string }) {
-  const subject = `Welcome to Organic Vatika, ${user.name}!`;
+  const subject = `Welcome to VegKing, ${user.name}!`;
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background-color: #fcfdfc;">
       <div style="text-align: center; border-bottom: 2px solid #16a34a; padding-bottom: 10px; margin-bottom: 20px;">
-        <h2 style="color: #1e3b2b; margin: 0;">Organic Vatika</h2>
+        <h2 style="color: #1e3b2b; margin: 0;">VegKing</h2>
         <p style="color: #16a34a; font-size: 14px; margin: 5px 0 0 0;">Fresh & Healthy Produce Delivered Daily</p>
       </div>
       
       <p style="font-size: 16px; color: #1f2937;">Dear <strong>${user.name}</strong>,</p>
       
       <p style="font-size: 15px; color: #4b5563; line-height: 1.6;">
-        Welcome to Organic Vatika! We are thrilled to have you join our community. Our mission is to deliver fresh, premium quality vegetables and fruits straight from the farm to your kitchen.
+        Welcome to VegKing! We are thrilled to have you join our community. Our mission is to deliver fresh, premium quality vegetables and fruits straight from the farm to your kitchen.
       </p>
       
       <div style="background-color: #f4fbf7; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0; border-radius: 4px;">
@@ -240,7 +240,7 @@ export async function sendUserWelcomeEmail(user: { name: string; email: string }
       </p>
 
       <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px; font-size: 13px; color: #9ca3af; text-align: center;">
-        <p style="margin: 0;">Organic Vatika &bull; Freshness you can trust</p>
+        <p style="margin: 0;">VegKing &bull; Freshness you can trust</p>
         <p style="margin: 5px 0 0 0;">This is an automated welcome email. Please do not reply directly to this message.</p>
       </div>
     </div>

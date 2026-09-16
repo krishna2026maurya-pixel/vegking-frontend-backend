@@ -16,7 +16,7 @@ import {
 export const metadata = {
     title: 'About Us | VegKing',
     description:
-        'Learn how Organic Vatika brings fresh, organic, and responsibly sourced farm products to your home.',
+        'Learn how VegKing brings fresh, organic, and responsibly sourced farm products to your home.',
 };
 
 const strengths = [
@@ -202,7 +202,7 @@ export default function AboutPage() {
                 <div className="relative min-h-[280px] lg:min-h-full">
                     <Image
                         src="/images/categories/vegetables.jpg"
-                        alt="Fresh vegetables from Organic Vatika"
+                        alt="Fresh vegetables from VegKing"
                         fill
                         className="object-cover"
                     />

@@ -28,7 +28,7 @@ export default function LoginPage() {
     }
     setLoading(true);
     setError('');
-    
+
     // Call our custom send-otp endpoint or simulate for now
     try {
       const res = await fetch('/api/v1/auth/send-otp', {
@@ -82,20 +82,20 @@ export default function LoginPage() {
         <section className="relative hidden overflow-hidden bg-accent-dark lg:block">
           <Image
             src="/images/auth-login-organic.png"
-            alt="Fresh vegetables from Organic Vatika"
+            alt="Fresh vegetables from VegKing"
             fill
             priority
             sizes="(max-width: 1024px) 100vw, 450px"
             className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-accent-dark/95 via-accent-dark/55 to-accent-dark/20" />
-          <Link href="/" className="absolute left-6 top-6 z-10 inline-flex items-center gap-2">
-            <span className="text-sm font-black text-white">Organic Vatika</span>
-          </Link>
+
           <div className="absolute inset-x-0 bottom-0 p-7 text-white">
             <div className="inline-flex items-center gap-2 border border-white/20 bg-white/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest backdrop-blur">
               <Leaf className="h-3.5 w-3.5" />
-              Organic Vatika
+              <Link href="/" className="inline-flex items-center gap-2">
+                <span className="text-sm font-black text-white">VegKing</span>
+              </Link>
             </div>
             <h2 className="mt-4 max-w-sm text-3xl font-black leading-tight">
               Fresh vegetables delivered with care.
@@ -121,7 +121,7 @@ export default function LoginPage() {
           <div className="absolute inset-0 lg:hidden">
             <Image
               src="/images/auth-login-organic.png"
-              alt="Fresh vegetables from Organic Vatika"
+              alt="Fresh vegetables from VegKing"
               fill
               priority
               sizes="(max-width: 1024px) 100vw, 450px"
@@ -132,7 +132,7 @@ export default function LoginPage() {
           <div className="relative z-10 w-full max-w-sm">
             <div className="relative mb-4 flex items-center justify-between">
               <Link href="/" className="inline-flex items-center gap-2 lg:hidden">
-                <span className="text-xs font-black text-text-brand">Organic Vatika</span>
+                <span className="text-xs font-black text-text-brand">VegKing</span>
               </Link>
               <Link href="/" className="text-[10px] font-black uppercase tracking-widest text-primary-hover hover:underline">
                 Home
@@ -195,9 +195,9 @@ export default function LoginPage() {
                   >
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Login'}
                   </Button>
-                  <button 
-                    type="button" 
-                    onClick={() => { setStep(1); setOtp(''); setError(''); }} 
+                  <button
+                    type="button"
+                    onClick={() => { setStep(1); setOtp(''); setError(''); }}
                     className="w-full text-xs text-gray-500 hover:underline pt-2 block"
                   >
                     Back to Mobile Number

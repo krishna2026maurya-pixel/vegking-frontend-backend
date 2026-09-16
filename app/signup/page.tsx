@@ -25,7 +25,7 @@ export default function SignupPage() {
       setLoading(false);
       return;
     }
-    
+
     if (!/^\d{10}$/.test(formData.mobile_no)) {
       setError('Mobile number must be exactly 10 digits');
       setLoading(false);
@@ -60,19 +60,19 @@ export default function SignupPage() {
         <section className="relative hidden overflow-hidden bg-accent-dark lg:block">
           <Image
             src="/images/auth-signup-organic.png"
-            alt="Fresh produce basket from Organic Vatika"
+            alt="Fresh produce basket from VegKing"
             fill
             priority
             className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-accent-dark/95 via-accent-dark/55 to-accent-dark/20" />
-          <Link href="/" className="absolute left-6 top-6 z-10 inline-flex items-center gap-2">
-            <span className="text-sm font-black text-white">Organic Vatika</span>
-          </Link>
+
           <div className="absolute inset-x-0 bottom-0 p-7 text-white">
             <div className="inline-flex items-center gap-2 border border-white/20 bg-white/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest backdrop-blur">
               <Leaf className="h-3.5 w-3.5" />
-              Join Organic Vatika
+              <Link href="/" className="inline-flex items-center gap-2">
+                <span className="text-sm font-black text-white">Join VegKing</span>
+              </Link>
             </div>
             <h2 className="mt-4 max-w-sm text-3xl font-black leading-tight">
               Build a fresher grocery routine.
@@ -98,7 +98,7 @@ export default function SignupPage() {
           <div className="absolute inset-0 lg:hidden">
             <Image
               src="/images/auth-signup-organic.png"
-              alt="Fresh produce basket from Organic Vatika"
+              alt="Fresh produce basket from VegKing"
               fill
               priority
               className="object-cover"
@@ -108,7 +108,7 @@ export default function SignupPage() {
           <div className="relative z-10 w-full max-w-sm">
             <div className="relative mb-4 flex items-center justify-between">
               <Link href="/" className="inline-flex items-center gap-2 lg:hidden">
-                <span className="text-xs font-black text-text-brand">Organic Vatika</span>
+                <span className="text-xs font-black text-text-brand">VegKing</span>
               </Link>
               <Link href="/" className="text-[10px] font-black uppercase tracking-widest text-primary-hover hover:underline">
                 Home
@@ -121,7 +121,7 @@ export default function SignupPage() {
               </div>
               <h1 className="text-2xl font-black text-gray-950 sm:text-3xl">Create Account</h1>
               <p className="mt-2 text-xs font-medium leading-5 text-gray-500">
-                Join Organic Vatika for fresh deliveries.
+                Join VegKing for fresh deliveries.
               </p>
 
               {error && (
@@ -165,8 +165,8 @@ export default function SignupPage() {
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   icon={<Lock />}
                   endIcon={
-                    showPassword ? 
-                      <EyeOff onClick={() => setShowPassword(false)} className="h-4 w-4" /> : 
+                    showPassword ?
+                      <EyeOff onClick={() => setShowPassword(false)} className="h-4 w-4" /> :
                       <Eye onClick={() => setShowPassword(true)} className="h-4 w-4" />
                   }
                   required
@@ -178,8 +178,8 @@ export default function SignupPage() {
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                   icon={<Lock />}
                   endIcon={
-                    showConfirmPassword ? 
-                      <EyeOff onClick={() => setShowConfirmPassword(false)} className="h-4 w-4" /> : 
+                    showConfirmPassword ?
+                      <EyeOff onClick={() => setShowConfirmPassword(false)} className="h-4 w-4" /> :
                       <Eye onClick={() => setShowConfirmPassword(true)} className="h-4 w-4" />
                   }
                   required

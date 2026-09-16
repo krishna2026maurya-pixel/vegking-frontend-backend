@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Loader2, LogOut, Package, PackagePlus, ReceiptText, Store, User, X, Bike, Bell, Settings, ShieldCheck, CheckCircle2, AlertTriangle, Landmark, Search, Mail, ChevronDown, Plus, Heart, Filter, MessageSquare, HelpCircle, Sparkles, Download, Eye, ArrowUpDown, Trash2, Scale, Send, Check, Sun, Moon, RotateCw } from 'lucide-react';
+import { BarChart3, Loader2, LogOut, Package, PackagePlus, ReceiptText, Store, User, X, Bike, Bell, Settings, ShieldCheck, CheckCircle2, AlertTriangle, Landmark, Search, Mail, ChevronDown, Plus, Filter, MessageSquare, HelpCircle, Sparkles, Download, Eye, ArrowUpDown, Trash2, Scale, Send, Check, Sun, Moon, RotateCw } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import DataTable, { Column, Action } from '@/app/admin/components/DataTable';
 import { extractPriceFromMessage, getNegotiatedPrice } from '@/lib/negotiation-utils';
@@ -191,7 +191,6 @@ export default function VendorDashboardPage() {
   const [orderStatusModal, setOrderStatusModal] = useState<{ open: boolean; orderId: string | null; current: string; initialStatus: string; otp: string }>({ open: false, orderId: null, current: 'Order Placed', initialStatus: 'Order Placed', otp: '' });
   const [assignRiderModal, setAssignRiderModal] = useState<{ open: boolean; orderId: string | null; currentRiderId: string; itemId?: string | null; itemName?: string | null }>({ open: false, orderId: null, currentRiderId: '', itemId: null, itemName: null });
   const [viewingOrder, setViewingOrder] = useState<any>(null);
-  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [showMobileMore, setShowMobileMore] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
 
@@ -1247,10 +1246,6 @@ export default function VendorDashboardPage() {
     return 'No address registered';
   };
 
-  const toggleFavorite = (productId: string) => {
-    setFavorites(prev => ({ ...prev, [productId]: !prev[productId] }));
-  };
-
   const downloadVendorReport = () => {
     const csvContent = "data:text/csv;charset=utf-8,"
       + [
@@ -1655,18 +1650,10 @@ export default function VendorDashboardPage() {
                     ) : (
                       <>
                         {products.slice(0, 4).map((p) => {
-                          const isFav = !!favorites[p._id];
                           return (
                             <div key={p._id} className="border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-2xl p-3 flex flex-col justify-between hover:shadow-lg dark:hover:shadow-gray-950/60 hover:-translate-y-1 group transition-all duration-300">
                               <div className="relative h-28 w-full bg-[#f4f7f5] dark:bg-gray-700 rounded-xl overflow-hidden mb-3">
                                 <img src={getSafeProductImage(p.image)} alt={p.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                <button
-                                  type="button"
-                                  onClick={() => toggleFavorite(p._id)}
-                                  className="absolute top-2 right-2 h-7 w-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xs rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 transition-all cursor-pointer"
-                                >
-                                  <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : ''}`} />
-                                </button>
                               </div>
 
                               <div className="space-y-1">
@@ -1710,18 +1697,10 @@ export default function VendorDashboardPage() {
                     ) : (
                       <>
                         {products.slice(4, 8).map((p) => {
-                          const isFav = !!favorites[p._id];
                           return (
                             <div key={p._id} className="border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-2xl p-3 flex flex-col justify-between hover:shadow-lg dark:hover:shadow-gray-950/60 hover:-translate-y-1 group transition-all duration-300">
                               <div className="relative h-28 w-full bg-[#f4f7f5] dark:bg-gray-700 rounded-xl overflow-hidden mb-3">
                                 <img src={getSafeProductImage(p.image)} alt={p.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                <button
-                                  type="button"
-                                  onClick={() => toggleFavorite(p._id)}
-                                  className="absolute top-2 right-2 h-7 w-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xs rounded-full flex items-center justify-center shadow-sm text-gray-400 hover:text-red-500 transition-all cursor-pointer"
-                                >
-                                  <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : ''}`} />
-                                </button>
                               </div>
 
                               <div className="space-y-1">

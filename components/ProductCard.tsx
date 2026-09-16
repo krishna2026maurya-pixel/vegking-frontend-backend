@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import Link from 'next/link';
-import { Heart, Clock, Plus, Minus, Repeat, ArrowLeft, Check } from 'lucide-react';
+import { Clock, Plus, Minus, Repeat, ArrowLeft, Check } from 'lucide-react';
 
 const fallbackImage = '/images/product-card-default.jpg';
 
@@ -89,7 +89,6 @@ const getSafeImage = (url: any) => {
 export default function ProductCard({ product }: { product: any }) {
   const { cart, addToCart, updateQuantity } = useCart();
   const [imgSrc, setImgSrc] = useState(getSafeImage(product?.image));
-  const [isWishlisted, setIsWishlisted] = useState(false);
 
   const hasWeightOptions = product?.weightOptions && product.weightOptions.length > 0;
   const options = hasWeightOptions
@@ -209,22 +208,6 @@ export default function ProductCard({ product }: { product: any }) {
               TRENDING
             </div>
           )}
-
-          {/* Top Right Wishlist Button */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsWishlisted(!isWishlisted);
-            }}
-            className="absolute top-1 right-1 text-gray-400 hover:text-red-500 p-1 bg-white/75 backdrop-blur-xs rounded-full shadow-2xs cursor-pointer"
-          >
-            <Heart
-              className={`w-3 h-3 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-400'
-                }`}
-            />
-          </button>
 
             {/* Bottom Right Circular Green Plus / Stepper Button */}
             <div className="absolute bottom-1 right-1 z-10">
@@ -474,24 +457,6 @@ export default function ProductCard({ product }: { product: any }) {
                 {pct}% OFF
               </div>
             )}
-
-            {/* Top Right Wishlist */}
-            <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsWishlisted(!isWishlisted);
-                }}
-                className="text-gray-400 hover:text-red-500 p-1 bg-white/90 backdrop-blur-xs rounded-full shadow-2xs transition-colors cursor-pointer"
-              >
-                <Heart
-                  className={`w-3.5 h-3.5 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-400'
-                    }`}
-                />
-              </button>
-            </div>
 
             {/* Product Image */}
             <div>

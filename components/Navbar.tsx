@@ -830,11 +830,11 @@ export default function Navbar() {
               <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-7 py-7">
                 <div className="flex min-w-0 items-center gap-4">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-700 text-sm font-black text-white">
-                    {session?.user?.name?.charAt(0) || 'O'}
+                    {session?.user?.name?.charAt(0) || 'V'}
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-base font-extrabold text-gray-950">
-                      {session?.user?.name || 'Organic Vatika'}
+                      {session?.user?.name || 'VegKing'}
                     </p>
                     <p className="mt-0.5 text-sm font-medium text-gray-500">
                       {session ? session.user.role || 'Buyer' : 'Guest'}
