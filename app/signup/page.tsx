@@ -192,6 +192,13 @@ export default function SignupPage() {
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Account'}
                 </Button>
+
+                <p className="text-center text-[11px] text-gray-500">
+                  By registering, you agree to our{' '}
+                  <Link href="/privacy-policy" className="font-bold text-primary hover:underline">
+                    Privacy Policy
+                  </Link>
+                </p>
               </form>
 
               <p className="mt-4 text-center text-xs font-semibold text-gray-600">

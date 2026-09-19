@@ -108,6 +108,10 @@ export default function Footer() {
         <div className="mt-12 flex flex-col gap-3 border-t border-white/15 pt-6 text-[10px] sm:text-xs font-bold text-green-200/60 sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 VegKing. All rights reserved.</p>
           <div className="flex items-center gap-4 flex-wrap">
+            <Link href="/privacy-policy" className="hover:text-white transition underline-offset-4 hover:underline">
+              Privacy Policy
+            </Link>
+            <span>&bull;</span>
             <Link href="/rider-privacy-policy" className="hover:text-white transition underline-offset-4 hover:underline">
               Rider Privacy Policy
             </Link>
